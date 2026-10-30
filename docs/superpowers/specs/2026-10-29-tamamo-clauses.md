@@ -163,7 +163,7 @@ Asked by grilling, 2026-10-29.
 - [x] **TC.p2** · *(P2)* Damage taken by allied Units in their Home Base further reduced by 3d10+10 — Pressed live 2026-10-29: Asterios's Attack on Karl in his Home Base (tick 11): 'damageNegation −34 (Territory Creation)'
 - [x] **TC.p2.np** · …including NP — Pressed live 2026-10-29: Arjuna's Agni Gandiva (NP) on Karl in his Home Base (tick 11): 'damageNegation −27 (Territory Creation)'
 - [x] **TC.p2.field** · …only while she is on the field — Pressed live 2026-10-29: the cut is Tamamo's aura: Karl holds no Territory Creation of his own, the source is hers while she stands on the board
-- [ ] **TC.stack** · With several allied Territory Creations, only the highest Rank takes effect · *Untouched*
+- [x] **TC.stack** · With several allied Territory Creations, only the highest Rank takes effect — Observed live 2026-10-29 (cloud, War A): Asterios's Normal Attack on Tamamo in her Home Base, Medea (Territory Creation A) on the field: one row 'damageNegation Territory Creation −42', projection one entry 3d10+20 from Medea (42 is over C's 40); Medea's token taken off the field, same attacker and defender (tick 5): one row −21, projection 3d10+10 from Tamamo
 
 ## Divinity — Rank A *(Passive)*
 
@@ -259,8 +259,8 @@ Asked by grilling, 2026-10-29.
 - [x] **KK.5.self** · …Kokutendō's own included — Pressed live 2026-10-29: card 'Jusō・Kokutendō: Cooldown 6 → 5'
 - [x] **KK.5.np** · …if no Spell is on Cooldown, her NP Cooldown −⅓◈ instead (Q) — Pressed live 2026-10-29: Cú's Attack on Aphotic Tamamo, every Spell staged ready (tick 7): card 'Higanbana: Cooldown 6 → 5', 'Yata no Kagami: Cooldown 14 → 13'
 - [x] **KK.5.buff** · …if no Spell and no NP is on Cooldown, Dmg Up (Aphotic) for 1 time instead — Pressed live 2026-10-29: Asterios's Attack on Aphotic Tamamo, nothing cooling (tick 7): card 'Dmg Up (Aphotic)'
-- [ ] **KK.5.buff.15** · …damage dealt by her next Attack that deals MAG damage +15% · *Untouched*
-- [ ] **KK.5.buff.np** · …including NP · *Untouched*
+- [x] **KK.5.buff.15** · …damage dealt by her next Attack that deals MAG damage +15% — Pressed live 2026-10-29 (cloud, War A): Player1's Normal Attack on Arjuna at 3 holding Dmg Up (Aphotic) 15 (tick 2): stage 4 'Atk Up Dmg Up (Aphotic) +15% ✕ +15% → ×1.15', 178 → 204.7, 223 dealt, card 'Dmg Up (Aphotic): removed'; the same attack from the same panel without it (tick 4): stage 4 '✕ +0% → ×1.00', 237 → 237. The Dmg Up came from a 0-damage Attack on Aphotic Tamamo, Kokutendō's own Cooldown staged 5 → 0 first
+- [x] **KK.5.buff.np** · …including NP — Pressed live 2026-10-29 (cloud, War A): Player1's Dainisshō (categorized as NP) holding Dmg Up (Aphotic) 15 (tick 11): all eleven Processes stage 4 'Atk Up Dmg Up (Aphotic) +15% → ×1.15' (hit 9 on Asterios 489.9 at stage 4, 1054 dealt), removed once, on the last card; Yata no Kagami's use (tick 8), a non-damaging NP, left it held
 - [x] **KK.5.buff.stack** · …Dmg Up (Aphotic) stacks (Q) — Pressed live 2026-10-29: Cú's next Attack: a second 'Dmg Up (Aphotic)', two of 15 held
 - [x] **KK.5.buff.unremovable** · …and is Unremovable — Pressed live 2026-10-29: Dmg Up (Aphotic) unremovable: true
 - [x] **KK.lock** · Cannot be used while she is Aphotic — Pressed live 2026-10-29: Player1 pressed Kokutendō on the sheet while Aphotic (tick 8): 'Jusō・Kokutendō cannot be used: Blocked by Aphotic, in force.' (double stop fixed live)
@@ -338,14 +338,13 @@ Asked by grilling, 2026-10-29.
 - [x] **YK.3.np** · …NP too — Pressed live 2026-10-29: Player1's Higanbana (NP) inside the Area (tick 5): 'Amaterasu Area (STR only)' +50
 - [x] **YK.4** · *(4)* Allied Masters' ZON does not apply to their Servants within the Area — Pressed live 2026-10-29: same Attack: Karl far from his Master (25,24), no ZON penalty in the breakdown; suppression zonPenalty from the Area
 - [x] **YK.5** · *(5)* Allied Free Servants' Sustainability does not decrease within the Area — Pressed live 2026-10-29: Karl staged Free, clock at 6: across the tick 9 and Round boundaries inside the Area it stayed 6; stepped outside for one Turn end (tick 10) it fell to 5
-- [x] **YK.6** · *(6)* Every effect of a Servant that reduces its Master's Health when used or when it takes effect is — Pressed live 2026-10-29: same use: card 'its Master loses 5 Health, the cost ×0.5 (Amaterasu Area)', Master 231 → 226
-  halved (Q) · *Untouched*
+- [x] **YK.6** · *(6)* Every effect of a Servant that reduces its Master's Health when used or when it takes effect is halved (Q) — Pressed live 2026-10-29: same use: card 'its Master loses 5 Health, the cost ×0.5 (Amaterasu Area)', Master 231 → 226
 - [x] **YK.6.np** · …NP use included — Pressed live 2026-10-29: same: the NP's Rank E cost of 10 halved to 5
 - [x] **YK.7.max** · *(7)* Her Mantra Token maximum becomes 6 — Pressed live 2026-10-29: card 'MAX 3 → 6'
 - [x] **YK.7.fill** · …then she gains Mantra Tokens up to the maximum — Pressed live 2026-10-29: card 'Mantra 0 → 6'
 - [x] **YK.7.end** · …and when the NP ends (Q) — Pressed live 2026-10-29: Yata's end (tick 5 → 6): Mantra 5/6 → 3/3
 - [x] **YK.8** · *(8)* Her Divinity is activated — Pressed live 2026-10-29: projection: Divine Attribute and 'divinity 50' while the Area stands
-- [ ] **YK.9** · *(9)* If she is defeated, the NP is forcefully ended at the end of the Turn · *Untouched*
+- [x] **YK.9** · *(9)* If she is defeated, the NP is forcefully ended at the end of the Turn — Pressed (engine) live 2026-10-29 (cloud, War A): Yata reopened by Player1 at tick 14 (its Cooldown staged 14 → 0), expiry 20; Tamamo (Health staged 500 → 1) defeated by Asterios at tick 17: the Area still open; at that Turn's end (17 → 18) card 'Amaterasu Area ends. Its owner was defeated.', Mantra 3/3, Cooldown 12
 - [x] **YK.dur** · Lasts 2◈ — Pressed live 2026-10-29: field expiry 11 = tick 5 + 6 (2◈)
 - [x] **YK.dur.japan** · …3◈ if the Region is Japan — Pressed live 2026-10-29: same: field duration 3◈, expiry 17 = tick 8 + 9
 - [x] **YK.cd** · Cooldown 4◈ after it ends — Pressed live 2026-10-29: Yata's cooldown 15 after it ended = 4◈ + Dainisshō's 1◈
@@ -355,9 +354,9 @@ Asked by grilling, 2026-10-29.
 - [x] **DN.req** · Only usable while Yata no Kagami is Active — Pressed live 2026-10-29: used while the Area stood (requirement fieldOpen met)
 - [x] **DN.cat** · A Damage Spell categorized as Noble Phantasm — Pressed live 2026-10-29: Player1's Dainisshō (tick 5): an Attack, categorizedAsNP; no Master cost (her Master 226 before and after)
 - [x] **DN.area** · Hits a 7×7 panel area in any non-diagonal direction next to her (Q) — Pressed live 2026-10-29: placed east: a 7×7 against her side, rows 11-17, cols 15-21; Asterios, Cú, Arjuna inside, Karl (ally) inside and never struck (843 unchanged)
-- [ ] **DN.area.japan** · …9×9 if the Region is Japan · *Untouched*
+- [x] **DN.area.japan** · …9×9 if the Region is Japan — Pressed live 2026-10-29 (cloud, War B in Japan): Player1's Dainisshō (tick 4): the aim 81 panels east, south and west, 72 north where the board's edge clips it; south caught Arjuna at (17,14), 9 rows down and 4 across, outside any 7×7, and left out his Master at (18,10); hit 9 dealt Arjuna 690
 - [x] **DN.order** · Its effects run in order, 1 to 9 — Pressed live 2026-10-29: eleven Processes in the sheet's order: nature, ice, wind, lightning, water, earth, light, dark, then fire on each
-- [x] **DN.random** · Hits 1 to 8 each strike a random enemy Unit within the area (Q) — Pressed live 2026-10-29: each pick a d3 over the three enemies: 3/3 Cú, 3/3 Cú, 2/3 Arjuna, 2/3 Arjuna, 3/3 Cú, 3/3 Cú, 1/3 Asterios, 3/3 Cú (die added to the card live)
+- [x] **DN.random** · Hits 1 to 8 each strike a random enemy Unit within the area (Q) — Pressed live 2026-10-29: each pick a d3 over the three enemies: 3/3 Cú, 3/3 Cú, 2/3 Arjuna, 2/3 Arjuna, 3/3 Cú, 3/3 Cú, 1/3 Asterios, 3/3 Cú (die added to the card live). **Reopened 2026-10-29 (cloud, War B):** the draws are made at the declaration, not as each hit strikes: Asterios's Master, defeated by the fourth hit, was drawn by two later hits and struck by hit 9 (two defeat lines) **Fixed, pressed again live 2026-10-29 (cloud, War C, neutral):** the hits strike in sequence (ruled 2026-10-29); Player1's Dainisshō on Asterios (Health staged 1700 → 1) and Arjuna (tick 4): hit 1 'd2 = 1, of 2' Arjuna, hit 2 'd2 = 2, of 2' Asterios, felled; hits 3 to 6 'd1 = 1, of 1' Arjuna, felled at hit 6; hits 7, 8 and 9 'strikes nothing, no enemy is left standing in the area'; one defeat line each, one Phase end
 - [x] **DN.1** · *(1)* 50% damage, Nature — Pressed live 2026-10-29: Cú, nature, ×0.5, 208
 - [x] **DN.1.poison** · …25% chance of Poison — Pressed live 2026-10-29: card 'Poison rolled 87 vs 10%' (25 less MR 15)
 - [x] **DN.2** · *(2)* 50% damage, Ice — Pressed live 2026-10-29: Cú, ice, ×0.5, 287
