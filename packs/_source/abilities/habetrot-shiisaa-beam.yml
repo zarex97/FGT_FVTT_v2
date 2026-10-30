@@ -1,0 +1,34 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Only in the Form. Two wide and five deep, or five wide and two deep, against
+# any of her sides and touching it, her player's pick of shape, side and slide
+# along it (ruling 38): a turnable `orientedRect` beside her, Golden Wild
+# Hunt's. Every Unit in it but herself, allies too (ruling 25). Base damage, ×1.
+schema: 1
+id: habetrot-shiisaa-beam
+name: "Shiisaa Beam"
+kind: skill
+slug: shiisaaBeam
+isAttackSkill: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Attack Skill. Can only be used when in @effect[shisarotForm]{Shisarot Form}. Base Attack (MAG) is used. Hits a 2x5 or
+  5x2 panel area in any non-diagonal direction next to herself and inflicts @effect[defDwnTotal]{Def Dwn (Total)} for 1◈
+  Turns, Total damage taken is increased by 25% (does not stack). Cooldown: 3◈ Turns.
+requirements:
+  - { kind: predicate, predicate: ["self:effect:shisarotForm"] }
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 2, long: 5, turnable: true }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: mag
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwnTotal, magnitude: 25, duration: "1◈" }

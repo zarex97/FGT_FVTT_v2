@@ -31,6 +31,8 @@ import { paysHighColumn } from "./master-rank.mjs";
 import { isolationBlocks, contains, membershipVerdict } from "./bounded-fields.mjs";
 import { isNPAttack } from "./damage/pipeline.mjs";
 import { gateRoundFor, NP_GATE } from "./np-gate.mjs";
+import { test as testPredicate } from "./predicate.mjs";
+import { rollOptionsFor } from "./options.mjs";
 
 /** The interruptible points (Ch. 33). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
@@ -459,6 +461,12 @@ function meets(req, ctx) {
       // Escape's *"pair not already in the Home Base"* — there is nothing to
       // escape from if you are already there.
       return !inZone(req, master, servant);
+    case "servantPredicate":
+      // A command one Servant's sheet grants, asked of that Servant: Summer
+      // Habetrot's *"Habetrot's Master can spend one Command Spell to transform
+      // Habetrot into Shisarot Form"*, offered while she carries the Skill and is
+      // not already in the Form (#359 rulings 6, 7).
+      return Boolean(servant) && testPredicate(req.predicate ?? [], { options: rollOptionsFor({ attacker: servant }) });
     case "noOtherRevival":
       // Survive Kill is the only 3-cost command in the game, and the rules
       // guard against spending it on a Servant who would have come back anyway.
@@ -483,7 +491,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "servantInZon", "attackIsNotNP", "targetNotImmune",
   "servantWithin", "servantNotWithin", "highRankMaster",
   "inZone", "notInZone", "noOtherRevival",
-  "attackIsNP", "npGateOpen", "npCooling", "notMarked",
+  "attackIsNP", "npGateOpen", "npCooling", "notMarked", "servantPredicate",
 ]);
 
 /**

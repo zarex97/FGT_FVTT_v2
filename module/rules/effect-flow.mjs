@@ -435,6 +435,8 @@ export const ENTRY_KEYS = Object.freeze({
   count: { type: "json", means: "Scale the magnitude by a Count: { of, … } (rules/count.mjs)." },
   each: { type: "number", means: "With count: one step per this many counted." },
   base: { type: "number", means: "With count: the amount before any step." },
+  // Chibirā Sanu's *"(X+1)0%; if NP, X0%"* (#359).
+  npBase: { type: "number", means: "With count: the NP magnitude's own amount before any step, when it differs." },
   zeroPaysNothing: { type: "boolean", means: "With count: nothing at all, base included, when the count is 0." },
   // NP Regen (Balmung): *"if Siegfried had any 'Anti-Dragon' effects"* (#341).
   countedOnly: { type: "boolean", means: "With count: the effect does not land at all when its magnitude counts to 0." },
@@ -613,7 +615,7 @@ export function chanceOf(entry, { distance = null, band = null } = {}) {
  * @param {object|null} [ctx.event] the event's payload
  * @returns {number|null}
  */
-export function timesOf(raw, { stacks = {}, event = null } = {}) {
+export function timesOf(raw, { stacks = {}, event = null, self = null, board = null } = {}) {
   if (raw === undefined || raw === null) return null;
   if (typeof raw === "number") return Math.floor(raw);
   if (typeof raw === "string") {
@@ -624,5 +626,7 @@ export function timesOf(raw, { stacks = {}, event = null } = {}) {
   // A Count (`rules/count.mjs`): one per `each` of what it counts.
   const scale = countScaleOf(raw);
   if (!scale) return 1;
-  return countedValue({ ...scale, per: 1, base: 0 }, { stacks });
+  // `self` and `board` for a Count of the caster: Great Decisive Battle's one
+  // Atk Up per 5% of her Crit Chance above 50% (#359 ruling 19).
+  return countedValue({ ...scale, per: 1, base: 0 }, { stacks, self, board });
 }

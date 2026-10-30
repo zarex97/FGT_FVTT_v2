@@ -133,3 +133,6 @@ Germany do, and touch no Middle East edge, so Semiramis's Construction counter i
   (`module/rules/environment.mjs:272`). So a claimant must be *next to* the Grail at Chebyshev 1
   while a blocker need only be *within the Grail Area* at Chebyshev 2, exactly as the two clauses
   read. They are not the same test and the code does not treat them as one.
+
+**Scotland and Fairy Britain** (#359 ruling 3). Summer Habetrot's *"Fairy Country: Britain; Scotland"* is two
+Regions: Scotland borders England, and Fairy Britain, a Britain apart from England, borders nothing, as the Moon.

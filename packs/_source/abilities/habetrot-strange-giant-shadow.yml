@@ -1,0 +1,31 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Three rules that hold only while she is not in the Shisarot Form:
+#
+# 1. Her Normal Attack's bands: BA(STR) at Range 1, BA(MAG) and Water from 2
+#    (ruling 4). They are the servant file's `normalAttack`; in the Form the
+#    `shisarot` branch replaces them (`summonVariant.shisarot`), so the rule
+#    lives once, on the statblock.
+# 2. Evade rolls -1d12, the d12 on the card: Penthesilea's die on a check.
+#    No other Agility Check is touched.
+# 3. Her Master's Command Spell into the Form is `cs-shisarot-form`, offered
+#    to her Master only, on her side's Turn, never while she is in the Form
+#    (rulings 6, 7).
+schema: 1
+id: habetrot-strange-giant-shadow
+name: "A Strange Giant Shadow was Sighted on Majimun Island"
+kind: skill
+slug: strangeGiantShadow
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) Habetrot has the following effects when not in Shisarot Form-
+  1. At a Range of 1, Normal Attacks use Base Attack (STR). At a Range of 2 or higher, Normal Attacks use Base
+     Attack (MAG) and deal Water damage.
+  2. Evade rolls are reduced by 1d12. Does not affect non-Evade Agility Check rolls.
+  3. Habetrot's Master can spend one Command Spell to transform Habetrot into Shisarot Form for 3◈ Turns.
+passiveRules:
+  - key: CheckModifier
+    check: evade
+    roll: { key: strangeGiantShadowEvade, formula: "1d12", multiplier: -1 }
+    predicate: ["not:self:effect:shisarotForm"]

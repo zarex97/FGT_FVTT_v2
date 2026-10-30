@@ -1,0 +1,14 @@
+# Summer Habetrot's Yanamun Reversal 1 (#359): *"all damage dealt to Units
+# with the 'Demonic' Attribute is increased by 30%"*. Dmg Up (Gods)'s shape:
+# `dmgUp`, so it reaches a Noble Phantasm at its full value.
+schema: 1
+id: dmgUpDemonic
+name: "Dmg Up (Demonic)"
+description: "All damage dealt to Units with the 'Demonic' Attribute is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: "@magnitude", predicate: ["target:attribute:demonic"] }

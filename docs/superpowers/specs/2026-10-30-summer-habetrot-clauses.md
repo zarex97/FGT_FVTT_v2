@@ -100,8 +100,10 @@ What she needs that nobody has yet, each to be built as a generic piece:
 
 ### Already ruled
 
-**Elsewhere:** Base Attack and Max Health derive from the tables (§46.6); here they agree with the sheet: BA(STR) 115
-at STR B− (125 − 10), BA(MAG) 150 at MAG C, Health 1000 at END C++ (the `++` on the display, Asterios's) · Riding A
+**Elsewhere:** Base Attack and Max Health derive from the tables (§46.6): BA(STR) 115 at STR B− (125 − 10) and
+BA(MAG) 150 at MAG C agree with the sheet; Max Health is 1200 at END C++, the table beating the sheet's printed 1000
+(as Asterios's A++ is 1700; corrected while building, `docs/surprises/2026-10-30-claimed-plus-plus-is-display.md`), and
+her *"original"* Max Health is that 1200 (SF.3.max, YR.4.max) · Riding A
 is +5 MOV and 3◈ by its table · Item Construction E− is 5% by its table (E 10 − 5), Instakill and Death 0 ·
 *"a standard Servant Class"* is one of the seven (`STANDARD_CLASSES`, #328) · *"N% extra damage"* is the ability's
 own ×(1 + N%) (#193 reading 12) · *"further increased by 150%"* against an Attribute is a ×2.5 conditional multiplier

@@ -78,7 +78,7 @@ export function empty() {
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
-    excludesOpponentSources: [], unhandled: [],
+    excludesOpponentSources: [], unhandled: [], injuryThresholdFactors: [],
     autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [], lethalCancels: [],
@@ -434,7 +434,7 @@ export function rankWithShifts(ability, entries) {
  * @returns {number|number[]|string|null}
  */
 export function resolveValue(el, rank, ctx, field = "value") {
-  return stackScaled(el, rawValue(el, rank, ctx, field), ctx);
+  return stackScaled(el, rawValue(el, rank, ctx, field), ctx, field);
 }
 
 /**
@@ -466,13 +466,18 @@ export function resolveValue(el, rank, ctx, field = "value") {
  * @param {object} ctx
  * @returns {number|number[]|string|null}
  */
-function stackScaled(el, value, ctx) {
+function stackScaled(el, value, ctx, field = "value") {
   const spec = countScaleOf(el);
   if (!spec) return clampMax(value, el.max);
   if (typeof value !== "number" && !Array.isArray(value)) return value;
 
+  // The NP figure's own floor, where it differs: Chibirā Sanu's Atk Up is
+  // *"(X+1)0%; if NP, X0%"*, `base: 10` and `npBase: 0` over one Count (#359).
+  const base = field === "npMagnitude" && spec.npBase !== undefined ? { base: spec.npBase } : {};
   // The element's value is the amount per step; the Count module sizes it.
-  const scale = (v) => countedValue({ ...spec, per: v }, ctx ?? {});
+  const { npBase, ...scaled } = spec;
+  void npBase;
+  const scale = (v) => countedValue({ ...scaled, ...base, per: v }, ctx ?? {});
 
   return clampMax(Array.isArray(value) ? value.map(scale) : scale(value), el.max);
 }
@@ -1569,6 +1574,20 @@ export const EXECUTORS = Object.freeze({
 
   NegateOpponentSource(el, { out }) {
     for (const name of el.sources ?? []) out.excludesOpponentSources.push(name);
+  },
+
+  /**
+   * The damage taken that triggers this Unit's Injury Roll, scaled (#310).
+   *
+   * > *"The amount of damage taken that is required to trigger an Agility Roll
+   * > is doubled (i.e. 200)."* -- Summer Habetrot's Shisarot Form, Tamamo Cat.
+   *
+   * "Agility Roll" is the Injury Roll (#359 ruling 28). A factor on the rule's
+   * 100, read by `damage/pipeline.mjs#injuryThresholdOf`; several multiply.
+   */
+  InjuryThreshold(el, { out }) {
+    const factor = Number(el.factor ?? 1);
+    if (Number.isFinite(factor) && factor > 0 && factor !== 1) out.injuryThresholdFactors.push(factor);
   },
 
   /* ── Group 1 — stat and derived-value modifiers ───────────────────────── */

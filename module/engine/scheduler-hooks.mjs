@@ -155,7 +155,16 @@ async function onTurnChange(combat, prior, current) {
   // returned above, so the two claims cannot be split between two connections.
   const runsRound = Boolean(roundEntry) && await claimBoundary(combat, "round");
 
-  const board = boardFor(combat, endedRound);
+  let board = boardFor(combat, endedRound);
+  // An effect about to end with a paid extension asks first, before anything
+  // expires: the Shisarot Form's Command Spell (#359). Paid, the board is read
+  // again, so the scheduler sees the clock it bought.
+  {
+    const { offerEffectExtensions } = await import("./effect-extension.mjs");
+    if (await offerEffectExtensions(board, { tick, turnsPerRound: warRule("turnsPerRound") })) {
+      board = boardFor(combat, endedRound);
+    }
+  }
   const activeFactionId = factionOf(combat, { combatantId: endedCombatantId });
   // Its SIDE: a charmed Unit's own Turn is its charmer's (#180).
   const activeUnits = board.units.filter((u) => sideOf(u) === activeFactionId);

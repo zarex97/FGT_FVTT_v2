@@ -1,0 +1,79 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Two areas. The use is aimed at the enemies' block, a 3x3 against one of her
+# four sides (4x4 in the Form, the pink value read at the use, ruling 13),
+# Excalibur's `selfEdgeAdjacent`, her player's pick of side (ruling 18).
+# Effects 1-5 reach every allied Unit within 2 of her, herself included, by
+# their phase's own targeting, and herself only in the Form (ruling 16).
+#
+# Max HpUp's *"30% of its original value"* is each Unit's base Max Health
+# (ruling 17): its END's derivation, the table beating the sheet (§46.6),
+# restored to the current as it lands.
+schema: 1
+id: habetrot-yanamun-reversal
+name: "Yanamun Reversal"
+rank: A
+kind: skill
+slug: yanamunReversal
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of herself (herself only in
+  Shisarot Form). Has the following effects-
+  1. Applies @effect[dmgUpDemonic]{Dmg Up (Demonic)} for 1◈ Turns, all damage dealt to Units with the 'Demonic'
+     Attribute is increased by 30%.
+  2. Applies @effect[dmgUpUndead]{Dmg Up (Undead)} for 1◈ Turns, all damage dealt to Units with the 'Undead'
+     Attribute is increased by 30%.
+  3. Applies @effect[vDebuffImmune]{Volatile Debuff Immune} for 1◈ Turns.
+  4. Applies @effect[maxHpUp]{Max HpUp} for 1◈ Turns (2◈ Turns in Shisarot Form), Max & current Health is
+     increased by 30% of its original value.
+  5. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns, Crit Chance is increased by 5%.
+  The next two effects are applied to all enemy Units within a 3x3 (4x4 in Shisarot Form) panel area in any
+  non-diagonal direction next to herself-
+  6. Inflicts @effect[debuffResDwn]{Debuff ResDwn} for 1◈ Turns, chance of being inflicted with debuffs is
+     increased by 15%.
+  7. Inflicts @effect[skillSeal]{Skill Seal} for ⅓◈ Turns.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+  branches:
+    - predicate: ["self:effect:shisarotForm"]
+      anchor: { kind: selfEdgeAdjacent }
+      shape: { kind: square, size: 4 }
+      selection: { relations: [enemy], includeSelf: false, chooser: all }
+phases:
+  # 1-5 outside the Form: every allied Unit within 2, herself included.
+  - kind: applyEffects
+    predicate: ["not:self:effect:shisarotForm"]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: dmgUpDemonic, magnitude: 30, duration: "1◈" }
+      - { id: dmgUpUndead, magnitude: 30, duration: "1◈" }
+      - { id: vDebuffImmune, duration: "1◈" }
+      - { id: maxHpUp, magnitude: "0.3 * @target.originalMaxHealth", duration: "1◈", restores: [{ stat: health.value, delta: "0.3 * @target.originalMaxHealth" }] }
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:effect:shisarotForm"]
+    effects:
+      - { id: sCritUp, magnitude: 5, duration: "⅓◈" }
+  # ...and in the Form, herself only, Max HpUp for 2◈.
+  - kind: applyEffects
+    target: self
+    predicate: ["self:effect:shisarotForm"]
+    effects:
+      - { id: dmgUpDemonic, magnitude: 30, duration: "1◈" }
+      - { id: dmgUpUndead, magnitude: 30, duration: "1◈" }
+      - { id: vDebuffImmune, duration: "1◈" }
+      - { id: maxHpUp, magnitude: "0.3 * @self.originalMaxHealth", duration: "2◈", restores: [{ stat: health.value, delta: "0.3 * @self.originalMaxHealth" }] }
+      - { id: sCritUpSelf, magnitude: 5, duration: "⅓◈" }
+  # 6-7, on the enemies in the block.
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: debuffResDwn, magnitude: 15, duration: "1◈" }
+      - { id: skillSeal, duration: "⅓◈" }

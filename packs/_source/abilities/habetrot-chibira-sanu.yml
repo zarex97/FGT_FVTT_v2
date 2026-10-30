@@ -1,0 +1,148 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Order as printed (ruling 23): first the two buffs, counted where she stands
+# before she transforms (rulings 21, 22); next the Form, or 3◈ more of it when
+# she is in it (ruling 24, no new Pretender); then the hit, struck as
+# Shisarot: Large, her Health doubled, the Form's Pretender picked first.
+#
+# NP DmUp: 10% per enemy Unit within 3 of her, a Master or a summon included.
+# Atk Up: (X+1)0%, X0% against an NP, X the allied Units within 2 of her,
+# herself included (#132): alone, 20% and NP 10%. `npBase` is the NP figure's
+# own floor.
+#
+# The 2x2 catches every Unit in it but herself, allies too (ruling 25);
+# "further increased by 150%" against Large is Antares Snipe's ×2.5.
+schema: 1
+id: habetrot-chibira-sanu
+name: "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas"
+rank: EX
+kind: noblePhantasm
+slug: chibiraSanu
+isNP: true
+npTags: [antiKaiju]
+cooldown: "8◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Base Attack (MAG) is used. Range+2 for the Combat Process. First, has the following effects-
+  1. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns, NP Damage dealt is increased by 10% for every enemy Unit within
+     a 3 panel area of herself.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by (X+1)0%; if NP, X0%; X=the number
+     of allied Units within a 2 panel area of herself.
+  Next, Habetrot transforms into @effect[shisarotForm]{Shisarot Form} for 3◈ Turns (if used while in Shisarot Form,
+  its duration is extended). Hits a 2x2 panel area within Range for 5x damage, damage dealt to Units with the
+  'Large' Attribute is further increased by 150%. Cooldown: 8◈ Turns.
+  (Passive) Habetrot gains the following effects while in Shisarot Form-
+  1. Size is increased from 1 panel to 2 panels.
+  2. Gains the 'Large' Attribute.
+  3. Max and current Health are increased by 100% of their original values.
+  4. The effects of some Skills are upgraded to the values in this colour.
+  5. The effects of Active Skills which are applied to all allied Units within the specified area now affect
+     Habetrot herself only.
+  6. The amount of damage taken that is required to trigger an Agility Roll is doubled (i.e. 200).
+  7. Habetrot cannot Block; and when she performs an Agility Check, double the value of the roll.
+  8. Habetrot can Move to any panel, when she Moves to any occupied panels, all Units occupying said panels are
+     knocked back by 1 panel until the space is free for Habetrot to stand on.
+  9. Normal Attacks at a Range of 1 use Base Attack (STR). Normal Attacks at a Range of 2 or higher use Base Attack
+     (MAG). Normal Attacks now hit a 2x2 panel area, and knocks back the DU(s) by one panel.
+  10. Whenever Habetrot transforms into Shisarot Form, apply a 'Pretender (>X)' effect to her, this 'Pretender
+      (>X)' effect lasts until she exits Shisarot Form.
+  11. When Shisarot Form is about to end at the end of a Turn, her Master can spend one Command Spell to extend its
+      duration by 3◈ Turns. If extended in this way, Habetrot's Skill Cooldown is reduced by 1◈ Turns and
+      Habetrot's next Attack deals 100% extra damage; if NP, 50%.
+targeting:
+  anchor: { kind: withinRange, rangeBonus: 2 }
+  shape: { kind: square, size: 2 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+  conditionalMultipliers:
+    - { factor: 2.5, predicate: ["target:attribute:large"], source: "Large (+150%)" }
+phases:
+  # 1, 2. First, where she stands.
+  - kind: applyEffects
+    target: self
+    when: beforeDamage
+    effects:
+      - id: npDmUp
+        magnitude: 10
+        count: { of: board, relations: [enemy], within: 3, standing: true }
+        duration: "⅓◈"
+      - id: atkUp
+        magnitude: 10
+        npMagnitude: 10
+        count: { of: board, relations: [ally, self], within: 2, standing: true }
+        base: 10
+        npBase: 0
+        duration: "1◈"
+  # Next: in the Form already, 3◈ more of it (ruling 24)...
+  - kind: effectDuration
+    target: self
+    when: beforeDamage
+    predicate: ["self:effect:shisarotForm"]
+    effects: [shisarotForm]
+    extend: "3◈"
+  # ...or the transform: first its Pretender, picked unless she is Skill Sealed
+  # (SF.10, ruling 8); the Form's replaces an Active's (ruling 9).
+  - kind: choose
+    target: self
+    when: beforeDamage
+    predicate: ["not:self:effect:shisarotForm", "not:self:effect:skillSeal"]
+    prompt: "FGT.Pretender.ChooseClass"
+    count: 1
+    options:
+      - id: saber
+        label: "FGT.Class.saber"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderSaber, permanent: true }]
+      - id: archer
+        label: "FGT.Class.archer"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderArcher, permanent: true }]
+      - id: lancer
+        label: "FGT.Class.lancer"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderLancer, permanent: true }]
+      - id: rider
+        label: "FGT.Class.rider"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderRider, permanent: true }]
+      - id: caster
+        label: "FGT.Class.caster"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderCaster, permanent: true }]
+      - id: assassin
+        label: "FGT.Class.assassin"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderAssassin, permanent: true }]
+      - id: berserker
+        label: "FGT.Class.berserker"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderBerserker, permanent: true }]
+  # ...then the Form, its current Health doubled as it lands (ruling 27). The
+  # same transform `cs-shisarot-form` runs.
+  - kind: applyEffects
+    target: self
+    when: beforeDamage
+    predicate: ["not:self:effect:shisarotForm"]
+    effects:
+      - id: shisarotForm
+        duration: "3◈"
+        restores: [{ stat: health.value, delta: "@self.health.value" }]
+  - kind: damage

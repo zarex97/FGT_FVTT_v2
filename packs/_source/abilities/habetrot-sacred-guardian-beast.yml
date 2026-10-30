@@ -1,0 +1,55 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# The pink values are the Form's: Decoy and Dmged NP Regen last 1◈ in it, ⅓◈
+# out of it, read at the use and kept if she then leaves or enters it (ruling
+# 13). In the Form her S.Crit Up reaches herself only (ruling 16): the
+# `sCritUpSelf` sibling of the #132 aura. Each pair is two phases on the
+# caster's own gate.
+schema: 1
+id: habetrot-sacred-guardian-beast
+name: "Sacred Guardian Beast"
+rank: A
+kind: skill
+slug: sacredGuardianBeast
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[decoy]{Decoy} for ⅓◈ Turns (1◈ Turns in Shisarot Form).
+  2. Applies @effect[dmgedNpRegen]{Dmged NP Regen} for ⅓◈ Turns (1◈ Turns in Shisarot Form), NP Cooldown is reduced
+     by 1◈ Turns when successfully hit by an Attack.
+  3. Applies @effect[guts]{Guts} for 1◈ Turns, when defeated this Unit is revived with 30% of its Max Health.
+  4. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of herself, Crit
+     Chance is increased by 5% (herself only in Shisarot Form).
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:effect:shisarotForm"]
+    effects:
+      - { id: decoy, duration: "⅓◈" }
+      - { id: dmgedNpRegen, duration: "⅓◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:effect:shisarotForm"]
+    effects:
+      - { id: decoy, duration: "1◈" }
+      - { id: dmgedNpRegen, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: guts, magnitude: 30, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:effect:shisarotForm"]
+    effects:
+      - { id: sCritUp, magnitude: 5, duration: "⅓◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:effect:shisarotForm"]
+    effects:
+      - { id: sCritUpSelf, magnitude: 5, duration: "⅓◈" }

@@ -1,0 +1,47 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Only in the Form. A non-Attack Skill is a Skill or Class Skill she uses by
+# its press: Pretender, Riding, Sacred Guardian Beast, Yanamun Reversal, Great
+# Decisive Battle; not an NP, an Attack Skill, a Command Spell, or Ocean
+# Stirring firing by itself (ruling 32): `abilityUsed`, which a Command Spell
+# and a passive's own firing never raise, less an NP and a damaging Attack.
+# Negated while she is not in the Form (`negatedWhile`), as Tamamo's Divinity.
+#
+# At the third Counter, at once: the gate reads the Counters before the one
+# this use adds, so 2 held means this is the third. All removed, then the
+# four. 4's cut reaches every cooling Skill, the one that brought the third
+# Counter included (ruling 34). The Counters are lost when the Form ends
+# (ruling 33, `shisarot-form.yml`).
+schema: 1
+id: habetrot-divine-beasts-rage
+name: "Divine Beast's Rage"
+kind: skill
+slug: divineBeastsRage
+passive: true
+negatedWhile: { missingEffect: [shisarotForm] }
+copyable: { allowed: false, reason: unique }
+description: |
+  Only in effect when in Shisarot Form.
+  (Passive 1) Whenever Shisarot uses a non-Attack Skill, gain 1 Shiisaa Counter.
+  (Passive 2) When Shisarot has 3 Shiisaa Counters, immediately remove all of them and apply the following effects to
+  herself-
+  1. Applies @effect[npDmUpOnce]{NP DmUp} for 1 time, NP Damage dealt is increased by 15%.
+  2. Applies @effect[dmgUpKaiju]{Dmg Up (Kaiju)} for 1◈ Turns, all damage dealt to Units with the 'Large' Attribute is
+     increased by 30%; if the DU also has the 'Giant' Attribute, all damage dealt is further increased by 30%.
+  3. Applies @effect[eAtkUp]{E.Atk Up} for 1◈ Turns, non-NP AoE damage dealt is increased by 30%.
+  4. Skill Cooldown is reduced by 1◈ Turns, and Cooldown of 'Great Decisive Battle at the Southern Sea' is reduced by
+     an additional 1◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    excludeNP: true
+    excludeDamaging: true
+    then:
+      - { key: ResourceDelta, resource: shiisaa, delta: 1 }
+      - { key: ResourceDelta, resource: shiisaa, set: 0, whenValue: { stat: resources.shiisaa.value, gte: 2 } }
+      - { key: ApplyEffect, effect: { id: npDmUpOnce, magnitude: 15 }, whenValue: { stat: resources.shiisaa.value, gte: 2 } }
+      - { key: ApplyEffect, effect: { id: dmgUpKaiju, magnitude: 30 }, duration: "1◈", whenValue: { stat: resources.shiisaa.value, gte: 2 } }
+      - { key: ApplyEffect, effect: { id: eAtkUp, magnitude: 30 }, duration: "1◈", whenValue: { stat: resources.shiisaa.value, gte: 2 } }
+      - { key: CooldownDelta, scope: skills, ticks: "1◈", whenValue: { stat: resources.shiisaa.value, gte: 2 } }
+      - { key: CooldownDelta, ability: greatDecisiveBattle, ticks: "1◈", whenValue: { stat: resources.shiisaa.value, gte: 2 } }

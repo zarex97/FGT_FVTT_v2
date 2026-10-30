@@ -185,3 +185,10 @@ options drew over each other until the toggle grew to its text (§46.4-OP), and 
 **A field that holds its Servant keeps it** (#353 reading 24). A command whose effect teleports is refused
 (`heldByField`) while the Servant stands in a field whose exit is sealed against it: Yata no Kagami's *"Tamamo cannot
 leave the Amaterasu Area"*. Asked of the field's own exit gate, `membershipVerdict`, the one a step out asks.
+
+**A command one Servant's sheet grants** (#359). `servantPredicate` asks a predicate of the Servant the command is
+spent for: Summer Habetrot's *"Habetrot's Master can spend one Command Spell to transform Habetrot into Shisarot
+Form"* is `cs-shisarot-form`, offered on her side's Turn while she carries the Skill and is not in the Form (rulings 6,
+7). Its effect `phases` runs on the Servant once the command is paid (validate, pay, apply), through
+`engine/skill-use.mjs#runGrantedPhases`, with a card: her Pretender picked, the Form landed, her Health doubled. The
+same transform her NP runs; the Form's paid extension at its end is Ch. 15's `extension`.
