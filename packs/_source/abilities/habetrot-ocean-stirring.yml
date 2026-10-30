@@ -1,0 +1,42 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Only in the Form (`negatedWhile`). At the start of her own side's Turn, while her NP is not
+# cooling, by itself, no prompt, its line on the card (ruling 36).
+#
+# 1. *"NP Cooldown is Reset"* puts her NP on its full Cooldown, 8◈, as
+# U-Olga Marie's Flawlessness (ruling 35, carried from #328 ruling 13 by the
+# user's word): so it fires once per NP cycle.
+# 4. S.Crit Up (Shiisa): ten charges, +5% per charge left (ruling 37).
+schema: 1
+id: habetrot-ocean-stirring
+name: "Ocean Stirring Lion's Roar"
+kind: skill
+slug: oceanStirring
+passive: true
+negatedWhile: { missingEffect: [shisarotForm] }
+copyable: { allowed: false, reason: unique }
+description: |
+  Only in effect when in Shisarot Form.
+  (Passive) At the start of Habetrot's Turn, if her NP is not on Cooldown, this Skill is automatically activated. Has
+  the following effects-
+  1. NP Cooldown is Reset.
+  2. Applies @effect[atkUp]{Atk Up} for 2◈ Turns, all damage dealt is increased by 50%; if NP, 30%.
+  3. Applies @effect[dmgUpLarge]{Dmg Up (Large)} for 2◈ Turns, all damage dealt to Units with the 'Large' Attribute is
+     increased by 50%.
+  4. Applies @effect[sCritUpShiisa]{S.Crit Up (Shiisa)} for 2◈ Turns, 10 times (stacks); Crit Chance is increased by
+     (5*X)%, X=the number of stacks are left for this buff.
+  5. The duration of Shisarot Form is extended by 1◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: turnStart
+    automatic: true
+    # Asked as the Turn starts, not at collection: whose Turn it is and her NP's
+    # clock are the moment's (`defer`, as Fafnir's upkeep).
+    defer: true
+    predicate: ["self:ownTurn", "not:self:npOnCooldown"]
+    then:
+      - { key: CooldownDelta, scope: np, restart: true }
+      - { key: ApplyEffect, effect: { id: atkUp, magnitude: 50, npMagnitude: 30 }, duration: "2◈" }
+      - { key: ApplyEffect, effect: { id: dmgUpLarge, magnitude: 50 }, duration: "2◈" }
+      - { key: ApplyEffect, effect: { id: sCritUpShiisa, uses: 10 }, duration: "2◈" }
+      - { key: ExtendEffect, effect: shisarotForm, ticks: "1◈" }

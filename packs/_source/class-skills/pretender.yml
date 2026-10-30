@@ -1,0 +1,122 @@
+# The Pretender class's own skill, *"Pretender: The One who Wears a Role"*.
+#
+# Summer Habetrot first (#359); Hephaestion Mnēmosynē, Kumonryuu Eliza, Lady
+# Avalon and Oberon Vortigern print the same Passive and Active word for word,
+# so it lives here, as Alter Ego's did the day a second Alter Ego arrived.
+# Dante's and Oberon's extra Passives are their own sheets'.
+#
+# The Passive is `class-alter-ego` with the Outsider half's signs flipped and
+# an Alter Ego half beside it, negated while its holder has any Pretender
+# effect. The dealt halves name the DU, so `target:` defers them; the taken
+# halves name the attacker and wait for him (`defer`), and there the holder is
+# `target:`, so the negation asks `target:` too.
+#
+# The Active: a standard Class chosen, its 'Pretender (>X)' applied for 2◈.
+# One Pretender at a time: the Active is refused while one is held, and each
+# Pretender effect replaces its siblings (ruling 9).
+schema: 1
+id: class-pretender
+name: "Pretender: The One who Wears a Role"
+source: class
+slug: pretender
+copyable: { allowed: false, reason: classSkill }
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) All damage dealt to Units with the 'Alter-Ego' Skill is increased by 50% and all damage taken from
+  them is reduced by 50%; applies to NP as well. All damage dealt to Units with the 'Outsider' Attribute and/or
+  'Existence Outside the Domain' Skill is reduced by 50% and all damage taken from them is increased by 50%;
+  applies to NP as well.
+  (Active) Used during your Turn. First, this Unit chooses a standard Servant Class. Apply the 'Pretender (>X)'
+  effect to itself for 2◈ Turns, where X is the chosen Servant Class; its effects are as follows- All damage
+  dealt to the selected Servant Class is increased by 50% and all damage taken from them is reduced by 50%;
+  applies to NP as well. While this Unit has any 'Pretender' effect, the Passive effects of this Skill are
+  negated.
+  The 'Pretender' effect is neither a buff or a debuff and is Unremovable unless this Unit is inflicted with
+  Skill Seal, then the 'Pretender' effect is removed from it.
+  Cooldown: 4◈ Turns. Cannot be used if this Unit already has a 'Pretender' effect.
+requirements:
+  - { kind: predicate, predicate: ["not:self:effectFamily:pretender"] }
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate: ["target:skill:alterEgo", "not:self:effectFamily:pretender"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 50
+    npValue: 50
+    defer: true
+    predicate: ["self:skill:alterEgo", "not:target:effectFamily:pretender"]
+  - key: DamageModifier
+    modifierKey: atkDwn
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate:
+      - { or: ["target:attribute:outsider", "target:skill:existenceOutsideTheDomain"] }
+      - "not:self:effectFamily:pretender"
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: 50
+    npValue: 50
+    defer: true
+    predicate:
+      - { or: ["self:attribute:outsider", "self:skill:existenceOutsideTheDomain"] }
+      - "not:target:effectFamily:pretender"
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: choose
+    target: self
+    prompt: "FGT.Pretender.ChooseClass"
+    count: 1
+    options:
+      - id: saber
+        label: "FGT.Class.saber"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderSaber, duration: "2◈" }]
+      - id: archer
+        label: "FGT.Class.archer"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderArcher, duration: "2◈" }]
+      - id: lancer
+        label: "FGT.Class.lancer"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderLancer, duration: "2◈" }]
+      - id: rider
+        label: "FGT.Class.rider"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderRider, duration: "2◈" }]
+      - id: caster
+        label: "FGT.Class.caster"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderCaster, duration: "2◈" }]
+      - id: assassin
+        label: "FGT.Class.assassin"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderAssassin, duration: "2◈" }]
+      - id: berserker
+        label: "FGT.Class.berserker"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: pretenderBerserker, duration: "2◈" }]

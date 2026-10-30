@@ -331,8 +331,31 @@ function inRecipientRoles(roles, source, recipient, board) {
     // ally-aura on the board, Pollux's own Guardians of Navigation included.
     if (role === "linkedPartner"
       && [...(source?.linkedGroup?.memberIds ?? [])].includes(recipient.id)) return true;
+    // The source's own Master, and the allied Unit nearest the source other
+    // than that Master and itself, every one tied at the nearest: Guardian
+    // Faerie's *"her Master and the allied Unit which is nearest to her (other
+    // than her Master)"*, a Master or a summon included (#359 ruling 11).
+    if (role === "master" && source?.masterId && recipient.id === source.masterId) return true;
+    if (role === "nearestAlly" && nearestAllies(source, board).has(recipient.id)) return true;
   }
   return false;
+}
+
+/**
+ * The allied Units nearest a source, other than itself and its Master: the
+ * standing ones on its level, every one tied at the least distance.
+ *
+ * @param {object} source
+ * @param {object} board
+ * @returns {Set<string>}
+ */
+function nearestAllies(source, board) {
+  const others = (board?.units ?? []).filter((u) => u.id !== source?.id && u.id !== source?.masterId
+    && !u.defeated && (u.level ?? 0) === (source?.level ?? 0)
+    && relationOf(source, u, board) === "ally");
+  if (others.length === 0) return new Set();
+  const least = Math.min(...others.map((u) => distanceBetween(source, u)));
+  return new Set(others.filter((u) => distanceBetween(source, u) === least).map((u) => u.id));
 }
 
 /**

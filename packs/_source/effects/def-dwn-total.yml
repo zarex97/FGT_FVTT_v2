@@ -1,0 +1,16 @@
+# Summer Habetrot's Shiisaa Beam (#359): *"Def Dwn (Total) for 1◈ Turns, Total
+# damage taken is increased by 25% (does not stack)"*. A Total Damage clause,
+# so stage 15, multiplied on the finished number (Appendix A, `totalDefDwn`);
+# not a Def Dwn, whose family a cleanse of one Def Dwn would reach. "Does not
+# stack": a second application refreshes the first.
+schema: 1
+id: defDwnTotal
+name: "Def Dwn (Total)"
+description: "Total damage taken is increased by X%. Does not stack."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: totalDefDwn, direction: taken, value: "@magnitude" }

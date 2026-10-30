@@ -1,0 +1,17 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# The AU's Crit Chance -5% on every Attack on her: an incoming `crit` check
+# modifier, read by `rules/checks.mjs#critChance` off the defender. Not an
+# NP's: Crit kin touch no NP unless the sheet says so (ruling 5, Ch. 13), so
+# `npValue` is left unstated.
+schema: 1
+id: habetrot-glam-sight
+name: "Glam Sight: Fairy Eyes"
+rank: "E-"
+kind: skill
+slug: glamSight
+passive: true
+description: |
+  (Passive) When Habetrot is Attacked, Crit Chance of the AU is reduced by 5%.
+passiveRules:
+  - { key: CheckModifier, check: crit, direction: incoming, value: -5 }

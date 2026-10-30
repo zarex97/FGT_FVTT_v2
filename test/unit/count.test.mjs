@@ -18,6 +18,9 @@ describe("the closed list of kinds (Q19)", () => {
       "antiAttributeEffects",
       // True Name Discernment's +20 per NP the DU holds (#351 reading 4).
       "npsHeld",
+      // Great Decisive Battle's Atk Up per 5% of Crit Chance above 50, and its
+      // NP DmUp per 300 Max Health (#359 rulings 19, 20).
+      "critChance", "maxHealth",
     ]);
     expect(Object.isFrozen(COUNT_KINDS)).toBe(true);
   });

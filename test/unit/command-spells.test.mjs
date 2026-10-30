@@ -230,9 +230,11 @@ describe("the authored catalogue", () => {
     // same words: Raikou's Mad Enhancement "can be deactivated for 1◈ Turns by
     // spending a Command Spell", and Penthesilea's Hatred of Achilles "can be
     // disabled for 1◈ Turns by spending one Command Spell". Listed here so a
-    // reader can tell a deliberate addition from a stray file.
+    // reader can tell a deliberate addition from a stray file. The second is
+    // one Servant's own: Summer Habetrot's Master turns her into the Shisarot
+    // Form (#359).
     const extra = commands.map((c) => c.id).filter((id) => !REFERENCE_SET.includes(id));
-    expect(extra.sort()).toEqual(["cs-suspend-skill"]);
+    expect(extra.sort()).toEqual(["cs-shisarot-form", "cs-suspend-skill"]);
   });
 
   it("uses only requirement kinds the rules understand", () => {

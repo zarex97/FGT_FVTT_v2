@@ -1,0 +1,111 @@
+# packs/_source/servants/summer-habetrot.yml
+# Conversion source: char_orig_sheets/by-class/Pretender/Summer Habetrot.md
+#
+# Audit #359, `docs/superpowers/specs/2026-10-30-summer-habetrot-clauses.md`.
+# Read from the coloured sheet too: pink is the Shisarot Form's, blue and purple
+# read as black (ruling 40).
+#
+# "(Shisarot)" before every Ability's name is her label, as "(Dante)" is on
+# Dante's (ruling 1): each Ability states its own gate, or holds in both forms.
+schema: 1
+id: summer-habetrot
+name: Summer Habetrot
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+# One True Name as printed (ruling 2).
+trueName: "Habetrot, Shisa"
+servantClasses: [pretender]
+classContainer: pretender
+alignment: { order: neutral, morality: good }
+# *"Fairy Country: Britain; Scotland"*: two Regions, Fairy Britain bordering
+# nothing and Scotland bordering England (ruling 3).
+region: [fairyBritain, scotland]
+attributes: [female, servant, earth, fae, humanoid, fairytale, nonHominidae, animalistic]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+# BA(STR) 115 at STR B- (125 - 10), BA(MAG) 150 at MAG C, Health 1000 at END
+# C++ (the `++` on the display, Asterios's): the tables agree with the sheet.
+parameters: { str: "B-", end: "C++", agi: C, mag: C, luc: C }
+baseHealth: 1000
+mov: 5
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 115, mag: 150 }
+# A Strange Giant Shadow 1, outside the Form: BA(STR) at Range 1, BA(MAG) and
+# Water from 2 (ruling 4). In the Form the `shisarot` branch below holds.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - { from: 2, component: mag, element: water }
+sustainability: "2◈"
+# 1x1, growing to 2x2 in the Form from a corner her owner picks (ruling 26).
+footprint: { w: 1, h: 1 }
+
+# ─── Shisarot Form's Normal Attack (Ch. 45) ─────────────────────────────
+# Passive 9 changes the SHAPE of her Normal Attack, as Mannanán's Holder Mode
+# changes hers: `shisarotForm` enters this branch by `VariantOverride`. The
+# bands without Water (ruling 4); a 2x2 aimed at a Unit within her Range,
+# every Unit in it but herself (rulings 25, 30). The knockback is the Form's
+# own handler.
+summonVariant:
+  shisarot:
+    id: shisarot
+    overrides:
+      normalAttack:
+        mode: rangeBanded
+        component: str
+        bands:
+          - { from: 2, component: mag }
+        shape: { kind: square, size: 2 }
+        relations: [enemy, ally, neutral]
+
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
+# Divine Beast's Rage's Shiisaa Counters, spent at 3 and lost when the Form
+# ends (ruling 33).
+resources:
+  shiisaa: { value: 0, max: 3 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: habetrot-swimsuit }
+  - { ref: habetrot-strange-giant-shadow }
+  - { ref: class-pretender }
+  # *"Additionally, 'Double Move', 'Riding Attack', and 'Passenger Seat' can be
+  # used on this Turn"*: Karna's words, the three Passives unlocked by the Active.
+  - { ref: class-riding-unlocks, rank: A, cooldown: "3◈", mov: 5 }
+  # The Item Construction table at E-: 10 - 5 = 5%, Instakill and Death 0, as
+  # the sheet's "does not affect Instakill & Death" says. Van Gogh's aura.
+  - ref: class-item-construction-gogh
+    rank: "E-"
+    description: |
+      This Skill affects all allied Units within a 2 panel area of this Unit.
+      (Passive 1) The chance of inflicting debuffs is increased by 5%; does not affect Instakill & Death.
+      (Passive 2) The chance of being inflicted by debuffs is reduced by 5%; does not affect Instakill & Death.
+      Note: If a Unit is affected by multiple instances of this Skill, only the Item Construction with the highest
+      Rank takes effect (i.e. Item Construction does not stack).
+    passiveRules:
+      - key: Aura
+        radius: 2
+        relations: [ally, self]
+        stacking: highestOnly
+        group: itemConstruction
+        rank: "E-"
+        elements:
+          - { key: ApplicationChance, direction: outgoing, severity: normal, value: 5 }
+          - { key: ApplicationChance, direction: incoming, severity: normal, value: 5 }
+  - { ref: habetrot-glam-sight }
+  - { ref: habetrot-guardian-faerie }
+  - { ref: habetrot-sacred-guardian-beast }
+  - { ref: habetrot-yanamun-reversal }
+  - { ref: habetrot-great-decisive-battle }
+  - { ref: habetrot-chibira-sanu }
+  - { ref: habetrot-divine-beasts-rage }
+  - { ref: habetrot-ocean-stirring }
+  - { ref: habetrot-great-tropical-fireball }
+  - { ref: habetrot-shiisaa-beam }
+
+notes: |
+  A fairy who turns into a lion of the southern seas. Outside the Shisarot Form she is a small
+  Pretender with Water at range; her NP, or a Command Spell, makes her a 2x2 Large beast whose
+  Normal Attack hits an area and shoves, with two Attack Skills and two passives of its own.

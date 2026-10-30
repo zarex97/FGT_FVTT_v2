@@ -250,6 +250,15 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   ];
 
   const { lines = [] } = (await applyWorldIntents(intents, `commandSpell:${command.id}`, { lines: true })) ?? {};
+  // A command's own phases, on the Servant it serves, once it is paid (Ch. 33:
+  // validate, then pay, then apply): Summer Habetrot's Shisarot Form, its
+  // Pretender picked and the Form landed, on a card of its own (#359).
+  for (const e of effects.filter((x) => x.kind === "phases")) {
+    const doc = unitActor(e.unitId);
+    if (!doc) continue;
+    const { runGrantedPhases } = await import("./skill-use.mjs");
+    await runGrantedPhases(doc, { name: e.ability ?? command.name, phases: e.phases ?? [] });
+  }
 
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.
@@ -422,6 +431,11 @@ function effectIntents(effects, ctx) {
         out.push(...cuts, ...sharedCooldownIntents(cuts, unit, ctx.board));
         break;
       }
+
+      // Phases run on the Servant once the Command Spell is paid, below: a
+      // transform with a choice in it (Summer Habetrot's Shisarot Form, #359).
+      case "phases":
+        break;
 
       case "applyEffect":
         // A mark the command leaves, its Master the source: Kill Humans (#241).

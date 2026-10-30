@@ -96,6 +96,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
   // Tamamo (#353): Aphotic's automatic Block; Yata no Kagami's halved Master costs.
   "ForcedReaction", "MasterCostScale",
+  // Summer Habetrot (#359, #310): the Shisarot Form's doubled Injury Roll threshold.
+  "InjuryThreshold",
   // Raikou -- a mode held on by a condition rather than by a neighbour, and a
   // modifier whose subject is another modifier's magnitude.
   "ForceMode", "EffectMagnitudeScale",
@@ -142,6 +144,8 @@ export const CS_REQUIREMENT_KINDS = new Set([
   "highRankMaster", "inZone", "notInZone", "noOtherRevival", "damageWouldDefeatServant",
   // A Master Essence's one use, read by the same `meets` (#241).
   "attackIsNP", "npGateOpen", "npCooling", "notMarked",
+  // A command one Servant's sheet grants: Summer Habetrot's Shisarot Form (#359).
+  "servantPredicate",
 ]);
 
 /**

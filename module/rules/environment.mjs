@@ -513,8 +513,11 @@ export const REGION_ADJACENCY = Object.freeze({
   greece: { adjacent: ["europe", "middleEast", "mesopotamia", "egypt"] },
   europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia", "france", "romania", "germany", "italy", "austria"] },
   netherlands: { adjacent: ["europe", "england"] },
-  england: { adjacent: ["europe", "netherlands", "ireland"] },
+  england: { adjacent: ["europe", "netherlands", "ireland", "scotland"] },
   ireland: { adjacent: ["england"] },
+  // Summer Habetrot, #359 ruling 3: *"Fairy Country: Britain; Scotland"*.
+  // Scotland borders England alone, and no Middle East edge.
+  scotland: { adjacent: ["england"] },
   middleEast: { adjacent: ["greece", "europe", "mesopotamia", "india", "egypt"] },
   mesopotamia: { adjacent: ["greece", "middleEast", "india", "egypt"] },
   // Ozymandias. Added together with its three edges, because the graph is
@@ -555,6 +558,9 @@ export const REGION_ADJACENCY = Object.freeze({
   // The Moon borders nothing. Stated rather than omitted, so "no entry" and
   // "no neighbours" stay distinguishable.
   moon: { adjacent: [] },
+  // Fairy Britain, the Fairy Country of Summer Habetrot's sheet (#359 ruling 3):
+  // a Britain apart from England, bordering nothing, as the Moon.
+  fairyBritain: { adjacent: [] },
 });
 
 /**

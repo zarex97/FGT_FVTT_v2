@@ -121,6 +121,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "polarityByRelation", "decay", "pausedWhile", "boardUnique",
   // Removed from every holder when its inflicter stays down (Curse (Bolg), #339).
   "endsWithInflicter",
+  // A paid extension offered as it is about to end (the Shisarot Form, #359).
+  "extension",
 ]);
 
 /**

@@ -324,3 +324,25 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
 - **`Suppress` scopes `dodge` and `substitution`**: the bearer's own Dodge and Substitution do nothing (Aphotic).
 - **The `CooldownCascade` action** (`{ticks, tiers: [spell, np], otherwise}`): the first tier with anything cooling is
   cut, every cooling member of it; with none cooling, `otherwise` runs. Aphotic's cut on being Attacked.
+
+### Summer Habetrot's pieces (#359)
+
+- **`InjuryThreshold { factor }`** scales the damage that triggers the bearer's Injury Roll (#310): the Shisarot Form's
+  ×2, *"the amount of damage taken that is required to trigger an Agility Roll is doubled (i.e. 200)"*. Projected as
+  `injuryThresholdFactor`, read by `damage/pipeline.mjs#injuryThresholdOf` (Ch. 22).
+- **Two aura roles**, `master` and `nearestAlly` (`rules/auras.mjs#inRecipientRoles`): Guardian Faerie reaches her
+  Master and the allied Unit nearest her footprint other than her Master, a Master or a summon included, every tied
+  one at a tie, re-read as Units move (#359 ruling 11). A nested element `{key: negateKeyedDealt}` reaches the recipient
+  as a modifier the pipeline reads (Ch. 22).
+- **Counts** (`rules/count.mjs`): `critChance` (`above`), the asker's Crit Chance for a non-NP Attack in whole percents
+  over a floor (Great Decisive Battle's *"for every 5% of Crit Chance above 50%"*); `maxHealth`, the asker's live Max
+  Health (*"10% for every 300 Max Health"*); and a `board` Count's `relations` list, `self` among them, and `within`, a
+  distance from the asker (Chibirā Sanu's enemies within 3 and allies within 2, herself included). `timesOf` and an
+  entry's magnitude are handed the caster and the board for them.
+- **`npBase`**, an entry's NP figure's own floor over one Count: *"(X+1)0%; if NP, X0%"* is `base: 10, npBase: 0`.
+- **`@self.originalMaxHealth`** and **`@target.…`**: a magnitude may read the recipient's refs, and a Servant's
+  original Max Health is its END's derivation where the table beats the sheet (§46.6): the Form's +100% is 1200 at END
+  C++, never the printed 1000; Yanamun Reversal's Max HpUp is 30% of each ally's own.
+- **Handler actions**: `CooldownDelta` takes `scope: skills` (*"Skill Cooldown"*: every Skill, Class Skills included,
+  no NP), `restart` (*"NP Cooldown is Reset"*, each clock to its full length, #328 ruling 13), and an `ability` named by
+  slug or content id; `RemoveEffect` takes a `family`, and `untimedOnly` to spare an instance with a clock.

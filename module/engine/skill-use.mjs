@@ -2852,6 +2852,23 @@ export async function runDeactivationPayout(item, actor, endedBy) {
   return applied;
 }
 
+/**
+ * Run phases something else grants on a Unit, as a self-targeted Skill's
+ * would, with their card: a Command Spell's own phases (Summer Habetrot's
+ * Shisarot Form, #359). No price, no clock, no use of any ability.
+ *
+ * @param {object} actor the Unit they run on
+ * @param {{name: string, phases: object[]}} grant
+ * @returns {Promise<object[]>} what was applied
+ */
+export async function runGrantedPhases(actor, { name, phases }) {
+  if (!actor || phases.length === 0) return [];
+  const granted = { id: `granted:${name}`, name, system: { phases } };
+  const applied = await runPhases(granted, actor, [{ unitId: actor.id }], currentBoard());
+  await postCard(actor, granted, [{ unitId: actor.id }], applied);
+  return applied;
+}
+
 export async function runCasterChannel(ability, actor, board) {
   const applied = await runPhases(ability, actor, [{ unitId: actor.id }], board, (p) => p.kind === "channel");
   return Boolean(applied.channelStarted);

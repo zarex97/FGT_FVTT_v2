@@ -15,7 +15,9 @@ describe("a choice whose branches only touch the caster", () => {
   it("is not asked again by the rider step", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     const fn = src.slice(src.indexOf("async function resolveChoosePhases"));
-    expect(fn).toMatch(/const perDefender = \(o\) => \(o\.phases \?\? \[\]\)\.some\(\(p\) => p\.kind === "applyEffects" \|\| p\.kind === "applyEffect"\);\s*if \(!\(phase\.options \?\? \[\]\)\.some\(perDefender\)\) continue;/);
+    // A branch is a rider only when it puts an effect on somebody other than the
+    // caster: an effect `target: self` was paid at declaration too (#359).
+    expect(fn).toMatch(/const perDefender = \(o\) => \(o\.phases \?\? \[\]\)\.some\(\(p\) => \(p\.kind === "applyEffects" \|\| p\.kind === "applyEffect"\)\s*&& \(p\.target \?\? "reuse"\) !== "self"\);[\s\S]*?if \(!\(phase\.options \?\? \[\]\)\.some\(perDefender\)\) continue;/);
   });
 
   it("is still a caster phase, asked at declaration", () => {

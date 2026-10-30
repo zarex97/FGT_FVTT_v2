@@ -1,0 +1,13 @@
+# Summer Habetrot's Yanamun Reversal 2 (#359): *"all damage dealt to Units
+# with the 'Undead' Attribute is increased by 30%"*. Dmg Up (Gods)'s shape.
+schema: 1
+id: dmgUpUndead
+name: "Dmg Up (Undead)"
+description: "All damage dealt to Units with the 'Undead' Attribute is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: "@magnitude", predicate: ["target:attribute:undead"] }

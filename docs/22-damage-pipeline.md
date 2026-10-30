@@ -185,3 +185,19 @@ shows both.
 **A grant asked of a Normal Attack's component reads the band** (#353, found live). A Normal Attack's component is set
 at the distance struck; the declaration's stamp is a placeholder. `attackFacts` asks a conditional grant
 (Witchcraft's `attack:component:mag`) of the band at this distance, always.
+
+### A held multiplier, a Total debuff, a negated keyed increase, and a threshold per Unit (#359)
+
+**`damageMultiplier`** is "N% extra damage" held as a buff rather than stated by the Attack: Shisarot's Charge, *"her
+next Attack deals 100% extra damage; if NP, 50%"*. Stage 3 multiplies it in beside the ability's own conditional
+multipliers, ×(1 + N%), never pooled at stage 4 (#359 ruling 31, #193 reading 12). **`totalDefDwn`** is a defender's
+debuff on its whole Total, every element: Def Dwn (Total), *"Total damage taken is increased by 25%"*, multiplied at
+stage 15 (`TOTAL_TAKEN_KEYS`). **`negateKeyedDealt`**, carried by a defender (Guardian Faerie's aura), drops the
+attacker's damage-dealt increases whose predicate names `target:skill:`, `target:class:` or `target:classGroup:`, for
+that defender only; one keyed on an Attribute, Alignment, Region or element holds (ruling 12). It is read in
+`activeMods`, the one bag reader, so every stage drops them alike.
+
+**The Injury Roll threshold is a Unit's** (#310). `INJURY_THRESHOLD` stays the rule's 100; `injuryThresholdOf(unit)`
+scales it by the Unit's `InjuryThreshold` factors (Ch. 10), and the three readers ask it: a single hit's stage-16 flag,
+a multi-hit sum and a `singleInjuryRoll` total. The Shisarot Form's is 200: *"Agility Roll"* is the Injury Roll (#359
+ruling 28).

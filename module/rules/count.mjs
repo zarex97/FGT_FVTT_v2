@@ -25,11 +25,13 @@ import { rollOptionsFor, antiAttributesOf } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
+import { critChance } from "./checks.mjs";
+import { chebyshev } from "../domain/geometry.mjs";
 
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
   "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
-  "antiAttributeEffects", "npsHeld",
+  "antiAttributeEffects", "npsHeld", "critChance", "maxHealth",
 ]);
 
 /** A Count whose kind is not in {@link COUNT_KINDS}. */
@@ -96,6 +98,13 @@ export function countOf(spec, ctx = {}) {
         if (spec.excludeSelf && unit.id === ctx.self?.id) return false;
         if (spec.standing && unit.defeated) return false;
         if (spec.relation && relationOf(ctx.self, unit, ctx.board) !== spec.relation) return false;
+        // Several relations, `self` among them: Chibirā Sanu's *"X=the number of
+        // allied Units within a 2 panel area of herself"*, herself included (#359
+        // ruling 22, #132).
+        if (Array.isArray(spec.relations) && !spec.relations.includes(relationOf(ctx.self, unit, ctx.board))) return false;
+        // ...and within a distance of the asker, nearest panel to nearest panel:
+        // *"for every enemy Unit within a 3 panel area of herself"* (ruling 21).
+        if (typeof spec.within === "number" && !(unitDistance(ctx.self, unit) <= spec.within)) return false;
         return passes(spec.requires, unit);
       }).length;
     case "parameters":
@@ -151,9 +160,40 @@ export function countOf(spec, ctx = {}) {
       }
       return instances.size;
     }
+    case "critChance": {
+      // Whole percents of the asker's Crit Chance for a non-NP Attack above a
+      // floor: Great Decisive Battle's *"For every 5% of Crit Chance on Habetrot
+      // above 50%"* (#359 ruling 19), `{of: critChance, above: 50}, each: 5`.
+      const who = ctx.self ?? null;
+      if (!who) return 0;
+      const options = rollOptionsFor({ attacker: who });
+      const { percent } = critChance(who, null, { options, isNP: false });
+      return whole(Math.floor(Number(percent) - Number(spec.above ?? 0)));
+    }
+    case "maxHealth": {
+      // The asker's live Max Health: *"10% for every 300 Max Health on
+      // Shisarot"* (#359 ruling 20), `each: 300`.
+      const holder = ctx.refs?.self?.health ? ctx.refs.self : (ctx.self ?? null);
+      return whole(Math.floor(Number(maxHealth(holder))));
+    }
     default:
       throw new UnknownCountKind(spec?.of);
   }
+}
+
+/**
+ * Panels between two Units, nearest panel to nearest panel, as an aura measures.
+ *
+ * @param {object|null|undefined} a
+ * @param {object|null|undefined} b
+ * @returns {number}
+ */
+function unitDistance(a, b) {
+  const from = a?.panels?.length ? a.panels : (a?.panel ? [a.panel] : []);
+  const to = b?.panels?.length ? b.panels : (b?.panel ? [b.panel] : []);
+  let best = Infinity;
+  for (const p of from) for (const q of to) best = Math.min(best, chebyshev(p, q));
+  return best;
 }
 
 /**
@@ -240,6 +280,8 @@ export function countScaleOf(spec) {
       ...(spec.each !== undefined ? { each: spec.each } : {}),
       ...(spec.base !== undefined ? { base: spec.base } : {}),
       ...(spec.zeroPaysNothing !== undefined ? { zeroPaysNothing: spec.zeroPaysNothing } : {}),
+      // The NP figure's own floor, where it differs (Chibirā Sanu, #359).
+      ...(spec.npBase !== undefined ? { npBase: spec.npBase } : {}),
     };
   }
   return spec?.perStack?.effect ? fromPerStack(spec.perStack) : null;

@@ -1,0 +1,20 @@
+# NP DmUp *"for 1 time"*: spent by the next Noble Phantasm its holder makes,
+# all of its Processes (Declaration or Process), at `attackPerformed`. First
+# authored for Summer Habetrot's Divine Beast's Rage (#359).
+schema: 1
+id: npDmUpOnce
+name: "NP DmUp"
+description: "The next Noble Phantasm's damage dealt is increased by X%. Spent by that Noble Phantasm."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: npDmUp, direction: dealt, value: "@magnitude", predicate: ["attack:kind:np"] }
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    targetPredicate: ["attack:kind:np"]
+    then:
+      - { key: RemoveEffect, effect: npDmUpOnce }

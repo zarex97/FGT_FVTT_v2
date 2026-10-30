@@ -1,0 +1,38 @@
+# The Pretender class's own effect, 'Pretender (>Saber)' (class-skills/pretender.yml).
+#
+# > *"All damage dealt to the selected Servant Class is increased by 50% and all
+# > damage taken from them is reduced by 50%; applies to NP as well."*
+#
+# Neither a buff nor a debuff, Unremovable unless its holder is inflicted with
+# Skill Seal (`endsOnSkillSeal`, read by `engine/seal-ends.mjs`). One Pretender
+# at a time: each replaces its siblings (Summer Habetrot #359 ruling 9). Only a
+# Servant has a Class, so a Master or a summon meets neither half.
+schema: 1
+id: pretenderSaber
+name: "Pretender (>Saber)"
+description: "All damage dealt to Saber Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+polarity: status
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+unremovable: true
+endsOnSkillSeal: true
+families: [pretender]
+replaces: [pretenderSaber, pretenderArcher, pretenderLancer, pretenderRider, pretenderCaster, pretenderAssassin, pretenderBerserker]
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate: ["target:class:saber"]
+  # Taken FROM them: `self:` is the attacker in the pipeline, so the clause
+  # waits for him (`defer`), as Alter Ego's incoming half does.
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 50
+    npValue: 50
+    defer: true
+    predicate: ["self:class:saber"]

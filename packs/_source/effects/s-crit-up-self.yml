@@ -1,0 +1,22 @@
+# S.Crit Up held to its holder alone: Summer Habetrot in the Shisarot Form
+# (#359 ruling 16). *"The effects of Active Skills which are applied to all
+# allied Units within the specified area now affect Habetrot herself only"*,
+# and S.Crit Up is an aura its holder carries (#132), so in the Form it reaches
+# her and nobody else. A sibling of `sCritUpOthers`, which leaves the holder out.
+schema: 1
+id: sCritUpSelf
+name: "S.Crit Up"
+description: "Crit Chance of this Unit is increased by X%. Unremovable, and its application cannot be prevented."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+bypassesImmunity: true
+rules:
+  - key: Aura
+    radius: 0
+    relations: [self]
+    stacking: magnitudeStacks
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

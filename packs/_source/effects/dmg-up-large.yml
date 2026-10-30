@@ -1,0 +1,13 @@
+# Summer Habetrot's Ocean Stirring Lion's Roar 3 (#359): *"all damage dealt to
+# Units with the 'Large' Attribute is increased by 50%"*. Dmg Up (Gods)'s shape.
+schema: 1
+id: dmgUpLarge
+name: "Dmg Up (Large)"
+description: "All damage dealt to Units with the 'Large' Attribute is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: "@magnitude", predicate: ["target:attribute:large"] }

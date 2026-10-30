@@ -1,0 +1,36 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# Only in the Form. A 4x4 with a panel within her Range (2, +1 for the Combat
+# Process), read from her footprint (ruling 39), every Unit in it but herself,
+# allies too (ruling 25). *"50% extra damage"* is the Attack's own ×1.5 (#193
+# reading 12); *"inflicts Burn"* names no chance, so Burn's own (Ch. 15).
+schema: 1
+id: habetrot-great-tropical-fireball
+name: "Great Tropical Fireball"
+kind: skill
+slug: greatTropicalFireball
+isAttackSkill: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Attack Skill. Can only be used when in @effect[shisarotForm]{Shisarot Form}. Base Attack (MAG) is used. Range+1 for
+  the Combat Process. Hits a 4x4 panel area within Range for 50% extra damage and inflicts @effect[burn]{Burn} for 2◈
+  Turns. Fire damage. Cooldown: 3◈ Turns.
+requirements:
+  - { kind: predicate, predicate: ["self:effect:shisarotForm"] }
+targeting:
+  anchor: { kind: withinRange, rangeBonus: 1 }
+  shape: { kind: square, size: 4 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 1.5
+  element: fire
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: burn, duration: "2◈" }

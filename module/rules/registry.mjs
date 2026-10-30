@@ -40,6 +40,14 @@ export const EffectRegistry = {
         boardUnique: sys.boardUnique ?? null,
         // Removed from every holder when its inflicter stays down (#339).
         endsWithInflicter: Boolean(sys.endsWithInflicter),
+        // Removed when its holder is inflicted with Skill Seal, Unremovable
+        // otherwise: the Pretender (>X) effects (#359), read by
+        // `engine/seal-ends.mjs#onSkillSealed`.
+        endsOnSkillSeal: Boolean(sys.endsOnSkillSeal),
+        // A paid extension its holder's side is offered as it is about to end
+        // at a Turn's end: the Shisarot Form's Command Spell (#359), read by
+        // `engine/effect-extension.mjs`.
+        extension: sys.extension ?? null,
         volatility: sys.volatility ?? "nonVolatile",
         valence: sys.valence ?? "neither",
         stacking: sys.stacking ?? "noneNoRefresh",

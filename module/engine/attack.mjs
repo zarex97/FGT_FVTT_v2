@@ -13,7 +13,7 @@
  */
 
 import {
-  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, usesBaseOptions, INJURY_THRESHOLD,
+  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, usesBaseOptions, injuryThresholdOf,
 } from "../rules/damage/pipeline.mjs";
 import { inflictedEffectIds, ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf, breakMultipliers } from "../rules/damage/instances.mjs";
@@ -5700,7 +5700,7 @@ async function applyInjury(state, message) {
     // hit's stage-16 addition; a `singleInjuryRoll` attack's total is a sum
     // of already-settled `result.total` values with nothing further to add,
     // so comparing the sum directly is the correct fresh threshold check.
-    exceededThreshold = siblings.counted > INJURY_THRESHOLD;
+    exceededThreshold = siblings.counted > injuryThresholdOf(unitFrom(boardSnapshot(), defenderDoc));
   }
 
   const verdict = injuryCheck({
@@ -7171,6 +7171,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
   const phases = await resolveChoosePhases(
     effectivePhases(ability.system ?? {}, resolveAbilitySource),
     attackerDoc,
+    casterOptions,
   );
 
   for (const phase of phases) {
@@ -9410,9 +9411,10 @@ async function instinctOf(state, defender) {
  *
  * @param {object[]} phases
  * @param {object} attackerDoc
+ * @param {Set<string>|null} [options] the caster's, for a choice's own predicate
  * @returns {Promise<object[]>}
  */
-async function resolveChoosePhases(phases, attackerDoc) {
+async function resolveChoosePhases(phases, attackerDoc, options = null) {
   if (!phases.some((p) => p.kind === "choose" && (p.options ?? []).some((o) => o.phases))) {
     return phases;
   }
@@ -9429,22 +9431,30 @@ async function resolveChoosePhases(phases, attackerDoc) {
     // runs a branch's phases itself. Asking here too put Mana Burst's
     // restoration in front of the player twice in one attack, live (#180).
     // Only a branch carrying a per-defender rider is this loop's to decide.
-    const perDefender = (o) => (o.phases ?? []).some((p) => p.kind === "applyEffects" || p.kind === "applyEffect");
+    // An effect a branch puts on the CASTER is not a rider (`target: self`):
+    // Chibirā Sanu's Pretender pick was asked at declaration and again here,
+    // once per Process (#359, found by its test).
+    const perDefender = (o) => (o.phases ?? []).some((p) => (p.kind === "applyEffects" || p.kind === "applyEffect")
+      && (p.target ?? "reuse") !== "self");
     if (!(phase.options ?? []).some(perDefender)) continue;
-    const options = phase.options ?? [];
+    // ...and a choice its own predicate holds back is not asked at all: the
+    // Pretender comes with a transform, never with the NP that lengthens the
+    // Form (#359 ruling 24). The loop asked before the predicate was read.
+    if (phase.predicate && options && !testPredicate(phase.predicate, { options })) continue;
+    const choices = phase.options ?? [];
     const picked = await askOwner(attackerDoc, {
       kind: "choose",
       title: game.i18n.localize(phase.prompt ?? "FGT.Authoring.Phase.choose"),
       hint: game.i18n.localize(phase.hint ?? phase.prompt ?? "FGT.Authoring.Phase.chooseHint"),
       min: 0,
       count: 1,
-      options: options.map((o, i) => ({
+      options: choices.map((o, i) => ({
         id: String(i),
         name: game.i18n.localize(o.label ?? o.id ?? String(i)),
       })),
     });
     const index = Number((picked ?? [])[0]);
-    const branch = Number.isInteger(index) ? options[index] : null;
+    const branch = Number.isInteger(index) ? choices[index] : null;
     if (branch) out.push(...(branch.phases ?? []));
   }
   return out;
