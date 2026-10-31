@@ -1,0 +1,25 @@
+# Summer Habetrot's Ocean Stirring Lion's Roar 4 (#359): *"S.Crit Up (Shiisa)
+# for 2◈ Turns, 10 times (stacks); Crit Chance is increased by (5*X)%, X=the
+# number of stacks are left for this buff."*
+#
+# Ten charges on one instance (`stacking: count`), +5% per charge left: the
+# Count of its own stacks, which counts a counted instance's charges
+# (`rules/count.mjs#stacksHeld`). Each Attack she makes, one declaration,
+# spends one (`attackPerformed`, ruling 37). Held by herself alone, no aura.
+schema: 1
+id: sCritUpShiisa
+name: "S.Crit Up (Shiisa)"
+description: "Crit Chance is increased by 5% for each charge left. Each Attack this Unit makes spends one charge."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 10
+baseChance: 100
+rules:
+  - { key: CritModifier, aspect: chance, value: 5, count: { of: stacks, effect: sCritUpShiisa } }
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    consumesUse: true
+    then: []

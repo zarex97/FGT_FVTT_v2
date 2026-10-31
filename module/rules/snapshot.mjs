@@ -20,6 +20,8 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { lookup as tableLookup } from "../domain/tables.mjs";
+import { maxHealthFor } from "../domain/health.mjs";
 import { collectContributions, EFFECT_INSTANCE, EXECUTORS, empty } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon, waiveZon } from "./zon.mjs";
@@ -376,6 +378,8 @@ export function snapshotUnit(actor, {
     // of the exchange it is on. A bag the snapshot does not carry cannot be
     // read by the pipeline, however carefully it is authored.
     excludesOpponentSources: contributions.excludesOpponentSources ?? [],
+    // The Injury Roll threshold's factor (#310): the Shisarot Form's 200.
+    injuryThresholdFactor: (contributions.injuryThresholdFactors ?? []).reduce((a, f) => a * f, 1),
     // Health floors scoped to one damage source. A bag the snapshot does not
     // carry cannot be read by the pipeline, however carefully it is authored.
     damageFloors: contributions.damageFloors ?? [],
@@ -2250,6 +2254,18 @@ function readTimeScaled(abilities, collectOptions) {
  * @param {object} actor
  * @returns {object}
  */
+/**
+ * A Unit's Max Health before anything grew it: its END's derivation for a
+ * Servant, else its authored Base Health.
+ *
+ * @param {object} actor
+ * @returns {number}
+ */
+function originalMaxHealthOf(actor) {
+  const sheet = { ...(actor?.system ?? {}), ...formSheet(actor) };
+  return actor?.type === "servant" ? maxHealthFor(sheet, tableLookup, Rank) : (sheet.baseHealth ?? 0);
+}
+
 export function expressionRefs(actor, extras = {}) {
   const sys = actor?.system ?? {};
   // Held out of the spread below: it parameterises the facade rather than
@@ -2271,6 +2287,11 @@ export function expressionRefs(actor, extras = {}) {
       // Proliferation pays *"20% of Kingprotea's original Max Health"* per
       // stock, and `health.max` is not that number once she has one.
       baseHealth: formSheet(actor).baseHealth,
+      // ...and the maximum its END derives before anything grew it, where the
+      // table beats the sheet (§46.6): Summer Habetrot's *"Max and current
+      // Health are increased by 100% of their original values"* is 1200 more at
+      // END C++, not the printed 1000 (#359).
+      originalMaxHealth: originalMaxHealthOf(actor),
       agility: sys.agility ?? null,
       luck: sys.luck ?? null,
       parameters: sys.parameters ?? {},

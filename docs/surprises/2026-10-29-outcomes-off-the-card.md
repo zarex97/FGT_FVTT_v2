@@ -3,7 +3,8 @@ id: 2026-10-29-outcomes-off-the-card
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** every outcome Tamamo's kit decides is a line on its card.
 

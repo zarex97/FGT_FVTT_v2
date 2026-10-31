@@ -1,0 +1,75 @@
+# Summer Habetrot's Shisarot Form (#359), the Passive of Chibirā Sanu.
+#
+# A state with a clock, not a mode: three doors open it (the NP, her Master's
+# Command Spell `cs-shisarot-form`), three lengthen it (the NP used in it, its
+# own paid `extension` at its end, Ocean Stirring's +1◈), and it ends when its
+# clock runs out at a Turn's end. Neither a buff nor a debuff, Unremovable:
+# the sheet offers no other way out. Sieg's Fafnir is its kin, rule for rule.
+#
+# Its current Health is paid by the door that opens it (`restores`, ruling 27):
+# a derived current would refill her each preparation. When it ends the
+# maximum falls and the current only to fit (Sieg ruling 14).
+schema: 1
+id: shisarotForm
+name: "Shisarot Form"
+description: |
+  2 panels in size, Large. Max and current Health +100% of their original values. Active Skills that reach allies in
+  an area reach Habetrot only. Injury Roll threshold doubled (200). Cannot Block; Agility Checks doubled. Moves to any
+  panel, knocking its occupants back. Normal Attacks: BA(STR) at Range 1, BA(MAG) at 2 or more, a 2x2 area, the DUs
+  knocked back 1 panel.
+polarity: status
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+unremovable: true
+baseChance: 100
+# 11. *"When Shisarot Form is about to end at the end of a Turn, her Master can
+# spend one Command Spell to extend its duration by 3◈ Turns. If extended in
+# this way, Habetrot's Skill Cooldown is reduced by 1◈ Turns and Habetrot's next
+# Attack deals 100% extra damage; if NP, 50%."* Offered every time, with a Pass
+# (ruling 31); `engine/effect-extension.mjs` asks her Master's player.
+extension:
+  cost: { kind: commandSpell, amount: 1, payer: master }
+  grants: "3◈"
+  repeatable: true
+  then:
+    - { key: CooldownDelta, scope: skills, ticks: "1◈" }
+    - { key: ApplyEffect, effect: { id: shisarotCharge } }
+# 10. The Form's Pretender lasts until she leaves it (ruling 9): the untimed
+# one, so a Pretender (>X) her Active gave her after a Skill Seal keeps its 2◈.
+# Divine Beast's Rage's Counters are lost with the Form (ruling 33).
+onRemove:
+  - { key: RemoveEffect, family: pretender, untimedOnly: true }
+  - { key: ResourceDelta, resource: shiisaa, set: 0 }
+rules:
+  # 1. Size 1 -> 2 panels, from a corner her owner picks (ruling 26).
+  - { key: SizeStep, value: 1 }
+  # 2.
+  - { key: StatDelta, stat: attributes, add: [large] }
+  # 3. The maximum, +100% of her original Max Health: her END's 1200, the
+  # table beating the sheet's 1000 (§46.6).
+  - { key: MaxDelta, stat: health, value: "@self.originalMaxHealth" }
+  # 6. *"The amount of damage taken that is required to trigger an Agility Roll
+  # is doubled (i.e. 200)"*: the Injury Roll (ruling 28, #310).
+  - { key: InjuryThreshold, factor: 2 }
+  # 7. Fafnir's two CheckModifiers: her Evade among her Agility Checks (ruling 29).
+  - { key: ForbidReaction, reaction: block }
+  - { key: CheckModifier, check: agility, value: 0, rollFactor: 2 }
+  - { key: CheckModifier, check: evade, value: 0, rollFactor: 2 }
+  # 8. Kingprotea's and Fafnir's: through occupied panels, their Units shoved on.
+  - { key: GrantedAbility, abilities: [ignoresOccupancy] }
+  - { key: Knockback, direction: arrival }
+  # 9. Her Normal Attack's own branch (`summonVariant.shisarot`): the bands
+  # without Water, a 2x2 within Range, every Unit in it but herself (rulings 4,
+  # 25, 30).
+  - { key: VariantOverride, branch: shisarot }
+  # 9. *"...and knocks back the DU(s) by one panel"*: each DU hit, after its
+  # Damage Step, straight away from her (ruling 30). The CPA's push. Not a
+  # Riding Attack's: the ride is her path, and the Form's 2x2 and push do not
+  # add to it (ruling 10, found live pushing a Unit she rode through).
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "not:attack:kind:ridingAttack"]
+    then:
+      - { key: PushBack, panels: 1 }

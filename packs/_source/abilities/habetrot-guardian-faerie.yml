@@ -1,0 +1,38 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# An aura reaching two Units by their role, never herself: her Master, and the
+# allied Unit nearest her footprint other than her Master, every tied one at a
+# tie, a Master or a summon included; each only within 2 of her, re-read as
+# Units move (ruling 11). `master` and `nearestAlly` are roles
+# `rules/auras.mjs#inRecipientRoles` answers.
+#
+# 2. *"Effects which increase damage dealt to Units with a specific Skill or
+# Servant Class"* are the AU's damage-dealt modifiers keyed on the DU's Skill
+# or Class (`target:skill:`, `target:class:`, `target:classGroup:`), dropped for
+# this DU only; one keyed on an Attribute, an Alignment, a Region or an element
+# still holds (ruling 12). The `negateKeyedDealt` marker the DU carries is read
+# by the pipeline's one bag reader (`damage/pipeline.mjs#activeMods`).
+schema: 1
+id: habetrot-guardian-faerie
+name: "Guardian Faerie"
+rank: EX
+kind: skill
+slug: guardianFaerie
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) Affects both her Master and the allied Unit which is nearest to her (other than her Master); must be
+  within a 2 panel area of Habetrot to gain these effects-
+  1. All damage taken is reduced by 10% including NP.
+  2. When this Unit is Attacked, if the AU has effects which increase damage dealt to Units with a specific Skill or
+     Servant Class (and the DU has the applicable Skill or Servant Class), those effects are negated for this Unit
+     only. (e.g. deals extra damage to Units with 'Existence outside the Domain'.)
+passiveRules:
+  - key: Aura
+    radius: 2
+    relations: [ally]
+    recipientRoles: [master, nearestAlly]
+    stacking: magnitudeStacks
+    elements:
+      - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 10, npValue: 10 }
+      - { key: negateKeyedDealt, keyedOn: [skill, class, classGroup] }

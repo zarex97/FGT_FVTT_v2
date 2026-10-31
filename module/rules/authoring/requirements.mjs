@@ -202,6 +202,10 @@ export const CS_REQUIREMENT_DESCRIPTORS = describeTable([
   csReq("notMarked", "Only while the Servant does not already carry a named mark.", [
     { key: "effect", type: "text" },
   ]),
+  // A command one Servant's sheet grants (Summer Habetrot's Shisarot Form, #359).
+  csReq("servantPredicate", "Only while the Servant passes a predicate: a command one Servant's sheet grants.", [
+    { key: "predicate", type: "predicateList" },
+  ]),
 ]);
 
 /** @type {readonly string[]} */

@@ -1,0 +1,23 @@
+# Appendix A's Dmged NP Regen: *"NP cooldown -X at the end of a Damage Step in
+# which this unit was successfully attacked."* First authored for Summer
+# Habetrot's Sacred Guardian Beast (#359): *"NP Cooldown is reduced by 1◈ Turns
+# when successfully hit by an Attack"*.
+#
+# Hit means not Evaded and not missed; 0 damage counts; an area Attack that
+# catches her is one (ruling 14): `attackReceived`, raised once per Attack on
+# each defender it reached. Every cooling NP, by ◈, the magnitude in ◈ Turns.
+schema: 1
+id: dmgedNpRegen
+name: "Dmged NP Regen"
+description: "Each time this Unit is successfully hit by an Attack, its NP Cooldown is reduced by 1◈ Turns."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: attackReceived
+    automatic: true
+    then:
+      - { key: CooldownDelta, scope: np, ticks: "1◈" }

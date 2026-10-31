@@ -3,7 +3,8 @@ id: 2026-10-29-refusal-words-two-readers
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a refusal names what it waits on, in the same words wherever it is said.
 

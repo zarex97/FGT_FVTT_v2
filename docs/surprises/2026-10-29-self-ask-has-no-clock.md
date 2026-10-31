@@ -3,7 +3,8 @@ id: 2026-10-29-self-ask-has-no-clock
 found: live press
 kind: producer-without-consumer
 status: open
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** every question the engine asks a person ends: `FGTSocket.ask` withdraws it after its timeout (120 s by
 default), and a reaction or Command Spell window times out at 15 s to the option that spends nothing.
