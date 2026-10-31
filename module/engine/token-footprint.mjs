@@ -271,7 +271,7 @@ async function growthPlacement(actor, token, size, { centred = false } = {}) {
       return Math.abs(di) >= Math.abs(dj) ? { i: Math.sign(di) || 1, j: 0 } : { i: 0, j: Math.sign(dj) };
     };
     const mover = board.units.find((u) => u.id === actor.id) ?? { id: actor.id };
-    await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board));
+    await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board), { by: actor.id });
     return canvas.grid.getTopLeftPoint({ i: centre.i, j: centre.j });
   }
 
@@ -305,7 +305,7 @@ async function growthPlacement(actor, token, size, { centred = false } = {}) {
     return u.panel.j < old.j ? { i: 0, j: -1 } : { i: 0, j: 1 };
   };
   const mover = board.units.find((u) => u.id === actor.id) ?? { id: actor.id };
-  await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board));
+  await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board), { by: actor.id });
 
   return canvas.grid.getTopLeftPoint({ i: i0, j: j0 });
 }

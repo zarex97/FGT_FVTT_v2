@@ -6425,7 +6425,13 @@ async function applyDamage(state, message) {
     multiplier: multiplierOf(block, { use: { criteriaMet: state.attack?.criteriaMet?.met ?? 0 } }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: [...(block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? []), ...breakMultipliers(block)],
-    crit: { isCrit, chanceUsed: critPercent, ...(growth ? { grown } : {}) },
+    // The die and what moved the chance, so the card says how the Crit was
+    // decided: Glam Sight's −5% was visible to no one (#359, live).
+    crit: {
+      isCrit, chanceUsed: critPercent, ...(growth ? { grown } : {}),
+      roll: critRoll.total, automatic: critSpec.automatic, blocked: critSpec.blocked,
+      modifiers: (critSpec.modifiers ?? []).filter((m) => m.value !== 0),
+    },
     // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
     difficulty: board?.difficulty,

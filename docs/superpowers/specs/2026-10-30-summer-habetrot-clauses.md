@@ -7,8 +7,8 @@ user 2026-10-30.
 **Pressed live 2026-10-30, 194 of 194** in the War *Habetrot Audit* (Player1 her side, the GM the other), nine
 defects fixed live: the band and Decoy read from her anchor corner, Command Spells spent off the Master's Turn, a
 Turn's start said nowhere, her ride one row wide and pushing, Def Dwn (Total) named by id, her shrink kept top-left,
-one clock said twice, the extension's cuts unsaid (`docs/surprises/2026-10-31-*`). Open, reported: the Shiisaa Counter,
-an arrival or growth push, Guardian Faerie's negation, the Form's end and the Crit roll are not said on any card.
+one clock said twice, the extension's cuts unsaid (`docs/surprises/2026-10-31-*`). Fixed after, and pressed live: the Shiisaa Counter,
+an arrival or growth push, Guardian Faerie's negation, the Form's end and the Crit roll are now said on a card.
 Staged where the board would not: Cooldowns, the NP clock, the Form's expiry, Health, positions, a Pretender (>Caster)
 on an enemy. SW.np and GF.2.only rest on the data and a second Attacker, not a press of their own.
 **Read by hand, line by line.** No generated draft was used. No older `Copia de` sheet exists to compare with. The

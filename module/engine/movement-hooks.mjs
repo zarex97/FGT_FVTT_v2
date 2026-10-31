@@ -512,16 +512,34 @@ async function pickUpItemHere(unitId, combat, stopped = null) {
 /**
  * Carry out a shove plan, in its order: a displacement each, not a Move.
  *
+ * Said on a card when the plan names who pushed (`by`), as an Attack's push is
+ * (`knockBackFrom`): Summer Habetrot moving onto a Unit's panel, or growing
+ * into one, moved it and no card said so (#359, live). Kingprotea's Huge Scale
+ * and Fafnir push the same way.
+ *
  * @param {Array<{unitId: string, landing: {panel: {i: number, j: number}}}>} plan
+ * @param {object} [opts]
+ * @param {string|null} [opts.by] the Unit doing the pushing
  * @returns {Promise<void>}
  */
-export async function displacePlan(plan) {
+export async function displacePlan(plan, { by = null } = {}) {
+  const lines = [];
+  const board = by ? boardSnapshot(currentWar()) : null;
   for (const { unitId, landing } of plan) {
     const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === unitId);
     if (!token) continue;
+    const from = canvas.grid.getOffset({ x: token.document.x, y: token.document.y });
     const point = canvas.grid.getTopLeftPoint(landing.panel);
     await displaceToken(token.document, { x: point.x, y: point.y });
+    const panels = Math.max(Math.abs(landing.panel.i - from.i), Math.abs(landing.panel.j - from.j));
+    if (by && panels > 0) lines.push({ unitId, panels });
   }
+  if (lines.length === 0) return;
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const escape = foundry.utils.escapeHTML;
+  const name = (id) => escape(publicIdentityOf(unitActor(id), board).name);
+  const text = lines.map((l) => game.i18n.format("FGT.Knockback.Pushed", { unit: name(l.unitId), source: name(by), panels: l.panels }));
+  await ChatMessage.create({ content: `<div class="fgt-card">${text.map((t) => `<p>${t}</p>`).join("")}</div>` });
 }
 
 /**
@@ -628,7 +646,7 @@ async function knockBackOccupants(moverId, movement = null) {
     }
     if (dir.i !== 0 && dir.j !== 0) dir = { i: dir.i, j: 0 };
     if (dir.i === 0 && dir.j === 0) dir = { i: 1, j: 0 };
-    await displacePlan(clearFootprintPlan(mover, footprint, () => dir, board));
+    await displacePlan(clearFootprintPlan(mover, footprint, () => dir, board), { by: moverId });
     return;
   }
 
