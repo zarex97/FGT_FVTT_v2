@@ -3,7 +3,8 @@ id: 2026-10-30-choice-asked-per-process
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Chibirā Sanu's Pretender `choose`, its branches `target: self`, is asked once at declaration, and not at all when its predicate (`not:self:effect:shisarotForm`) holds it back.
 **Actual:** the test world reported *"A question nobody scripted was shown to u1: "FGT.Pretender.ChooseClass""* twice, in the NP used outside the Form and in the NP used inside it.

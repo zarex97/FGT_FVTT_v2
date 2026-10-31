@@ -3,7 +3,8 @@ id: 2026-10-29-random-draw-made-at-declaration
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** reading 31 (`docs/superpowers/specs/2026-10-29-tamamo-clauses.md`): each of Dainisshō's hits 1 to 8
 "picks an enemy at random among those in the area as it strikes … with none left a hit does nothing". DN.random was

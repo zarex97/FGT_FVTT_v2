@@ -3,7 +3,8 @@ id: 2026-10-29-maxdelta-on-a-pool-grows
 found: retraction
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** `MaxDelta` on `resources.mantra` raises the Mantra maximum to 6 while `amaterasu` is held, as Karl's
 Ceremonial Reformation raises Max Health.

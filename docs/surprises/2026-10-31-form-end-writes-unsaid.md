@@ -3,7 +3,8 @@ id: 2026-10-31-form-end-writes-unsaid
 found: live press
 kind: producer-without-consumer
 status: open
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The Form ending says what it took: Health 2000/2400 → 1200/1200, two Shiisaa Counters, the Pretender (>X).
 **Actual:** Only 'Master … does not extend Pretender's Shisarot Form: it ends.' (ticks 24, 30).

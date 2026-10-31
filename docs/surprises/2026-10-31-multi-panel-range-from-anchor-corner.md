@@ -3,7 +3,8 @@ id: 2026-10-31-multi-panel-range-from-anchor-corner
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Summer Habetrot's Shisarot Form Normal Attack reads its band per DU by distance (ruling 30): Kingprotea touching her right half at Range 1 is struck with BA(STR).
 **Actual:** 'Base BA(MAG) +150' on Kingprotea beside her (tick 4), as on Asterios two away.

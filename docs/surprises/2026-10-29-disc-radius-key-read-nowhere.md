@@ -3,7 +3,8 @@ id: 2026-10-29-disc-radius-key-read-nowhere
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Kōnisshō's phase targeting `shape: { kind: chebyshevRadius, radius: 2 }` reaches every other ally within
 2, and `validate:content` refuses any targeting it cannot read.
