@@ -92,7 +92,9 @@ async function offerOne(unit, inst, def, spec, board, ctx) {
   const ticks = resolveTicks(parseTick(String(spec.grants ?? "0")), { turnsPerRound: ctx.turnsPerRound ?? 3 });
   const handler = { source: def.name ?? inst.defId, abilityId: null, defId: inst.defId };
   const then = (spec.then ?? []).flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, unit, handler, { ...ctx, board }));
-  await applyWorldIntents([
+  // `lines`: what the paid `then` did, said below (#359, found live: the card
+  // named the extension and not the Cooldowns it cut or the Charge it gave).
+  const { lines = [] } = (await applyWorldIntents([
     I.spendCS(master.id, amount, `extension:${inst.defId}`, unit.id),
     I.log({
       kind: "commandSpell", command: `extension:${inst.defId}`, masterId: master.id, servantId: unit.id,
@@ -100,9 +102,30 @@ async function offerOne(unit, inst, def, spec, board, ctx) {
     }),
     I.extendEffect(unit.id, inst.defId, ticks, def.name ?? inst.defId),
     ...then,
-  ], `extension:${inst.defId}`);
+  ], `extension:${inst.defId}`, { lines: true })) ?? {};
   await say("FGT.EffectExtension.Extended", { holder, board, def, master: masterDoc, amount, grants: spec.grants });
+  await sayRows(lines, holder);
   return true;
+}
+
+/**
+ * What the paid `then` did, to whoever controls the holder: a Cooldown line
+ * names a Skill, which the public line must not (Ch. 30), as a Command Spell's
+ * own rows are whispered (`engine/command-spells.mjs#postCommandSpellCard`).
+ *
+ * @param {object[]} lines the applier's CardLines
+ * @param {object|null} holder
+ * @returns {Promise<void>}
+ */
+async function sayRows(lines, holder) {
+  const rows = (lines ?? []).map((l) => (typeof l?.summary === "string" ? l.summary : l?.summary?.name)).filter(Boolean);
+  if (rows.length === 0 || !holder) return;
+  const escape = foundry.utils.escapeHTML;
+  const owners = game.users.filter((u) => u.isGM || holder.testUserPermission(u, "OWNER")).map((u) => u.id);
+  await ChatMessage.create({
+    content: `<div class="fgt-card"><ul>${rows.map((r) => `<li>${escape(r)}</li>`).join("")}</ul></div>`,
+    whisper: owners,
+  });
 }
 
 /**

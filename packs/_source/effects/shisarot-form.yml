@@ -64,10 +64,12 @@ rules:
   # 25, 30).
   - { key: VariantOverride, branch: shisarot }
   # 9. *"...and knocks back the DU(s) by one panel"*: each DU hit, after its
-  # Damage Step, straight away from her (ruling 30). The CPA's push.
+  # Damage Step, straight away from her (ruling 30). The CPA's push. Not a
+  # Riding Attack's: the ride is her path, and the Form's 2x2 and push do not
+  # add to it (ruling 10, found live pushing a Unit she rode through).
   - key: OnEvent
     event: damageStepEnd
     automatic: true
-    predicate: ["attack:kind:normal"]
+    predicate: ["attack:kind:normal", "not:attack:kind:ridingAttack"]
     then:
       - { key: PushBack, panels: 1 }

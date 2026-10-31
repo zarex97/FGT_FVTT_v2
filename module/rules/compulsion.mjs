@@ -16,7 +16,7 @@
  * knows who is standing where.
  */
 
-import { chebyshev } from "../domain/geometry.mjs";
+import { chebyshev, chebyshevBetween, occupiedPanels } from "../domain/geometry.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 
@@ -173,7 +173,9 @@ function decoyPullOn(unit, decoys, board) {
     const allied = board?.alliances?.[unit.factionId]?.includes(decoy.factionId)
       ?? (decoy.factionId != null && decoy.factionId === unit.factionId);
     if (allied) continue;
-    const distance = chebyshev(decoy.panel, unit.panel);
+    // Footprint to footprint: a 2x2 Decoy reaches from every panel she covers
+    // (Summer Habetrot in her Shisarot Form, #359).
+    const distance = chebyshevBetween(occupiedPanels(decoy), occupiedPanels(unit));
     if (distance > Math.max(decoy.radius, reach) || distance >= bestDistance) continue;
     best = decoy;
     bestDistance = distance;

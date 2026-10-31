@@ -46,7 +46,7 @@ import { stacksHeld, countedValue, countScaleOf, fromCountTargets, countOf } fro
 import { checkPlan, luckCheck } from "../rules/checks.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
-import { chebyshevFromAny } from "../domain/geometry.mjs";
+import { chebyshevBetween } from "../domain/geometry.mjs";
 import { currentBoard, currentTick, unitFrom, unitActor } from "./board.mjs";
 import { askOwner } from "./ask.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
@@ -633,7 +633,7 @@ function distanceBetween(from, to) {
   const a = from?.panels ?? (from?.panel ? [from.panel] : null);
   const b = to?.panels ?? (to?.panel ? [to.panel] : null);
   if (!a?.length || !b?.length) return null;
-  const d = Math.min(...b.map((p) => chebyshevFromAny(a, p)));
+  const d = chebyshevBetween(a, b);
   return Number.isFinite(d) ? d : null;
 }
 

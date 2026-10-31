@@ -40,7 +40,7 @@ import {
 import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
-import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
+import { inAttackRangeBetween, chebyshev, chebyshevBetween, occupiedPanels } from "../domain/geometry.mjs";
 import { missChance, missSourceOf, nullifiedBy, PLAIN_MISS } from "../rules/miss.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { collectContributions } from "../rules/elements.mjs";
@@ -8663,7 +8663,8 @@ export function attackIdentityOf(ability, options = null) {
 }
 
 /**
- * How many panels apart the two units are, or `null` when either has no panel.
+ * How many panels apart the two units are, nearest panel to nearest panel, or
+ * `null` when either has no panel.
  *
  * Chebyshev, which is what "at a Range of 3 or higher" counts: the attack-range
  * shape clips the outer ring's corners at R >= 3 (Ch. 05), but that is about
@@ -8674,11 +8675,14 @@ export function attackIdentityOf(ability, options = null) {
  * @returns {number|null}
  */
 function attackDistance(attacker, defender) {
-  const from = attacker?.panel;
-  const to = defender?.panel;
-  if (!from || !to) return null;
-  if (![from.i, from.j, to.i, to.j].every((n) => typeof n === "number")) return null;
-  return chebyshev(from, to);
+  // Footprint to footprint, as `engine/landing.mjs` measures it: a 2x2 Summer
+  // Habetrot's anchor is one corner, and the Unit beside her other half was
+  // read at Range 2, so her Normal Attack's band struck it with BA(MAG) (#359
+  // ruling 30, found live).
+  const from = occupiedPanels(attacker);
+  const to = occupiedPanels(defender);
+  if (from.length === 0 || to.length === 0) return null;
+  return chebyshevBetween(from, to);
 }
 
 /**

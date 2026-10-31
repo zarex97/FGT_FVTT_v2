@@ -345,3 +345,7 @@ end at a Turn's end. Before the scheduler expires anything, `engine/effect-exten
 whoever pays (a Command Spell from the holder's Master, the pools `availableFor` sums) with a Pass, every time; paid,
 the expiry moves by `grants`, `then` runs on the holder as a handler's actions, and the board is read again; passed,
 the effect ends as usual, said on a card. The Shisarot Form's: 3◈, every Skill −1◈, and Shisarot's Charge (ruling 31).
+What the paid `then` did -- each Cooldown it cut, the Charge it gave -- is whispered to the holder's side beside the
+public line (`sayRows`), as a Command Spell's own rows are; the card said only the 3◈ (found live). A batch with two
+cuts on one clock says it once, the whole change (`engine/applier.mjs#clocksBeforeBatch`): Divine Beast's Rage's
+*"12 → 6"* printed twice.

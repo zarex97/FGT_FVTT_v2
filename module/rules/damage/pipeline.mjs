@@ -1220,7 +1220,9 @@ function stage15TotalDamageModifiers(s) {
   for (const m of activeMods(s, s.ctx.defender, TOTAL_TAKEN_KEYS)) {
     const factor = Math.max(0, 1 + magnitudeOf(m, s.isNP, s.ctx) / 100);
     s.scale(factor);
-    s.contribute(m.key, factor, `${m.source} (Total ×${factor})`, "defender");
+    // The effect's id alone, so the card names it (`explain.mjs` reads the
+    // registry): "defDwnTotal (Total ×1.25)" printed the id (#359, live).
+    s.contribute(m.key, factor, m.source, "defender");
   }
 
   // A defence whose magnitude is the ATTACKER's property (Ch. 45).

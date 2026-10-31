@@ -381,7 +381,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     : null;
   const deliveryAgainst = (u) => {
     if (stated !== NORMAL_ATTACK_DELIVERY) return stated;
-    const distance = caster.panel && u.panel ? geo.chebyshev(caster.panel, u.panel) : null;
+    // Footprint to footprint, as the attack measures its band (#359).
+    const from = geo.occupiedPanels(caster);
+    const to = geo.occupiedPanels(u);
+    const distance = from.length && to.length ? geo.chebyshevBetween(from, to) : null;
     return normalAttackAt(caster, distance, { platform: mount }).delivery;
   };
   survivors = survivors.filter((u) => {
