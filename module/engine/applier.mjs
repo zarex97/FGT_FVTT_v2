@@ -20,6 +20,7 @@ import { useClassesOf } from "../rules/costs.mjs";
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { warRule, currentWar } from "./war.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { resourceLabel } from "../domain/resources.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -96,6 +97,7 @@ export async function applyIntents(intents, {
   const healths = lines ? healthsBeforeBatch(intents) : new Map();
   const spans = lines ? spansBeforeBatch(intents) : [];
   const held = lines ? itemsBeforeBatch(intents) : [];
+  const pools = lines ? resourcesBeforeBatch(intents) : [];
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
@@ -136,7 +138,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...await healLines(plan.local, healths), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...noteLines(plan.local), ...suppressionLines(lines ? plan.local : []),
+  said.push(...clockLines(clocks), ...resourceLines(pools), ...await healLines(plan.local, healths), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...noteLines(plan.local), ...suppressionLines(lines ? plan.local : []),
     ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
@@ -476,6 +478,49 @@ function tallyLines(written) {
       ? game.i18n.format("FGT.Mode.TallyEnded", { mode, count: i.count })
       : game.i18n.format("FGT.Mode.Tally", { mode, tally: i.after, count: i.count });
     return { unitId: i.unitId, summary: { id: `tally:${i.abilityId}`, name, outcome: "applied", reason: null, chance: null } };
+  });
+}
+
+/**
+ * The resource pools a batch moves (`resources.*`), read before it is written:
+ * one per pool, however many writes reach it. Divine Beast's Rage gained a
+ * Shiisaa Counter on every Skill Summer Habetrot used in her Form and spent all
+ * three at once, and no card said either (#359, live).
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{unitId: string, key: string, before: number|null}>}
+ */
+function resourcesBeforeBatch(intents) {
+  if (typeof game === "undefined" || !game?.actors) return [];
+  const seen = new Map();
+  for (const i of (intents ?? []).filter((x) => x?.t === "resource" && String(x.key ?? "").startsWith("resources."))) {
+    const key = `${i.unitId}|${i.key}`;
+    if (!seen.has(key)) seen.set(key, { unitId: i.unitId, key: i.key, before: poolOf(i.unitId, i.key) });
+  }
+  return [...seen.values()];
+}
+
+/** @param {string} unitId @param {string} key @returns {number|null} */
+function poolOf(unitId, key) {
+  let v = foundry.utils.getProperty(unitActor(unitId)?.system ?? {}, key);
+  if (v && typeof v === "object") v = v.value;
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Each pool that moved, as a card line, read after the writes: `Shiisaa 0 → 1`.
+ *
+ * @param {Array<{unitId: string, key: string, before: number|null}>} pools
+ * @returns {CardLine[]}
+ */
+function resourceLines(pools) {
+  return pools.flatMap(({ unitId, key, before }) => {
+    const after = poolOf(unitId, key);
+    if (!Number.isFinite(before) || !Number.isFinite(after) || before === after) return [];
+    const word = String(key).replace(/^resources\./, "").replace(/\.value$/, "");
+    const translation = `FGT.Pool.${word}`;
+    const label = game.i18n?.has?.(translation) ? game.i18n.localize(translation) : resourceLabel(word);
+    return [{ unitId, summary: { id: "resource", name: `${label} ${before} → ${after}`, outcome: "applied", reason: null, chance: null } }];
   });
 }
 

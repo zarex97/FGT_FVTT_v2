@@ -29,6 +29,7 @@ import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { revisionOf } from "../../domain/revisions.mjs";
 import { holdsFamily } from "../effects/families.mjs";
+import { EffectRegistry } from "../registry.mjs";
 
 /** Block's base percentage. A constant, not a dice entry (Ch. 41 Q1). */
 export const BLOCK_BASE_PERCENT = 25;
@@ -500,6 +501,17 @@ function stage2Crit(s) {
 
   const isCrit = s.ctx.crit?.isCrit ?? false;
   const roll = s.ctx.rolls?.[isCrit ? "attackPlus" : "attackMinus"] ?? 0;
+
+  // How the Crit was decided, when a die decided it: the d100 against the
+  // chance and every figure that moved it (#359: Glam Sight's −5% on the
+  // attacker's chance showed on no card).
+  const c = s.ctx.crit ?? {};
+  if (typeof c.roll === "number" && typeof c.chanceUsed === "number") {
+    const moved = (c.modifiers ?? []).map((m) => `${m.source} ${m.value > 0 ? "+" : "−"}${Math.abs(m.value)}%`);
+    const how = c.blocked ? "no Crit possible" : c.automatic ? "a certain Crit"
+      : `1d100 = ${c.roll} vs ${c.chanceUsed}%`;
+    s.note("critChance", `${how}${moved.length ? ` (${moved.join(", ")})` : ""} → ${isCrit ? "Crit" : "no Crit"}`, "attacker");
+  }
 
   if (isCrit) {
     // Component-scoped where the clause says so. Nemo's Poseidon's Protection
@@ -1659,9 +1671,34 @@ function activeMods(s, unit, keys) {
       // modifier bag, so one line covers stages 2, 4, 4b, 5, 7 and 12 and
       // cannot fall out of step with any of them.
       && !(excluded.length > 0 && excluded.includes(m.source))
-      && !(keyedOn && raisesDealtKeyedOn(m, keyedOn))
+      && !negatedHere(s, m, keyedOn)
       && testPredicate(m.predicate, s.predicateCtx),
   );
+}
+
+/**
+ * Whether the defender's `negateKeyedDealt` drops this attacker modifier, and,
+ * the first time it does in an Attack, a note that says so: Guardian Faerie's
+ * negation left a Pretender (>Caster) simply missing from the breakdown, and a
+ * reader could not tell negated from never held (#359, live). Only a modifier
+ * that would have applied is named.
+ *
+ * @param {object} s the pipeline state
+ * @param {object} m
+ * @param {string[]|null} keyedOn
+ * @returns {boolean}
+ */
+function negatedHere(s, m, keyedOn) {
+  if (!keyedOn || !raisesDealtKeyedOn(m, keyedOn)) return false;
+  if (!testPredicate(m.predicate, s.predicateCtx)) return true;
+  s.negationsNoted ??= new Set();
+  const name = EffectRegistry.get(m.source)?.name ?? m.source ?? m.key;
+  if (!s.negationsNoted.has(name)) {
+    s.negationsNoted.add(name);
+    const by = (s.ctx.defender?.modifiers ?? []).find((x) => x?.key === "negateKeyedDealt")?.source ?? null;
+    s.note("negated", by ? `${name} negated by ${by}` : `${name} negated`, "defender");
+  }
+  return true;
 }
 
 /**
