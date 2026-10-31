@@ -39,8 +39,9 @@ normalAttack:
   bands:
     - { from: 2, component: mag, element: water }
 sustainability: "2◈"
-# 1x1, growing to 2x2 in the Form from a corner her owner picks (ruling 26).
-footprint: { w: 1, h: 1 }
+# 1x1, growing to 2x2 in the Form from a corner her owner picks, and shrinking
+# onto one of her four panels, her owner's pick, as it ends (ruling 26).
+footprint: { w: 1, h: 1, grows: cornerPick }
 
 # ─── Shisarot Form's Normal Attack (Ch. 45) ─────────────────────────────
 # Passive 9 changes the SHAPE of her Normal Attack, as Mannanán's Holder Mode

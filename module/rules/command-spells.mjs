@@ -107,6 +107,15 @@ export function canSpend(command, ctx) {
   // A Servant whose form the GM controls: *"Command Spells have no effect"*
   // (Gilles's Gigantic Horror, #323 reading 12f).
   if (ctx.servant.formController === "gm") return { ok: false, reason: "uncommandable", cost };
+  // *"Spend a Command Spell in your own Turn"* (Ch. 33, #190): the bar's window
+  // is the Master's own Turn, and it was offered and spent on the enemy's. Summer
+  // Habetrot's Master bought her Shisarot Form on Faction 2's Turn (#359 ruling
+  // 6, found live). A charmed Master acts on its charmer's Turn, and with no
+  // faction's Turn running nothing is asked, as the use gate does.
+  if (ctx.window === WINDOWS.ownTurn && ctx.board?.actingFactionId) {
+    const side = ctx.master?.actingFactionId ?? ctx.master?.factionId ?? null;
+    if (side && side !== ctx.board.actingFactionId) return { ok: false, reason: "notOwnTurn", cost };
+  }
   // Ch. 32: the pool is per RELATIONSHIP. A Master with three spells borrowed
   // for Archer cannot spend them on Lancer, and the flat count could not say so.
   // A legion's body reads the hundred's pool, namespaced to the legion (#226).

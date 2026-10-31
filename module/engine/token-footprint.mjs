@@ -212,9 +212,13 @@ async function resizeTokens(actor) {
     // A Unit that grows about its centre shrinks about it too: Fafnir ends on
     // the middle panel of his 3x3 (#345 ruling 19).
     const grew = size.width > token.width || size.height > token.height;
-    const centred = actor.system?.footprint?.grows === "centre";
+    const grows = actor.system?.footprint?.grows;
+    const centred = grows === "centre";
+    // Summer Habetrot leaving her Shisarot Form shrinks onto one of the panels
+    // she covered, her owner's pick (#359 ruling 26); it kept her top-left.
     const at = grew ? await growthPlacement(actor, token, size, { centred })
-      : centred ? shrinkPlacement(token, size) : null;
+      : centred ? shrinkPlacement(token, size)
+        : grows === "cornerPick" ? await pickedShrink(actor, token, size) : null;
     await token.update({ ...size, ...(at ?? {}) }, { fgtForced: true, animate: false });
     refreshSize(token);
   }
@@ -321,6 +325,39 @@ export function centredOrigin(old, size, bounds) {
   if (!bounds) return { i, j };
   const fits = i >= bounds.iMin && i + size.height - 1 <= bounds.iMax && j >= bounds.jMin && j + size.width - 1 <= bounds.jMax;
   return fits ? { i, j } : null;
+}
+
+/**
+ * Where a Unit that shrinks onto a panel of her owner's choosing lands: one of
+ * the footprint-sized blocks inside the one she leaves, asked by its corner, as
+ * her growth is (#359 ruling 26). A 2x2 Summer Habetrot leaving her Shisarot
+ * Form stands on any of her four panels. Nobody answering keeps the top-left.
+ *
+ * @param {object} actor
+ * @param {object} token a `TokenDocument`
+ * @param {{width: number, height: number}} size the size she shrinks to
+ * @returns {Promise<{x: number, y: number}|null>}
+ */
+async function pickedShrink(actor, token, size) {
+  if (!canvas?.grid) return null;
+  const { chooseFor } = await import("./ask.mjs");
+  const from = canvas.grid.getOffset({ x: token.x, y: token.y });
+  const spareH = Math.max(0, token.height - size.height);
+  const spareW = Math.max(0, token.width - size.width);
+  const picked = await chooseFor(actor, {
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
+    title: game.i18n.format("FGT.Shrink.Title", { name: actor.name }),
+    hint: game.i18n.localize("FGT.Shrink.Hint"),
+    count: 1,
+    options: Object.keys(CORNERS).map((id) => ({ id, name: game.i18n.localize(`FGT.Shrink.Corner.${id}`) })),
+  });
+  const corner = CORNERS[picked?.[0]] ?? CORNERS.nw;
+  // `down`/`right` name the corner that stays put as she GROWS; shrinking,
+  // she keeps that corner's panel.
+  return canvas.grid.getTopLeftPoint({
+    i: from.i + (corner.down ? 0 : spareH),
+    j: from.j + (corner.right ? 0 : spareW),
+  });
 }
 
 /**

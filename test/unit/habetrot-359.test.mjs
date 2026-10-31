@@ -402,3 +402,118 @@ describe("her actives, pink values read at the use (SG, YR, GD)", () => {
     }, WAR);
   });
 });
+
+describe("found pressing her live (#359)", () => {
+  it("a 2x2 Habetrot strikes the Unit beside her far half at Range 1: BA(STR), the band read footprint to footprint (SF.9.band)", async () => {
+    // Her anchor (6,6) is two from (6,8); her panel (6,7) is one. The anchor
+    // read it as Range 2 and struck with BA(MAG) (found live, Kingprotea).
+    await withSubjects([habetrot({ effects: inForm }), foe("cu-chulainn", { i: 6, j: 8 })], async ({ world: w }) => {
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      w.dice.set("d100", 99);
+      await playAttack(w, { attacker: HAB, target: FOE, react: NOTHING(FOE) });
+      const text = JSON.stringify(resultsOf(w)[0]?.breakdown ?? []);
+      expect(text).toContain("base:str");
+      expect(text).not.toContain("base:mag");
+    }, WAR);
+  });
+
+  it("footprint to footprint is the nearest panel of one to the nearest of the other", async () => {
+    const { chebyshevBetween } = await import("../../module/domain/geometry.mjs");
+    const her = [{ i: 6, j: 6 }, { i: 6, j: 7 }, { i: 7, j: 6 }, { i: 7, j: 7 }];
+    expect(chebyshevBetween(her, [{ i: 6, j: 8 }])).toBe(1);
+    expect(chebyshevBetween([{ i: 6, j: 6 }], [{ i: 6, j: 8 }])).toBe(2);
+    expect(chebyshevBetween(her, [])).toBe(Infinity);
+  });
+
+  it("her Riding Attack in the Form sweeps a path two panels wide, each Unit once (RD.ra.form, ruling 10)", async () => {
+    const { ridingAttackPath } = await import("../../module/rules/movement.mjs");
+    await withSubjects([
+      habetrot({ effects: inForm }),
+      foe("cu-chulainn", { i: 6, j: 9 }, FOE),
+      foe("medea", { i: 7, j: 10 }, FOE2),
+    ], async () => {
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const board = currentBoard();
+      const me = board.units.find((u) => u.id === HAB);
+      const ride = ridingAttackPath(me, { i: 6, j: 11 }, board);
+      expect(ride.ok).toBe(true);
+      // FOE stands in her anchor's row, FOE2 in her second row: both struck.
+      expect(ride.hits.map((u) => u.id).sort()).toEqual([FOE, FOE2].sort());
+    }, WAR);
+  });
+
+  it("the Form's push rides a Normal Attack, never a Riding Attack (ruling 10)", () => {
+    const form = parse(readFileSync("packs/_source/effects/shisarot-form.yml", "utf8"));
+    const push = form.rules.find((r) => r.key === "OnEvent" && (r.then ?? []).some((a) => a.key === "PushBack"));
+    expect(push.predicate).toEqual(["attack:kind:normal", "not:attack:kind:ridingAttack"]);
+  });
+
+  it("leaving the Form she shrinks onto a panel her owner picks (SF.1, ruling 26)", async () => {
+    await withSubjects([habetrot()], ({ world: w }) => {
+      expect(w.actor(HAB).system.footprint).toMatchObject({ w: 1, h: 1, grows: "cornerPick" });
+    });
+  });
+
+  it("her Master's bar spends a Command Spell in her side's Turn only (SH.3.when, ruling 6)", async () => {
+    await loadCommands();
+    const theirs = { ...WAR, combat: { ...WAR.combat, actingFactionId: "B" } };
+    await withSubjects(withMaster(), async ({ world: w }) => {
+      await w.actor(MASTER).update({ "system.commandSpells": 3 });
+      const { offerCommands, spendCommandSpell, whyNoCommand } = await import("../../module/engine/command-spells.mjs");
+      expect(offerCommands({ masterId: MASTER, window: "ownTurn", context: { servantId: HAB } })).toEqual([]);
+      expect(whyNoCommand({ masterId: MASTER, window: "ownTurn", context: { servantId: HAB } })).toBe("notOwnTurn");
+      const out = await spendCommandSpell({ masterId: MASTER, commandId: "cs-shisarot-form", window: "ownTurn", context: { servantId: HAB } });
+      expect(out.ok).toBe(false);
+      expect(effectsOf(w, HAB, "shisarotForm")).toHaveLength(0);
+      expect(w.actor(MASTER).system.commandSpells).toBe(3);
+      const { UNIT_ACTIONS } = await import("../../module/rules/actions.mjs");
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const board = currentBoard();
+      const bar = UNIT_ACTIONS.find((a) => a.id === "commandSpell");
+      expect(bar.available(board.units.find((u) => u.id === MASTER), board)).toBeNull();
+    }, theirs);
+  });
+
+  it("two cuts on one clock in one batch are one line, the whole change (DB.4.gd)", async () => {
+    await withSubjects([habetrot()], async ({ world: w }) => {
+      const gd = abilityOf(w, HAB, "habetrot-great-decisive-battle");
+      await gd.update({ "system.cooldown.remaining": 12 });
+      const I = await import("../../module/engine/intents.mjs");
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const { lines } = await applyWorldIntents([I.cooldown(HAB, gd.id, 3), I.cooldown(HAB, gd.id, 3)], "test", { lines: true });
+      const rows = lines.filter((l) => l.summary?.id === "cooldown");
+      expect(rows).toHaveLength(1);
+      expect(rows[0].summary.name).toMatch(/12 → 6/);
+    }, WAR);
+  });
+
+  it("the extension's card says the Cooldowns it cut and the Charge it gave, to her side (SF.11.cd, SF.11.next)", async () => {
+    await withSubjects(withMaster({ effects: [{ defId: "shisarotForm", expiry: 18 }] }), async ({ world: w }) => {
+      await w.actor(MASTER).update({ "system.commandSpells": 3 });
+      await abilityOf(w, HAB, "habetrot-sacred-guardian-beast").update({ "system.cooldown.remaining": 6 });
+      w.answer({ title: "FGT.EffectExtension.Title", pick: ["extend"] });
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const { offerEffectExtensions } = await import("../../module/engine/effect-extension.mjs");
+      await offerEffectExtensions(currentBoard(), { tick: 18, turnsPerRound: 3 });
+      const rows = w.messages.contents.filter((m) => m.whisper.length > 0).map((m) => m.content).join(" ");
+      expect(rows).toMatch(/Sacred Guardian Beast/);
+      expect(rows).toMatch(/Shisarot/);
+    }, WAR);
+  });
+
+  it("Def Dwn (Total) is named on the breakdown, never by its id (BM.def)", async () => {
+    await withSubjects([
+      habetrot(),
+      foe("cu-chulainn", { i: 6, j: 7 }, FOE, { effects: [{ defId: "defDwnTotal", magnitude: 25, expiry: 40 }] }),
+    ], async ({ world: w }) => {
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      w.dice.set("d100", 99);
+      await playAttack(w, { attacker: HAB, target: FOE, react: NOTHING(FOE) });
+      const { explainDamage } = await import("../../module/rules/explain.mjs");
+      const rows = explainDamage(resultsOf(w)[0]).rows;
+      const notes = rows.flatMap((r) => r.contributors.map((c) => c.note));
+      expect(notes).toContain("Def Dwn (Total)");
+      expect(notes.join(" ")).not.toContain("defDwnTotal");
+    }, WAR);
+  });
+});

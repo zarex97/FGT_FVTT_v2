@@ -397,7 +397,8 @@ async function onTurnChange(combat, prior, current) {
   }
 
   const startingBoard = boardFor(combat);
-  await run(
+  // Heals scaled before they are counted, as the Turn's end does.
+  const startIntents = await resolveHealing(
     scheduler.beginTurn(startingBoard, {
       ...ctx, tick: nextTick, activeFactionId: incoming,
       round: beganRound ?? combat.round ?? 1,
@@ -406,8 +407,16 @@ async function onTurnChange(combat, prior, current) {
       // faction's -- so this is its own gather, not `ctx.rolls` carried over.
       rolls: await gatherRolls([[startingBoard.units, "turnStart"]]),
     }),
-    "scheduler:beginTurn",
   );
+  const startClocks = clocksBefore(startIntents, remainingOnActor);
+  const healthStart = healthBefore(startIntents, healthOnActor);
+  const landedStart = await run(startIntents, "scheduler:beginTurn");
+  // ...and what its handlers did, on a card, as the Turn's end says its own:
+  // Ocean Stirring Lion's Roar reset Summer Habetrot's Noble Phantasm, buffed
+  // her and lengthened her Form at her Turn's start and told nobody (#359
+  // ruling 36, found live).
+  await postPeriodicReport(startIntents, worldIO(), "FGT.TurnReport.StartTitle");
+  await postTurnEndReport(startIntents, startClocks, healthStart, "FGT.TurnReport.StartTitle", landedStart);
 
   // Bounded fields: close the expired ones, then run what the survivors do at
   // a Turn boundary. Ch. 28's whole read side shipped with nothing creating a

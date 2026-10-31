@@ -487,11 +487,21 @@ function tallyLines(written) {
  */
 function clocksBeforeBatch(intents) {
   if (typeof game === "undefined" || !game?.actors) return [];
-  return (intents ?? []).filter((i) => i?.t === "cooldown").map((i) => ({
-    unitId: i.unitId, abilityId: i.abilityId, before: remainingOf(i.unitId, i.abilityId),
-    // The die that chose this clock, when one did (Galvanism, #345).
-    picked: i.picked ?? null,
-  }));
+  // One line per clock, however many cuts reach it: Divine Beast's Rage cuts
+  // every Skill by 1◈ and Great Decisive Battle by 1◈ more, and the card said
+  // "Cooldown 12 → 6" twice, each line the whole batch's change (#359, live).
+  const seen = new Map();
+  for (const i of (intents ?? []).filter((x) => x?.t === "cooldown")) {
+    const key = `${i.unitId}|${i.abilityId}`;
+    const held = seen.get(key);
+    if (held) { held.picked ??= i.picked ?? null; continue; }
+    seen.set(key, {
+      unitId: i.unitId, abilityId: i.abilityId, before: remainingOf(i.unitId, i.abilityId),
+      // The die that chose this clock, when one did (Galvanism, #345).
+      picked: i.picked ?? null,
+    });
+  }
+  return [...seen.values()];
 }
 
 /** @param {string} unitId @param {string} abilityId @returns {number} */
