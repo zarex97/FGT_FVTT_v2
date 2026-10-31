@@ -134,7 +134,8 @@ Reading 40: blue and purple are read as black; pink is the one colour that carri
 answered in round 1.
 
 **Round 2, ruled 2026-10-30 (the user): reading 13 as recommended.** The frontier is empty: every reading is ruled.
-**40 readings ruled.**
+**Round 3, ruled 2026-10-31 (the user), after the live presses: readings 41 and 42, both as built.**
+**42 readings ruled.**
 
 | # | Ruling | Clauses |
 |---|---|---|
@@ -178,6 +179,8 @@ answered in round 1.
 | 38 | Shiisaa Beam is two wide and five deep, or five wide and two deep, against any of her sides and touching it, her player's pick of shape, side and slide along it. | BM.area |
 | 39 | Great Tropical Fireball's 4×4 has a panel within her Range, 3, read from her footprint. | TF.area |
 | 40 | Blue text is rule text like black: no rule of its own, and nothing about the Form. Riding's blue Passives are the template's, usable only on a Turn the Active was used; Yanamun Reversal's blue sentence is effects 6–7's area; *"(i.e. 200)"* is SF.6's figure. | RD.*, YR.geom, SF.6 |
+| 41 | Shiisaa Beam's 5×2 against her 2-wide side offers the two centred slides (overhang 1 and 2, or 2 and 1), as Yanamun Reversal's 4×4 does for the same words *"in any non-diagonal direction next to herself"*; ruling 38's "slide" is those two. The other readings: every slide covering her side (4); every slide touching it (6). | BM.area |
+| 42 | A second S.Crit Up (Shiisa) landing while one is held adds its 10 charges to those left (`stacking: count`: 9 + 10 = 19, +95%), and the one pool runs on the new 2◈. The other readings: reset to 10; two copies, each spending its own. | OS.4, OS.4.crit |
 
 ## Statblock
 
@@ -419,7 +422,7 @@ answered in round 1.
 - [x] **BM.atk** · An Attack Skill — Pressed live 2026-10-30: tick 12, through the socket request (the canvas picker did not take the synthetic click)
 - [x] **BM.gate** · Only usable in Shisarot Form — Pressed live 2026-10-30: out of the Form greyed as Fireball
 - [x] **BM.ba** · BA(MAG) — Pressed live 2026-10-30: 'Base BA(MAG) +150', no multiplier
-- [x] **BM.area** · Hits a 2×5 or 5×2 area in any non-diagonal direction next to her (Q) — Pressed live 2026-10-30: per side a 2x5 and two 5x2 slides offered; the west 5x2 caught Kingprotea and Asterios (slides: Q to the user)
+- [x] **BM.area** · Hits a 2×5 or 5×2 area in any non-diagonal direction next to her (Q) — Pressed live 2026-10-30: per side a 2x5 and two 5x2 slides offered; the west 5x2 caught Kingprotea and Asterios (ruling 41: the two centred slides)
 - [x] **BM.def** · …inflicts Def Dwn (Total) for 1◈: Total damage taken +25% — Pressed live 2026-10-30: Asterios 'Def Dwn (Total) (rolled 61 vs 70%)', 25, expiry 15; his next hit: stage 15 ×1.25 (printed by id: FOUND, FIXED, unit-tested)
 - [x] **BM.nostack** · …it does not stack — Observed live 2026-10-30: stacking noneRefresh
 - [x] **BM.cd** · Cooldown 3◈ — Pressed live 2026-10-30: cooldown 9
