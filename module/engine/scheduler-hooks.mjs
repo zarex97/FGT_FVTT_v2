@@ -19,7 +19,7 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
-import { postTurnEndReport, clocksBefore, remainingOnActor, healthBefore, healthOnActor } from "./turn-report.mjs";
+import { postTurnEndReport, clocksBefore, remainingOnActor, healthBefore, healthOnActor, endingsBefore, endingLines } from "./turn-report.mjs";
 import * as budget from "./budget.mjs";
 import { GM_SIDE } from "../rules/control.mjs";
 import {
@@ -207,7 +207,10 @@ async function onTurnChange(combat, prior, current) {
   // a cut took, and nothing of one that found the clock at 0 (#209 review).
   const clocks = clocksBefore(turnIntents, remainingOnActor);
   const healthTurn = healthBefore(turnIntents, healthOnActor);
+  // A state the clock ends that says what its end takes, read before (#359).
+  const endings = endingsBefore(turnIntents);
   const landedTurn = await run(turnIntents, "scheduler:endTurn", ended);
+  landedTurn.push(...endingLines(endings, (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key))));
   // A Turn's periodic ticks, said as the Round's are: Curse ticks at the end of
   // its bearer's Turn, and its damage showed on no card (#239, live).
   await postPeriodicReport(turnIntents, worldIO(), "FGT.TurnReport.Title");

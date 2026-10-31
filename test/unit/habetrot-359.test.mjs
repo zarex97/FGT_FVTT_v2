@@ -517,3 +517,56 @@ describe("found pressing her live (#359)", () => {
     }, WAR);
   });
 });
+
+describe("what she does, said on a card (#359 gaps)", () => {
+  it("a Shiisaa Counter gained by a handler is a line: 'Shiisaa 0 → 1' (DB.p1)", async () => {
+    await withSubjects([habetrot({ effects: inForm })], async () => {
+      const I = await import("../../module/engine/intents.mjs");
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const { lines } = await applyWorldIntents([I.resource(HAB, "resources.shiisaa.value", 1)], "test", { lines: true });
+      expect(lines.map((l) => l.summary?.name)).toContain("Shiisaa 0 → 1");
+    }, WAR);
+  });
+
+  it("the Form's end says what it took: Health, the Counters and the Pretender (SF.3.end, DB.keep, SF.10.dur)", async () => {
+    await withSubjects([habetrot({ effects: [{ defId: "shisarotForm", expiry: 18 }, { defId: "pretenderSaber" }] })], async ({ world: w }) => {
+      await w.actor(HAB).update({ "system.resources.shiisaa.value": 2 });
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const { expireEffects } = await import("../../module/engine/scheduler.mjs");
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const { endingsBefore, endingLines } = await import("../../module/engine/turn-report.mjs");
+      const me = currentBoard().units.find((u) => u.id === HAB);
+      const { EffectRegistry } = await import("../../module/rules/registry.mjs");
+      const intents = expireEffects([me], { tick: 18, turnsPerRound: 3, board: currentBoard(), effectDef: (id) => EffectRegistry.get(id) });
+      const endings = endingsBefore(intents);
+      await applyWorldIntents(intents, "test");
+      const [row] = endingLines(endings, (key, data) => `${key} ${JSON.stringify(data ?? {})}`);
+      expect(row.summary.name).toContain("Shisarot Form");
+      expect(row.summary.name).toContain("Shiisaa 2 → 0");
+      expect(row.summary.name).toContain("Pretender (>Saber)");
+    }, WAR);
+  });
+
+  it("Guardian Faerie's negation is named on the breakdown, not just missing (GF.2)", async () => {
+    await withSubjects([
+      ...withMaster(),
+      { from: "medea", id: ALLY, panel: { i: 6, j: 7 }, state: { factionId: "A" } },
+      foe("cu-chulainn", { i: 6, j: 8 }, FOE, { effects: [{ defId: "pretenderCaster" }] }),
+    ], async ({ world: w }) => {
+      w.dice.set("d100", 99);
+      await playAttack(w, { attacker: FOE, target: ALLY, react: NOTHING(ALLY) });
+      const text = JSON.stringify(resultsOf(w)[0]?.breakdown ?? []);
+      expect(text).toContain("Pretender (>Caster) negated by Guardian Faerie");
+    }, WAR);
+  });
+
+  it("the Crit die is on the breakdown with what moved the chance (GL.crit)", async () => {
+    await withSubjects([habetrot(), foe("cu-chulainn", { i: 6, j: 7 })], async ({ world: w }) => {
+      w.dice.set("d100", 99);
+      await playAttack(w, { attacker: FOE, target: HAB, react: NOTHING(HAB) });
+      const text = JSON.stringify(resultsOf(w)[0]?.breakdown ?? []);
+      expect(text).toMatch(/1d100 = \d+ vs 45%/);
+      expect(text).toContain("Glam Sight: Fairy Eyes −5%");
+    }, WAR);
+  });
+});

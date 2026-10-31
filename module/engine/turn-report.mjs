@@ -11,6 +11,68 @@
 import { effectLine } from "../rules/card-visibility.mjs";
 import { unitActor } from "./board.mjs";
 import { isWarGM } from "./war.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
+import { resourceLabel } from "../domain/resources.mjs";
+
+/**
+ * The states a boundary's clock ends that say what their end takes: an effect
+ * whose definition has an `onRemove` or an `extension`, read before the batch
+ * is written. The Shisarot Form's end dropped Summer Habetrot's Health from
+ * 2000 / 2400 to 1200 / 1200, emptied her Shiisaa Counters and took her
+ * Pretender (>X), and no card said any of it; with no Command Spell to offer,
+ * not even that it ended (#359, live).
+ *
+ * @param {object[]} intents the boundary's batch
+ * @returns {Array<{unitId: string, name: string, before: object|null, pools: Record<string, number>, removes: string[]}>}
+ */
+export function endingsBefore(intents) {
+  const out = [];
+  for (const i of intents ?? []) {
+    if (i?.t !== "removeEffect" || !i.onRemoveRan) continue;
+    const actor = unitActor(i.unitId);
+    const defId = actor?.effects?.get?.(i.effectId)?.system?.defId ?? i.defId ?? i.effectId;
+    const def = EffectRegistry.get(defId);
+    if (!def || !((def.onRemove ?? []).length > 0 || def.extension)) continue;
+    const h = actor?.system?.health;
+    const pools = Object.fromEntries(Object.entries(actor?.system?.resources ?? {})
+      .map(([k, v]) => [k, Number(v?.value)]).filter(([, v]) => Number.isFinite(v)));
+    const removes = (intents ?? [])
+      .filter((x) => x?.t === "removeEffect" && x.byRule && x.unitId === i.unitId && x.defId)
+      .map((x) => EffectRegistry.get(x.defId)?.name ?? x.defId);
+    out.push({ unitId: i.unitId, name: def.name ?? defId, before: h ? { now: Number(h.value), max: Number(h.max) } : null, pools, removes });
+  }
+  return out;
+}
+
+/**
+ * Each ending, as a card row, read after the writes: what it took.
+ *
+ * @param {ReturnType<typeof endingsBefore>} endings
+ * @param {(key: string, data?: object) => string} t
+ * @returns {object[]} rows `{unitId, summary}`
+ */
+export function endingLines(endings, t) {
+  return (endings ?? []).map((e) => {
+    const actor = unitActor(e.unitId);
+    const parts = [];
+    const h = actor?.system?.health;
+    if (e.before && h && (Number(h.value) !== e.before.now || Number(h.max) !== e.before.max)) {
+      parts.push(`${t("FGT.Resource.health")} ${e.before.now} / ${e.before.max} → ${Number(h.value)} / ${Number(h.max)}`);
+    }
+    for (const [key, before] of Object.entries(e.pools)) {
+      const after = Number(actor?.system?.resources?.[key]?.value);
+      if (!Number.isFinite(after) || after === before) continue;
+      const translation = `FGT.Pool.${key}`;
+      const label = game.i18n?.has?.(translation) ? game.i18n.localize(translation) : resourceLabel(key);
+      parts.push(`${label} ${before} → ${after}`);
+    }
+    for (const name of e.removes) parts.push(t("FGT.TurnReport.Removed", { effect: name }));
+    const name = parts.length > 0
+      ? t("FGT.TurnReport.StateEndedTook", { effect: e.name, what: parts.join("; ") })
+      : t("FGT.TurnReport.StateEnded", { effect: e.name });
+    return { unitId: e.unitId, summary: { id: "stateEnded", name, outcome: "note", reason: null, chance: null } };
+  });
+}
 
 /** The line for each way a clock can turn. */
 const COOLDOWN_KEYS = Object.freeze({
