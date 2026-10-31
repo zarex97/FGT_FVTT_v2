@@ -3,7 +3,8 @@ id: 2026-10-31-command-spell-bar-off-turn
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Ruling 6: her Master's Shisarot Form Command Spell is offered in her side's Turn only; the bar's dialog says 'Spend a Command Spell in your own Turn.'
 **Actual:** On Faction 2's Turn (tick 3) Player1's Master bar was lit, offered Shisarot Form and spent it.

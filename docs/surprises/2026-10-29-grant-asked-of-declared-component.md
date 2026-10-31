@@ -3,7 +3,8 @@ id: 2026-10-29-grant-asked-of-declared-component
 found: live press
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Witchcraft's `AttackProperty: ignoresMagicResistance` on `attack:component:mag` reaches her MAG Normal
 Attack; `tamamo-353.test.mjs` said so.

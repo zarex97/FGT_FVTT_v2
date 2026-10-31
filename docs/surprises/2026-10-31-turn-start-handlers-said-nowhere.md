@@ -3,7 +3,8 @@ id: 2026-10-31-turn-start-handlers-said-nowhere
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Ruling 36: Ocean Stirring fires at her Turn's start by itself, 'with its line on the card'.
 **Actual:** At tick 6 her NP went 0 → 24, three buffs landed and the Form grew 12 → 15; the log had 'event … Ocean Stirring', the chat nothing.

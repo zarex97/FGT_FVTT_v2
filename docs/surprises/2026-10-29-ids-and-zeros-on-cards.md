@@ -3,7 +3,8 @@ id: 2026-10-29-ids-and-zeros-on-cards
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** a card names a source by its name and says only what a write made.
 

@@ -3,7 +3,8 @@ id: 2026-10-31-total-defdwn-named-by-id
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A card names an effect by its name: 'Def Dwn (Total)'.
 **Actual:** Stage 15 read 'totalDefDwn defDwnTotal (Total ×1.25)'.

@@ -3,7 +3,8 @@ id: 2026-10-31-form-shrink-kept-top-left
 found: live press
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Ruling 26: leaving the Form she shrinks onto one of her four panels, her player's pick.
 **Actual:** At the end of tick 24 she became 1x1 on her top-left panel, no prompt.

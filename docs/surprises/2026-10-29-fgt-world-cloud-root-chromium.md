@@ -3,7 +3,8 @@ id: 2026-10-29-fgt-world-cloud-root-chromium
 found: tooling
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** `docs/agents/cloud.md`: `tools/fgt-world.mjs` "takes Linux for the VPS"; with
 `FGT_CHROME_EXE=/opt/pw-browsers/chromium` its `chrome:start`, `status`, `launch`, `join` and `rebuild` would work in

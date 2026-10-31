@@ -3,7 +3,8 @@ id: 2026-10-29-forced-block-answered-nothing
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Aphotic's `ForcedReaction: block` answers her reaction rung, unasked, in the automatic step.
 

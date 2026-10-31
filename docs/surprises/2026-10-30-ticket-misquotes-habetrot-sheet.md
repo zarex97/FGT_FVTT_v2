@@ -3,7 +3,8 @@ id: 2026-10-30-ticket-misquotes-habetrot-sheet
 found: retraction
 kind: claim-without-reading-the-path
 status: open
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** #310 says Summer Habetrot's sheet states the doubled threshold "but it names an Injury Roll", where Tamamo Cat's says *Agility Roll*.
 **Actual:** the repo copy reads *"The amount of damage taken that is required to trigger an Agility Roll is doubled (i.e. 200)."*, Tamamo Cat's words.

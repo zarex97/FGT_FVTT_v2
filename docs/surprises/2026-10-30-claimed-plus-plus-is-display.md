@@ -3,7 +3,8 @@ id: 2026-10-30-claimed-plus-plus-is-display
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Summer Habetrot's spec said *"Health 1000 at END C++ (the `++` on the display, Asterios's)"*, read off `docs/B-rank-tables.md`'s note that Asterios's `A++` is 1500.
 **Actual:** her projection read 1200: `expected 1200 to be 1000`. The engine has derived Max Health from END's steps since #126; `asterios.yml` itself says A++ steps to 1700.
