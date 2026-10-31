@@ -3,7 +3,8 @@ id: 2026-10-29-window-cast-unseen-by-process
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Kokutendō cast at the start of the Combat Phase she is attacked in Blocks that very Attack (reading 9).
 

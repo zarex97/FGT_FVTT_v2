@@ -332,3 +332,20 @@ Curse tick at 1, which the attack pipeline's stage 16 alone did before.
 adds off the recipient's own Parameter: Higanbana Sesshoseki's *"Stage X Curse … MAG Rank EX, A: 1; B, C: 2; D, E:
 3"*. A Rank with a + or − reads its letter's row, and a Unit with no Parameters, a Master, reads `unranked` (reading 22).
 One reader, `rules/effect-flow.mjs#stagesFor`, which the landing calls for every entry.
+
+### Removed by Skill Seal, and a paid extension (#359)
+
+**`endsOnSkillSeal`** on an Effect definition: Unremovable but by Skill Seal, *"the 'Pretender' effect is neither a
+buff or a debuff and is Unremovable unless Habetrot is inflicted with Skill Seal, then the 'Pretender' effect is
+removed from her"*. `engine/seal-ends.mjs#onSkillSealed` removes every such instance as Skill Seal lands, with a line
+(`sealedEffects`). The Pretender (>X) effects carry it, and each replaces its siblings: one at a time (ruling 9).
+
+**`extension: {cost, grants, repeatable, then}`** on an Effect definition: a paid extension offered as it is about to
+end at a Turn's end. Before the scheduler expires anything, `engine/effect-extension.mjs#offerEffectExtensions` asks
+whoever pays (a Command Spell from the holder's Master, the pools `availableFor` sums) with a Pass, every time; paid,
+the expiry moves by `grants`, `then` runs on the holder as a handler's actions, and the board is read again; passed,
+the effect ends as usual, said on a card. The Shisarot Form's: 3◈, every Skill −1◈, and Shisarot's Charge (ruling 31).
+What the paid `then` did -- each Cooldown it cut, the Charge it gave -- is whispered to the holder's side beside the
+public line (`sayRows`), as a Command Spell's own rows are; the card said only the 3◈ (found live). A batch with two
+cuts on one clock says it once, the whole change (`engine/applier.mjs#clocksBeforeBatch`): Divine Beast's Rage's
+*"12 → 6"* printed twice.

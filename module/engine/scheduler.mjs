@@ -1356,9 +1356,27 @@ const ACTIONS = Object.freeze({
         source: h.source, picked: { roll: rolled, of: pool.length } }];
     }
 
+    // `skills` is *"Skill Cooldown"*: every Skill, Class Skills included, and no
+    // NP (Summer Habetrot's Divine Beast's Rage 4, #359 ruling 34). A named
+    // `ability` is its id, its slug or its content id: content cannot know an id.
+    const named = a.ability
+      ? (u.abilities ?? []).find((x) => x.id === a.ability || x.slug === a.ability || x.contentId === a.ability)?.id ?? null
+      : null;
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
-      : [a.ability ?? h.abilityId].filter(Boolean);
+      : a.scope === "skills"
+        ? (u.abilities ?? []).filter((x) => !x.isNP && !x.categorizedAsNP && x.cooldownMax).map((x) => x.id)
+        : [named ?? (a.ability ? null : h.abilityId)].filter(Boolean);
+
+    // *"NP Cooldown is Reset"*: each clock back to its full length, as a use
+    // starts it (#328 ruling 13, carried to Ocean Stirring by #359 ruling 35).
+    if (a.restart) {
+      return ids.flatMap((id) => {
+        const max = (u.abilities ?? []).find((x) => x.id === id)?.cooldownMax ?? null;
+        const full = max === null ? 0 : resolveTicks(parseTick(String(max)), c);
+        return full > 0 ? [{ ...I.cooldown(u.id, id, full, "set"), source: h.source }] : [];
+      });
+    }
 
     // `source` so the card that reports the Turn end can name it: Self-Replenishment's
     // 2 Turns off both twins' Noble Phantasm happened under a card that named
@@ -1526,7 +1544,18 @@ const ACTIONS = Object.freeze({
    * gets one, and the event says −1. That is the sheet's *"if a stage of Curse
    * was removed"* answered with arithmetic rather than a condition.
    */
-  RemoveEffect: (a, u, _h, _c) => {
+  RemoveEffect: (a, u, _h, c) => {
+    // A FAMILY, every instance of it, or only the untimed ones: the Shisarot
+    // Form's Pretender *"lasts until she exits Shisarot Form"*, and one her
+    // Active gave her after a Skill Seal keeps its 2◈ (Summer Habetrot #359
+    // ruling 9). By instance id, so a sibling of another family stays.
+    if (a.family) {
+      const defOf = c?.effectDef ?? ((id) => EffectRegistry.get(id));
+      return (u.effectInstances ?? [])
+        .filter((e) => [...(defOf(e.defId)?.families ?? [])].includes(a.family))
+        .filter((e) => !a.untimedOnly || e.expiry === null || e.expiry === undefined)
+        .map((e) => ({ ...I.removeEffect(u.id, e.id, a.cause ?? "event"), defId: e.defId, byRule: true }));
+    }
     const defId = a.effect ?? a.defId;
     // `byRule`: a rule took it off, which the card says (`engine/applier.mjs
     // #removalLines`). Soaked dried at a Day Round's end, and was used up by

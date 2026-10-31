@@ -1,0 +1,78 @@
+# Summer Habetrot's A Strange Giant Shadow 3 (#359): *"Habetrot's Master can
+# spend one Command Spell to transform Habetrot into Shisarot Form for 3◈
+# Turns."*
+#
+# Offered to her Master only, for her, on her side's Turn (ruling 6): a
+# requirement on the contracted Servant, who must carry the Skill that grants
+# it and not already be in the Form (ruling 7). It costs the Command Spell and
+# nothing else: no NP use, no NP Cooldown, no Master Health; it brings the
+# Form's Pretender, as every transform does (ruling 8: none while Skill
+# Sealed). The same transform her NP runs, as `phases` on the Servant.
+schema: 1
+id: cs-shisarot-form
+name: "Shisarot Form"
+type: commandSpell
+cost: 1
+description: Transforms Summer Habetrot into Shisarot Form for 3◈ Turns.
+requirements:
+  - { kind: servantPredicate, predicate: ["self:skill:strangeGiantShadow", "not:self:effect:shisarotForm"] }
+timing: { window: ownTurn }
+effect:
+  - kind: phases
+    target: contractedServant
+    ability: "A Strange Giant Shadow was Sighted on Majimun Island"
+    phases:
+      - kind: choose
+        target: self
+        predicate: ["not:self:effect:skillSeal"]
+        prompt: "FGT.Pretender.ChooseClass"
+        count: 1
+        options:
+          - id: saber
+            label: "FGT.Class.saber"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderSaber, permanent: true }]
+          - id: archer
+            label: "FGT.Class.archer"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderArcher, permanent: true }]
+          - id: lancer
+            label: "FGT.Class.lancer"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderLancer, permanent: true }]
+          - id: rider
+            label: "FGT.Class.rider"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderRider, permanent: true }]
+          - id: caster
+            label: "FGT.Class.caster"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderCaster, permanent: true }]
+          - id: assassin
+            label: "FGT.Class.assassin"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderAssassin, permanent: true }]
+          - id: berserker
+            label: "FGT.Class.berserker"
+            phases:
+              - kind: applyEffects
+                target: self
+                effects: [{ id: pretenderBerserker, permanent: true }]
+      - kind: applyEffects
+        target: self
+        effects:
+          - id: shisarotForm
+            duration: "3◈"
+            restores: [{ stat: health.value, delta: "@self.health.value" }]

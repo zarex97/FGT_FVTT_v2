@@ -664,6 +664,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // is removed from all affected Units"* (#339 rulings 14, 23). Read by
       // `engine/io.mjs#endEffectsWithInflicter`, at the defeat write.
       endsWithInflicter: new fields.BooleanField({ required: false, initial: false }),
+      // A paid extension the holder's side is offered as it is about to end at a
+      // Turn's end: the Shisarot Form's Command Spell (Summer Habetrot #359).
+      // `{cost, grants, repeatable, then}`, read by `engine/effect-extension.mjs`.
+      extension: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       volatility: new fields.StringField({ required: false, nullable: true, initial: null }),
       valence: new fields.StringField({ required: false, nullable: true, initial: null }),
       // Appendix A's umbrella names. `Bind` covers ten effects and Medusa's

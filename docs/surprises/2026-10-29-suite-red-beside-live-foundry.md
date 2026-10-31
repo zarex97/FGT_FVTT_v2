@@ -3,7 +3,8 @@ id: 2026-10-29-suite-red-beside-live-foundry
 found: test
 kind: suite-flakes-under-load
 status: fixed
-reviewed: false
+reviewed: true
+pattern: suite-flakes-under-load
 ---
 **Expected:** the full suite at four workers, green at `774f082`, would stay green after a commit that changed four doc lines.
 **Actual:** run with Foundry and two headless Chromiums still up in the cloud container: "Test Files 12 failed | 448 passed",

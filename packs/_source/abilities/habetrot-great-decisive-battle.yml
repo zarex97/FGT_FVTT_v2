@@ -1,0 +1,50 @@
+# Summer Habetrot, char_orig_sheets/by-class/Pretender/Summer Habetrot.md (#359)
+#
+# 3. One Atk Up of 5% per whole 5% of her Crit Chance above 50%, read at the
+# use for a non-NP Attack, 0 to 10 of them (ruling 19), each its own
+# application: the `critChance` Count. The purple example is the press's
+# figure: 65% gives 3.
+# 4. 10% per whole 300 of her own live Max Health at the use, in either form
+# (ruling 20): the `maxHealth` Count. 1000 gives 30%, 2000 gives 60%.
+schema: 1
+id: habetrot-great-decisive-battle
+name: "Great Decisive Battle at the Southern Sea"
+rank: EX
+kind: skill
+slug: greatDecisiveBattle
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 3 Agility.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  3. For every 5% of Crit Chance on Habetrot above 50%, apply @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage
+     dealt is increased by 5%, does not affect NP (max 10 stacks). (e.g. Crit Chance is 65%, 65%-50%=15%, Atk Up is
+     applied 3 times.)
+  4. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns, NP Damage dealt is increased by 10% for every 300 Max Health on
+     Shisarot.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # 1. A restore, so clamped to the maximum she rolled (EMIYA's Trace, On).
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 3, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+      - id: atkUp
+        magnitude: 5
+        npMagnitude: 0
+        duration: "⅓◈"
+        times: { count: { of: critChance, above: 50 }, each: 5, max: 10 }
+      - id: npDmUp
+        magnitude: 10
+        count: { of: maxHealth }
+        each: 300
+        duration: "⅓◈"

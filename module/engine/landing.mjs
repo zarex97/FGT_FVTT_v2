@@ -46,7 +46,7 @@ import { stacksHeld, countedValue, countScaleOf, fromCountTargets, countOf } fro
 import { checkPlan, luckCheck } from "../rules/checks.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
-import { chebyshevFromAny } from "../domain/geometry.mjs";
+import { chebyshevBetween } from "../domain/geometry.mjs";
 import { currentBoard, currentTick, unitFrom, unitActor } from "./board.mjs";
 import { askOwner } from "./ask.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
@@ -402,7 +402,9 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
   // worth N (Kingprotea); on anything else it is N applications (Gogh's one
   // Atk Up per stage removed). Zero is no application at all.
   const def = EffectRegistry.get(entry.id);
-  const times = timesOf(entry.times, { stacks: ctx.caster ? stacksHeld(ctx.caster) : {}, event: ctx.event ?? null });
+  const times = timesOf(entry.times, {
+    stacks: ctx.caster ? stacksHeld(ctx.caster) : {}, event: ctx.event ?? null, self: caster, board,
+  });
   if (times !== null && times <= 0) return [];
   const counted = (entry.stacking ?? def?.stacking) === "count";
   const applications = applicationsOf(entry) * (times !== null && !counted ? times : 1);
@@ -583,18 +585,25 @@ function authoredMagnitude(entry, actor, field, ctx, casterUnit = null) {
   if (!actor) return typeof raw === "number" ? raw : null;
 
   const ride = ctx.ride ?? null;
+  // The RECIPIENT, where the clause sizes by it: Yanamun Reversal's Max HpUp is
+  // *"30% of its original value"*, each ally's own (#359 ruling 17).
+  // Only when the entry names it: the refs are built from the document.
+  const targetDoc = ctx.target?.id && typeof raw === "string" && raw.includes("@target.") ? unitActor(ctx.target.id) : null;
   const value = resolveValue(entry, null, {
     // The ride's own facts, and `@self.remainingMov` overridden with the
     // pre-ride figure: the ride's `markTurn` lands before the attack resolves.
     refs: expressionRefs(actor, {
       tick: currentTick(),
       ...(ride ? { ride, hitCount: ride.hitCount, self: { remainingMov: ride.remainingMov } } : {}),
+      ...(targetDoc ? { target: expressionRefs(targetDoc).self } : {}),
     }),
     // A magnitude that scales with what the caster carries (Kingprotea).
     stacks: stacksHeld(actor),
     // ...or with what its effects contribute, as the board sees the caster:
     // NP Regen (Balmung)'s one Turn per Anti-Dragon effect (#341 ruling 9).
     self: casterUnit,
+    // ...or with the board around it: Chibirā Sanu's enemies within 3 (#359).
+    board: ctx.board ?? null,
   }, field);
   return typeof value === "number" ? value : null;
 }
@@ -624,7 +633,7 @@ function distanceBetween(from, to) {
   const a = from?.panels ?? (from?.panel ? [from.panel] : null);
   const b = to?.panels ?? (to?.panel ? [to.panel] : null);
   if (!a?.length || !b?.length) return null;
-  const d = Math.min(...b.map((p) => chebyshevFromAny(a, p)));
+  const d = chebyshevBetween(a, b);
   return Number.isFinite(d) ? d : null;
 }
 

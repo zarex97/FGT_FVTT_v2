@@ -1,0 +1,16 @@
+# Summer Habetrot's Divine Beast's Rage 2 (#359): *"all damage dealt to Units
+# with the 'Large' Attribute is increased by 30%; if the DU also has the
+# 'Giant' Attribute, all damage dealt is further increased by 30%"*: 30 against
+# Large, 30 more against Large and Giant, 60 in all.
+schema: 1
+id: dmgUpKaiju
+name: "Dmg Up (Kaiju)"
+description: "All damage dealt to Units with the 'Large' Attribute is increased by X%; X% more if the DU is also 'Giant'."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: "@magnitude", predicate: ["target:attribute:large"] }
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: "@magnitude", predicate: ["target:attribute:large", "target:attribute:giant"] }

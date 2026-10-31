@@ -3,7 +3,8 @@ id: 2026-10-29-create-world-moved-to-create
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** a throwaway world is created by `POST /setup` with `{action: "createWorld"}`, beside `launchWorld`.
 **Actual:** `/setup` answered `"Unsupported setup configuration action createWorld provided"`, and the launch after it `"The requested world fgt-cloud-smoke does not exist!"`.

@@ -3,7 +3,8 @@ id: 2026-10-29-background-list-held-stdout
 found: tooling
 kind: background-list-not-the-process
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** `(cd "$APP" && nohup node main.js … > "$LOG" 2>&1 & echo $! > "$PIDFILE")` starts Foundry detached and records its pid.
 **Actual:** `fvtt-up | tail -1` hung for 400 s, and the pid file named a `bash /usr/local/bin/fvtt-up` process whose child was node; `fvtt-down` killed that shell and Foundry kept answering.

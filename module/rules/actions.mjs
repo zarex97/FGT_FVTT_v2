@@ -42,6 +42,21 @@ import { jumpVerdict, platformUnderUnit, escapeVerdict } from "./platforms.mjs";
 const ACTING_KINDS = Object.freeze(["servant", "master", "civilian", "summon", "platform"]);
 
 /**
+ * Whether it is this Unit's side's Turn, as the use gate reads it: a charmed
+ * Unit acts on its charmer's, and with no faction's Turn running nothing is
+ * asked.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function ownTurnOf(unit, board) {
+  const acting = board?.actingFactionId ?? null;
+  if (!acting) return true;
+  return (unit?.actingFactionId ?? unit?.factionId ?? null) === acting;
+}
+
+/**
  * Does this unit take actions at all?
  *
  * Not once it is defeated: its body stays on the board a Tick before it is
@@ -155,6 +170,9 @@ export const UNIT_ACTIONS = Object.freeze([
     // 2026-10-14, #204): every command is a spell for one.
     available: (unit, board) => (acts(unit) && unit.kind === "master" && !unit.defeated && (unit.commandSpells ?? 0) > 0
       && (board?.units ?? []).some((u) => u.kind === "servant" && u.masterId === unit.id && !u.defeated)
+      // ...in its own Turn, as the spend asks (`rules/command-spells.mjs#canSpend`,
+      // #359): the button was lit on the enemy's Turn and its press refused.
+      && ownTurnOf(unit, board)
       ? {} : null),
   },
   {

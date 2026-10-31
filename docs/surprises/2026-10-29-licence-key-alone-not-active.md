@@ -3,7 +3,8 @@ id: 2026-10-29-licence-key-alone-not-active
 found: tooling
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** the brief: `fvtt-up` "activates the licence from the env var foundry_license by POSTing to /license" — one POST.
 **Actual:** the key POST answers 200 with "License key entered, please sign the End User License Agreement."; `/` still redirects to `/license` until a second POST signs the EULA.

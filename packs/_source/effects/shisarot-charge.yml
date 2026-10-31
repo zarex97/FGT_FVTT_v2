@@ -1,0 +1,24 @@
+# Summer Habetrot's Shisarot Form, Passive 11 (#359): *"If extended in this
+# way ... Habetrot's next Attack deals 100% extra damage; if NP, 50%."*
+#
+# "N% extra damage" is a multiplier on the damage, ×2 and ×1.5 on an NP
+# (ruling 31, #193 reading 12): `damageMultiplier`, read at stage 3. The next
+# Attack is one declaration and every Process of it (Declaration or Process),
+# so the charge goes at `attackPerformed`, once the whole Attack is over. Kept
+# past the Form until spent (ruling 31).
+schema: 1
+id: shisarotCharge
+name: "Shisarot's Charge"
+description: "The next Attack deals 100% extra damage; if NP, 50%. Spent by that Attack."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - { key: DamageModifier, modifierKey: damageMultiplier, direction: dealt, value: 100, npValue: 50 }
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    then:
+      - { key: RemoveEffect, effect: shisarotCharge }

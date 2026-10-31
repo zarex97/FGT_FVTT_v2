@@ -457,3 +457,10 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   flips no coin and counts nothing (Yata Strike, reading 19).
 - **Mantra Tokens** are Scáthach's PRS Tokens by another name: `cooldownWaiver: {resource: mantra}` on Enten, Hyōten,
   Mitten and Raitei; the four lock each other through `abilityOffCooldown` over a category.
+
+**A choice whose branches touch only the caster is asked once, on either path** (#359, found by its test). The attack
+path's rider step (`attack.mjs#resolveChoosePhases`) asked a `choose` again when a branch applied an effect, though
+that effect was `target: self` and paid at declaration; and it asked before reading the choice's own `predicate`.
+Chibirā Sanu's Pretender pick was asked twice per Process, and asked when the NP only lengthened the Form. A branch is
+a rider only when it puts an effect on somebody other than the caster, and a choice its predicate holds back is not
+asked.

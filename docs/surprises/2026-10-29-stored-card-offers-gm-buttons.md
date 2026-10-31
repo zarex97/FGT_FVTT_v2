@@ -3,7 +3,8 @@ id: 2026-10-29-stored-card-offers-gm-buttons
 found: live press
 kind: two-readers-one-rule
 status: open
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** `templates/chat/attack.hbs:151`: the Command Spell prompt is "only shown when this viewer owns a Master
 that can actually spend one", and its "No Command Spell" passes "this player's Masters" (`module/apps/chat/cards.mjs:711`).

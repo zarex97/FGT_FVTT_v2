@@ -3,7 +3,8 @@ id: 2026-10-29-refusal-test-passed-on-gate
 found: test
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** a test that Dainisshō is refused with no Amaterasu Area proves the `fieldOpen` requirement.
 

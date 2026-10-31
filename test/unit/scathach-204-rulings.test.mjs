@@ -255,7 +255,10 @@ describe("a Command Spell serves its own Master's Servant (LM, LN, Q3, Q4)", () 
       await w.actor(C).update({ "system.health.value": 100 });
       const before = w.actor(D).system.health.value;
       const { spendCommandSpell } = await import("../../module/engine/command-spells.mjs");
-      expect(await spendCommandSpell({ masterId: M, commandId: "cs-half-heal", window: "ownTurn", context: { servantId: C } }))
+      // Spent in the Process Heracles opened, on Faction A's Turn: the attack
+      // card's window, not the bar's `ownTurn`, which is the Master's own Turn
+      // only (#359 ruling 6).
+      expect(await spendCommandSpell({ masterId: M, commandId: "cs-half-heal", window: "react", context: { servantId: C } }))
         .toMatchObject({ ok: true });
       expect(w.actor(C).system.health.value).toBeGreaterThan(100);
       expect(w.actor(D).system.health.value).toBe(before);

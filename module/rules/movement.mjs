@@ -368,8 +368,13 @@ const RIDE_SPEC = Object.freeze({
  */
 function ridingHits(unit, walked, board, npTags) {
   const level = unit.level ?? 0;
+  // Swept by the rider's whole footprint, not her anchor's line: in Shisarot
+  // Form Summer Habetrot's path is two panels wide, and the Unit beside her
+  // anchor's row was ridden through and never struck (#359 ruling 10, found
+  // live). A one-panel rider sweeps her line, as before.
+  const swept = sweptByFootprint(walked, unit.footprint);
   const firstStep = new Map();
-  walked.forEach((panel, n) => { if (!firstStep.has(geo.key(panel))) firstStep.set(geo.key(panel), n); });
+  swept.forEach(({ panel, step }) => { if (!firstStep.has(geo.key(panel))) firstStep.set(geo.key(panel), step); });
 
   const candidates = [];
   for (const other of board?.units ?? []) {
@@ -384,12 +389,32 @@ function ridingHits(unit, walked, board, npTags) {
   if (candidates.length === 0) return [];
 
   const survivors = new Set(
-    resolveTargets(RIDE_SPEC, unit, board, { path: walked, npTags }).units.map((t) => t.unitId),
+    resolveTargets(RIDE_SPEC, unit, board, { path: swept.map(({ panel }) => panel), npTags }).units.map((t) => t.unitId),
   );
   return candidates
     .filter(({ other }) => survivors.has(other.id))
     .sort((a, b) => a.at - b.at)
     .map(({ other }) => other);
+}
+
+/**
+ * Every panel a footprint covers along a walked line, each with the step that
+ * first reached it.
+ *
+ * @param {GridOffset[]} walked the anchor's panels, in order
+ * @param {{w?: number, h?: number}|null|undefined} footprint
+ * @returns {Array<{panel: GridOffset, step: number}>}
+ */
+function sweptByFootprint(walked, footprint) {
+  const w = Math.max(1, footprint?.w ?? 1);
+  const h = Math.max(1, footprint?.h ?? 1);
+  const out = [];
+  walked.forEach((panel, step) => {
+    for (let di = 0; di < h; di++) {
+      for (let dj = 0; dj < w; dj++) out.push({ panel: { ...panel, i: panel.i + di, j: panel.j + dj }, step });
+    }
+  });
+  return out;
 }
 
 /**

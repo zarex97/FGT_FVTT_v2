@@ -3,7 +3,8 @@ id: 2026-10-29-world-clone-on-session-branch
 found: tooling
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** `docs/agents/cloud.md`: `fvtt-world pull` "clones or updates `/home/user/fgt-worlds`" and unpacks
 `fgt2026.tgz`; the clone was assumed to sit on `main`, tracking `origin/main`.

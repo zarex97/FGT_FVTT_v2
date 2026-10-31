@@ -281,6 +281,9 @@ export const EFFECT_ROUTES = {
     "endsWithInflicter",
     // Read by `engine/effect-applier.mjs#applyEffect` (#348).
     "resetsSiblings",
+    // Read by `engine/seal-ends.mjs#sealedEffects` and
+    // `engine/effect-extension.mjs#offerEffectExtensions` (#359).
+    "endsOnSkillSeal", "extension",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),

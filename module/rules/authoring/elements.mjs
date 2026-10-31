@@ -440,6 +440,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("NegateOpponentSource", "Drops a named modifier source from whoever this Unit is fighting.", [
     { key: "sources", type: "tokenList" },
   ]),
+  // Summer Habetrot's Shisarot Form and Tamamo Cat: *"the amount of damage
+  // taken that is required to trigger an Agility Roll is doubled"* (#310, #359).
+  entry("InjuryThreshold", "Scales the damage taken that triggers this Unit's Injury Roll.", [
+    { key: "factor", type: "number" },
+  ]),
   entry("SuppressForeignEffects", "Negates effects caused by Units outside this fight — negated, not removed.", []),
   entry("CategoryUseLimit", "Caps how many abilities of one category may be used per Turn.", [
     { key: "category", type: "text" },

@@ -25,6 +25,7 @@ import { currentBoard } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { itemRevision } from "./war.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 /**
  * The Skills a Skill Seal on this actor would end now, and the ones it may not.
@@ -76,9 +77,22 @@ function isActive(actor, item) {
  */
 export async function onSkillSealed(actor) {
   const { ends, holds } = sealVerdicts(actor);
-  if (ends.length === 0 && holds.length === 0) return;
+  const sealedOff = sealedEffects(actor);
+  if (ends.length === 0 && holds.length === 0 && sealedOff.length === 0) return;
   const name = publicIdentityOf(actor, currentBoard()).name;
   const lines = [];
+  // An effect Unremovable but by Skill Seal: the Pretender (>X) effects,
+  // *"Unremovable unless Habetrot is inflicted with Skill Seal, then the
+  // 'Pretender' effect is removed from her"* (#359 ruling 8). Every one she
+  // holds, the Form's included; the Form itself goes on.
+  if (sealedOff.length > 0) {
+    await applyWorldIntents(sealedOff.map((e) => ({
+      ...I.removeEffect(actor.id, e.id, "sealed"), defId: e.system?.defId ?? null, byRule: true,
+    })), "skillSeal:effect");
+    for (const e of sealedOff) {
+      lines.push(game.i18n.format("FGT.SealEnds.EffectEnded", { name, effect: EffectRegistry.get(e.system?.defId)?.name ?? e.name }));
+    }
+  }
   for (const item of ends) {
     if (item.system?.slug === "presenceConcealment") {
       await deactivateConcealment(actor.id, DEACTIVATION_REASONS.sealed);
@@ -96,6 +110,18 @@ export async function onSkillSealed(actor) {
       + lines.map((l) => `<p>${l}</p>`).join("") + "</div>",
     speaker: publicSpeakerFor(actor),
   });
+}
+
+/**
+ * The effects on this actor a Skill Seal removes: those whose definition says
+ * `endsOnSkillSeal`, however Unremovable they are otherwise.
+ *
+ * @param {object} actor
+ * @returns {object[]} the ActiveEffects
+ */
+export function sealedEffects(actor) {
+  return [...(actor?.effects ?? [])]
+    .filter((e) => !e.disabled && EffectRegistry.get(e.system?.defId)?.endsOnSkillSeal);
 }
 
 /**

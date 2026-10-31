@@ -799,3 +799,15 @@ Evade, Dodge and Substitution off, an automatic Block, −30%/NP 15%, a falling 
 `dmgUpAphotic` (+15% per stack to the next Attack that deals MAG damage, spent by it, Unremovable), `foxSpouse` (no
 Overpower, no Underpower, Unremovable), `stunBalls` (a Stun of the `stun` and `bind` families) and `amaterasu` (Yata no
 Kagami's grant to its owner). Earth and Dark join the damage elements.
+
+### Summer Habetrot (#359)
+
+`Dmged NP Regen` is **built** (`dmgedNpRegen`): every cooling NP −X◈ once per Attack that hits its holder, 0 damage
+included (`attackReceived`, ruling 14). New effect documents: the seven `pretender<Class>` (the Pretender class's
+'Pretender (>X)', a status, Unremovable but by Skill Seal, each replacing its siblings), `shisarotForm` (a status with a
+clock and a paid extension: 2x2, Large, Max Health +100% of the original, no Block, Agility and Evade rolls doubled,
+Injury threshold 200, through occupied panels, her Normal Attack's `shisarot` branch and its push), `shisarotCharge`
+(the next Attack ×2, NP ×1.5, spent by it), `defDwnTotal` (Total damage taken +X%, stage 15, does not stack),
+`dmgUpDemonic`, `dmgUpUndead`, `dmgUpLarge`, `dmgUpKaiju` (Dmg Up (Gods)'s shape on an Attribute; Kaiju's second 30
+on a Large and Giant DU), `sCritUpSelf` (the #132 aura held to its holder), `sCritUpShiisa` (ten charges, +5% per
+charge left, one spent by each Attack) and `npDmUpOnce` (NP DmUp for 1 time, spent by the next NP).

@@ -72,6 +72,44 @@ export function chebyshevFromAny(from, to) {
 }
 
 /**
+ * The shortest Chebyshev distance between two footprints: from the nearest
+ * panel of one Unit to the nearest panel of the other.
+ *
+ * How far apart two Units are, whatever their size. A 2x2 Summer Habetrot and
+ * the Unit standing beside her are at Range 1, which her anchor panel -- one
+ * corner -- measured as 2, so her Normal Attack's band read BA(MAG) against a
+ * Unit she was touching (#359, found live).
+ *
+ * @param {GridOffset[]} from every panel one Unit occupies
+ * @param {GridOffset[]} to every panel the other occupies
+ * @returns {number} `Infinity` if either occupies nothing
+ */
+export function chebyshevBetween(from, to) {
+  let best = Infinity;
+  for (const q of to ?? []) best = Math.min(best, chebyshevFromAny(from, q));
+  return best;
+}
+
+/**
+ * Every panel a Unit stands on: its projected `panels`, else the block its
+ * `footprint` covers from its anchor, else its one panel. The footprint is the
+ * size she IS; her token may not have been resized to it yet (#359).
+ *
+ * @param {{panel?: GridOffset, panels?: GridOffset[]|null, footprint?: {w?: number, h?: number}}|null} unit
+ * @returns {GridOffset[]}
+ */
+export function occupiedPanels(unit) {
+  if (unit?.panels?.length) return unit.panels;
+  const at = unit?.panel;
+  if (!at || typeof at.i !== "number" || typeof at.j !== "number") return [];
+  const w = Math.max(1, unit.footprint?.w ?? 1);
+  const h = Math.max(1, unit.footprint?.h ?? 1);
+  const out = [];
+  for (let di = 0; di < h; di++) for (let dj = 0; dj < w; dj++) out.push({ ...at, i: at.i + di, j: at.j + dj });
+  return out;
+}
+
+/**
  * {@link inAttackRange} from any panel a unit occupies — see
  * {@link chebyshevFromAny} for why the whole footprint is the measuring point.
  *

@@ -36,6 +36,18 @@ export const BLOCK_BASE_PERCENT = 25;
 /** Damage above this in one attack forces an Injury Roll. */
 export const INJURY_THRESHOLD = 100;
 
+/**
+ * The damage taken that triggers THIS Unit's Injury Roll: the rule's 100,
+ * scaled by its `InjuryThreshold` (#310). The Shisarot Form's is 200 (#359).
+ *
+ * @param {object|null|undefined} defender
+ * @returns {number}
+ */
+export function injuryThresholdOf(defender) {
+  const factor = Number(defender?.injuryThresholdFactor ?? 1);
+  return INJURY_THRESHOLD * (Number.isFinite(factor) && factor > 0 ? factor : 1);
+}
+
 /** Stage names, indexed by stage number. Stable — content references them. */
 export const STAGE_NAMES = Object.freeze([
   "precondition", "base", "crit", "abilityMultiplier", "combinedPercent",
@@ -169,7 +181,7 @@ export function computeDamageHits(ctx) {
   const flags = { ...hits[0].flags };
   flags.shieldAbsorbed = round4(hits.reduce((t, r) => t + (r.flags?.shieldAbsorbed ?? 0), 0));
   const fixedExtra = hits.reduce((t, r) => t + (r.flags?.fixedExtra ?? 0), 0);
-  flags.exceededInjuryThreshold = total - fixedExtra > INJURY_THRESHOLD;
+  flags.exceededInjuryThreshold = total - fixedExtra > injuryThresholdOf(ctx.defender);
   flags.fixedExtra = fixedExtra;
   flags.defeatedOutright = hits.some((r) => r.flags?.defeatedOutright);
   flags.removeFreeze = hits.some((r) => r.flags?.removeFreeze);
@@ -540,6 +552,16 @@ function stage3AbilityMultiplier(s) {
     if (!testPredicate(cm.predicate, s.predicateCtx)) continue;
     conditional *= cm.factor;
     s.contribute("conditionalMultiplier", cm.factor, cm.source ?? "ability clause", "attacker");
+  }
+  // "N% extra damage" held as a BUFF rather than stated by the Attack: the
+  // Shisarot Form's extension, *"Habetrot's next Attack deals 100% extra
+  // damage; if NP, 50%"* (#359 ruling 31). A multiplier like the Attack's own
+  // (#193 reading 12), ×(1 + N%), never pooled at stage 4.
+  for (const m of activeMods(s, s.ctx.attacker, DAMAGE_MULTIPLIER_KEYS)) {
+    const factor = 1 + magnitudeOf(m, s.isNP, s.ctx) / 100;
+    if (factor === 1) continue;
+    conditional *= factor;
+    s.contribute(m.key, factor, `${m.source} ×${factor}`, "attacker");
   }
 
   const before = s.mag + s.phys;
@@ -1192,6 +1214,17 @@ function stage15TotalDamageModifiers(s) {
     }
   }
 
+  // *"Total damage taken is increased by 25%"* -- Def Dwn (Total), Shiisaa
+  // Beam's (#359): a debuff the DEFENDER holds on its Total, multiplied, every
+  // element. Not a defence, so no bypass drops it.
+  for (const m of activeMods(s, s.ctx.defender, TOTAL_TAKEN_KEYS)) {
+    const factor = Math.max(0, 1 + magnitudeOf(m, s.isNP, s.ctx) / 100);
+    s.scale(factor);
+    // The effect's id alone, so the card names it (`explain.mjs` reads the
+    // registry): "defDwnTotal (Total ×1.25)" printed the id (#359, live).
+    s.contribute(m.key, factor, m.source, "defender");
+  }
+
   // A defence whose magnitude is the ATTACKER's property (Ch. 45).
   // *Andreias Amarantos* is the only one: what it reads is the attacker's
   // Divinity Rank, and the table it reads it through returns the PERCENTAGE of
@@ -1276,7 +1309,7 @@ function stage16AbsorptionAndClamp(s) {
   // The injury snapshot is taken BEFORE Def Crk's addition, because
   // "additional damage taken due to Def Crk does not count towards the amount
   // required for an Injury Roll."
-  s.flags.exceededInjuryThreshold = s.total > INJURY_THRESHOLD;
+  s.flags.exceededInjuryThreshold = s.total > injuryThresholdOf(d);
 
   for (const m of activeMods(s, d, new Set(["defCrk"]))) {
     s.addProportional(m.value);
@@ -1441,6 +1474,13 @@ const ELEMENT_DEFENCE_KEYS = new Set(["elementDefUp", "elementDefDwn"]);
  * scaled by the attack's share of that element (#206 reading 6).
  */
 const ELEMENT_TOTAL_KEYS = new Set(["elementTotalDefUp"]);
+/**
+ * A defender's debuff on its whole Total, read at stage 15: Def Dwn (Total)
+ * (#359). Not element-scoped, so not `ELEMENT_TOTAL_KEYS`.
+ */
+const TOTAL_TAKEN_KEYS = new Set(["totalDefDwn"]);
+/** An attacker's "N% extra damage" held as a buff, read at stage 3 (#359). */
+const DAMAGE_MULTIPLIER_KEYS = new Set(["damageMultiplier"]);
 /** Element keys whose magnitude *reduces* the damage. */
 const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
 
@@ -1463,7 +1503,7 @@ export const MODIFIER_KEYS = Object.freeze([
   ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
-  ...ELEMENT_TOTAL_KEYS,
+  ...ELEMENT_TOTAL_KEYS, ...TOTAL_TAKEN_KEYS, ...DAMAGE_MULTIPLIER_KEYS,
   // Stage 15's own bucket. `engine/attack.mjs#totalModifiersFor` emits it from
   // an ability's `damage.totalModifiers`; it is deliberately in neither
   // `ATTACKER_BUCKET_KEYS` nor `DEFENDER_BUCKET_KEYS`, so a Total modifier is
@@ -1557,6 +1597,13 @@ function activeMods(s, unit, keys) {
   // excludes its own modifiers, so a source name shared with something it
   // carries cannot silently delete that.
   const opponent = unit === s.ctx.attacker ? s.ctx.defender : s.ctx.attacker;
+  // A DEFENDER that negates the attacker's damage-dealt modifiers keyed on its
+  // own Skill or Class: Guardian Faerie 2, *"if the AU has effects which
+  // increase damage dealt to Units with a specific Skill or Servant Class (and
+  // the DU has the applicable Skill or Servant Class), those effects are
+  // negated for this Unit only"* (#359 ruling 12). Here, the one bag reader,
+  // so every stage drops them alike.
+  const keyedOn = unit === s.ctx.attacker ? negatedKeysOf(s.ctx.defender) : null;
   const excluded = [
     ...(s.ctx.attack?.excludeModifierSources ?? []),
     ...(opponent?.excludesOpponentSources ?? []),
@@ -1612,8 +1659,45 @@ function activeMods(s, unit, keys) {
       // modifier bag, so one line covers stages 2, 4, 4b, 5, 7 and 12 and
       // cannot fall out of step with any of them.
       && !(excluded.length > 0 && excluded.includes(m.source))
+      && !(keyedOn && raisesDealtKeyedOn(m, keyedOn))
       && testPredicate(m.predicate, s.predicateCtx),
   );
+}
+
+/**
+ * The prefixes a defender's `negateKeyedDealt` names, or null when it holds none.
+ *
+ * @param {object|null|undefined} defender
+ * @returns {string[]|null} option prefixes, e.g. `target:skill:`
+ */
+function negatedKeysOf(defender) {
+  const marks = (defender?.modifiers ?? []).filter((m) => m?.key === "negateKeyedDealt");
+  if (marks.length === 0) return null;
+  const kinds = new Set(marks.flatMap((m) => m.keyedOn ?? ["skill", "class", "classGroup"]));
+  return [...kinds].map((k) => `target:${k}:`);
+}
+
+/**
+ * Does this attacker modifier raise damage dealt to a Unit by its Skill or
+ * Class? An increase (a bucket key that adds, or a flat bonus), dealt, whose
+ * predicate names one of the prefixes. An `or` counts when any branch names one.
+ *
+ * @param {object} m
+ * @param {string[]} prefixes
+ * @returns {boolean}
+ */
+function raisesDealtKeyedOn(m, prefixes) {
+  if ((m.direction ?? "dealt") !== "dealt") return false;
+  const increase = (ATTACKER_BUCKET_KEYS.has(m.key) && !NEGATIVE_KEYS.has(m.key))
+    || FLAT_ATTACK_KEYS.has(m.key) || DAMAGE_MULTIPLIER_KEYS.has(m.key);
+  if (!increase) return false;
+  const names = (node) => {
+    if (typeof node === "string") return prefixes.some((p) => node.replace(/^not:/, "").startsWith(p));
+    if (Array.isArray(node)) return node.some(names);
+    if (node && typeof node === "object") return Object.values(node).some(names);
+    return false;
+  };
+  return names(m.predicate ?? []);
 }
 
 /**
