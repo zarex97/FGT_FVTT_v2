@@ -16,6 +16,30 @@ const ROW_ORDER = Object.freeze(["pinned", "actions", "skills", "np", "modes", "
 /** Which row an ability's group lands in. */
 const GROUP_ROW = Object.freeze({ skill: "skills", np: "np", mode: "modes" });
 
+/** Foundry's default Item icon, which every authored ability carries. */
+const DEFAULT_ITEM_ICON = "icons/svg/item-bag.svg";
+
+/**
+ * The glyph a kind of ability shows when it has no art of its own (#364).
+ * Shared with the actor sheet's skill rows, so a kind reads the same on both.
+ */
+export const GROUP_GLYPH = Object.freeze({
+  skill: "fa-solid fa-bolt", np: "fa-solid fa-star", mode: "fa-solid fa-toggle-on",
+});
+
+/**
+ * An ability's picture: its own art, or its kind's glyph in place of
+ * Foundry's item bag (#364). Every one of the roster's abilities carries the
+ * bag, so a row of them said nothing about which was which.
+ *
+ * @param {{img?: string|null, group?: string}} ability
+ * @returns {{img: string|null, icon: string|null}}
+ */
+export function abilityArt(ability) {
+  const img = ability?.img && ability.img !== DEFAULT_ITEM_ICON ? ability.img : null;
+  return { img, icon: img ? null : (GROUP_GLYPH[ability?.group] ?? GROUP_GLYPH.skill) };
+}
+
 /**
  * The portrait block: which face and which name the viewer is entitled to.
  *
@@ -144,14 +168,15 @@ export function rowsFor({ actions = [], abilities = [], fields = [], effects = [
       ...action, isAction: true, id: action.id, name: action.label, ring: action.context?.on ? "on" : null,
     });
   }
-  for (const ability of abilities) {
+  const shown = abilities.map((ability) => ({ ...ability, ...abilityArt(ability) }));
+  for (const ability of shown) {
     const row = GROUP_ROW[ability.group] ?? "skills";
     buckets[row].push(ability);
   }
   // A pin is a SHORTCUT into the rows below, never a replacement, so the same
   // ability appears twice by design and nothing can be hidden by pinning.
   for (const id of pins) {
-    const found = abilities.find((a) => a.id === id);
+    const found = shown.find((a) => a.id === id);
     if (found) buckets.pinned.push(found);
   }
 

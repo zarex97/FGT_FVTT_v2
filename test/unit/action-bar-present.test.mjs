@@ -6,7 +6,7 @@
  * the same split `apps/actor-sheet/present.mjs` already uses.
  */
 import { describe, it, expect } from "vitest";
-import { portraitBlock, slotFor, rowsFor, modeSlotVerdict } from "../../module/apps/hud/present.mjs";
+import { portraitBlock, slotFor, rowsFor, modeSlotVerdict, GROUP_GLYPH } from "../../module/apps/hud/present.mjs";
 
 const ability = (over = {}) => ({
   id: "a1", name: "Mystic Eyes", img: "art.webp", isNP: false,
@@ -158,6 +158,32 @@ describe("rowsFor", () => {
   it("ignores a pin naming an ability the unit no longer has", () => {
     const rows = rowsFor({ ...base, pins: ["gone"] });
     expect(rows.some((r) => r.id === "pinned")).toBe(false);
+  });
+
+  // #364. Every ability in the live roster (4346 of them) carries Foundry's
+  // item bag, so a row of identical bags said nothing about which was which.
+  it("shows its kind's glyph in place of Foundry's item bag", () => {
+    const bag = "icons/svg/item-bag.svg";
+    const rows = rowsFor({
+      ...base,
+      abilities: [
+        { ...ability({ id: "s1", img: bag }), group: "skill" },
+        { ...ability({ id: "n1", img: bag, isNP: true }), group: "np" },
+        { ...ability({ id: "m1", img: bag }), group: "mode" },
+      ],
+      pins: ["n1"],
+    });
+    const slot = (row, id) => rows.find((r) => r.id === row).slots.find((s) => s.id === id);
+    expect(slot("skills", "s1")).toMatchObject({ img: null, icon: GROUP_GLYPH.skill });
+    expect(slot("np", "n1")).toMatchObject({ img: null, icon: GROUP_GLYPH.np });
+    expect(slot("modes", "m1")).toMatchObject({ img: null, icon: GROUP_GLYPH.mode });
+    // The pinned copy is the same slot, glyph and all.
+    expect(slot("pinned", "n1")).toMatchObject({ img: null, icon: GROUP_GLYPH.np });
+  });
+
+  it("keeps an ability's own art", () => {
+    const rows = rowsFor({ ...base, abilities: [{ ...ability({ id: "s1" }), group: "skill" }] });
+    expect(rows.find((r) => r.id === "skills").slots[0]).toMatchObject({ img: "art.webp", icon: null });
   });
 });
 
