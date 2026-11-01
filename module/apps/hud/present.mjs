@@ -8,7 +8,7 @@
  * `apps/actor-sheet/present.mjs`.
  */
 
-import { ticksLabel } from "../actor-sheet/present.mjs";
+import { ticksLabel, isBlankPortrait } from "../actor-sheet/present.mjs";
 
 /** The rows, in the order they are shown. */
 const ROW_ORDER = Object.freeze(["pinned", "actions", "skills", "np", "modes", "fields", "effects"]);
@@ -54,8 +54,11 @@ export function abilityArt(ability) {
  */
 export function portraitBlock(unit, { img, defaultImage, publicName, trueName, isOwner }) {
   const concealed = unit?.kind === "servant" && !unit?.identityRevealed && !isOwner;
+  // No face of its own (Foundry's silhouette): its class image, as the sheet's
+  // portrait card shows it (#364).
+  const own = isBlankPortrait(img) && defaultImage ? defaultImage : img;
   return {
-    img: concealed ? (defaultImage || img) : img,
+    img: concealed ? (defaultImage || img) : own,
     name: concealed ? publicName : trueName,
     subtitle: concealed ? null : (publicName === trueName ? null : publicName),
   };

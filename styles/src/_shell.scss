@@ -49,6 +49,57 @@
   &:not(.active) { display: none; }
 }
 
+/* ── The actor sheet's layout (#364) ────────────────────────────────────── */
+
+// FGO's Servant screen: the portrait card's column on the left, the tab
+// buttons across the top of the right, the pane under them. A platform or a
+// structure has no card, and keeps the header across the top. Under 760px
+// the card's column stacks on top too.
+.application.fgt.sheet.actor {
+  container-type: inline-size;
+
+  .window-content {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "header nav"
+      "header body";
+  }
+
+  .window-content:has(> .fgt-header--plain) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+}
+
+@container (max-width: 760px) {
+  .application.fgt.sheet.actor .window-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+
+  // Doubled, so it outranks the column the card's own block sets further down.
+  .fgt-header.fgt-header--card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 22rem;
+    border-right: none;
+    border-bottom: var(--fgt-border);
+
+    .fgt-portrait { flex: 0 0 9rem; }
+    .fgt-header__identity { flex: 1 1 12rem; }
+    .fgt-header__vitals { flex: 1 1 100%; }
+  }
+}
+
 /* ── Header ─────────────────────────────────────────────────────────────── */
 
 .fgt-header {
@@ -57,21 +108,16 @@
   grid-template-columns: auto 1fr minmax(12rem, 18rem);
   gap: 0.75rem;
   padding: 0.75rem;
-
-  background: linear-gradient(180deg, var(--fgt-bg-raised), var(--fgt-bg));
+  background: var(--fgt-bg-raised);
   border-bottom: var(--fgt-border);
-
-  // The faction's colour, as a rail rather than as a tint: a tinted panel
-  // fights the theme and a rail does not.
-  border-left: 4px solid var(--fgt-faction);
 
   &__portrait {
     width: 88px;
     height: 88px;
     object-fit: cover;
-    border: var(--fgt-border);
+    border: 2px solid var(--fgt-faction);
     border-radius: var(--fgt-radius);
-    background: var(--fgt-bg-sunken);
+    background: var(--fgt-portrait-bg);
     // Clickable -- it opens the FilePicker (`data-action="editImage"`) --
     // and nothing else marked that, so it looked exactly as inert as it was.
     cursor: pointer;
@@ -80,14 +126,15 @@
   &__identity {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.3rem;
     min-width: 0;
   }
 
   &__name {
-    font-size: 1.4rem;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-display);
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     background: none;
     border: 1px solid transparent;
     color: var(--fgt-ink);
@@ -99,24 +146,24 @@
 
   &__line {
     margin: 0;
-    font-size: 0.8rem;
-    letter-spacing: 0.04em;
+    font-size: var(--fgt-text-label);
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--fgt-gold);
+    color: var(--fgt-ink-dim);
   }
 
   &__truename {
     margin: 0;
     font-style: italic;
-    font-size: 0.85rem;
     color: var(--fgt-ink-dim);
   }
 
   &__concealed {
     font-style: normal;
-    font-size: 0.68rem;
-    padding: 0 0.3rem;
-    border: 1px solid var(--fgt-line);
+    font-size: var(--fgt-text-label);
+    padding: 0 0.35rem;
+    border: var(--fgt-border);
     border-radius: 999px;
   }
 
@@ -124,7 +171,8 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.78rem;
+    font-size: var(--fgt-text-label);
+    color: var(--fgt-ink-dim);
 
     select { flex: 1; min-width: 0; }
   }
@@ -132,48 +180,144 @@
   &__vitals {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.35rem;
     justify-content: center;
+  }
+
+  // The card's column: the portrait, who it is, then the three resources.
+  &--card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    overflow-y: auto;
+    border-bottom: none;
+    border-right: var(--fgt-border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--fgt-line) transparent;
   }
 }
 
-/* ── Nav rail ───────────────────────────────────────────────────────────── */
+/* ── Portrait card (#364) ───────────────────────────────────────────────── */
 
-// The `tabs` class is required for `changeTab` to find this nav -- and it
-// brings Foundry's own tab-bar styling with it, which is a horizontal bar that
-// distributes its items across the full axis. Down a 700px-tall rail that put
-// four icons a hundred pixels apart, so both axes are restated here.
+// The face on night in both themes, framed in the Unit's faction colour.
+.fgt-portrait {
+  --fgt-portrait-ink: #e8e3d8;
+
+  flex: 0 0 auto;
+  margin: 0;
+  overflow: hidden;
+  border: 2px solid var(--fgt-faction);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-portrait-bg);
+
+  &__frame {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+  }
+
+  &__art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    cursor: pointer;
+  }
+
+  // A class icon is a glyph, not a face: it sits in the frame, not across it.
+  &__frame--class &__art { width: 55%; height: 55%; object-fit: contain; }
+
+  &__foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.4rem 0.5rem 0.5rem;
+    border-top: 1px solid var(--fgt-faction);
+    color: var(--fgt-portrait-ink);
+    // Core sets `figcaption` in italic; the foot is a name plate, not a caption.
+    font-style: normal;
+    text-align: center;
+  }
+
+  &__class {
+    font-size: var(--fgt-text-label);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  &__name {
+    display: block;
+    width: 100%;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-display);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--fgt-portrait-ink);
+  }
+
+  // The name is an input for whoever may rename the Unit.
+  input.fgt-portrait__name {
+    height: auto;
+
+    &:hover, &:focus { border-color: color-mix(in srgb, var(--fgt-portrait-ink) 35%, transparent); }
+  }
+}
+
+/* ── Tab buttons ────────────────────────────────────────────────────────── */
+
+// FGO's big buttons across the top (#364): an icon and a word each, the
+// active one filled gold. The `tabs` class is required for `changeTab` to find
+// this nav, and it brings Foundry's own tab-bar rules, restated here.
 .fgt-nav {
   grid-area: nav;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  justify-content: stretch;
   align-items: stretch;
-  gap: 0.15rem;
-  padding: 0.4rem 0.25rem;
-  background: var(--fgt-bg-sunken);
-  border-right: var(--fgt-border);
-  border-bottom: none;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem 0;
+  border-bottom: var(--fgt-border);
+  background: none;
 
   &__item {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 0;
     height: 2.25rem;
-    border-radius: var(--fgt-radius);
+    padding: 0 0.5rem;
+    border: var(--fgt-border);
+    border-bottom: none;
+    border-radius: var(--fgt-radius) var(--fgt-radius) 0 0;
+    background: var(--fgt-bg-raised);
     color: var(--fgt-ink-dim);
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     cursor: pointer;
+    transition: color var(--fgt-dur-state) var(--fgt-ease-out), border-color var(--fgt-dur-state) var(--fgt-ease-out);
 
-    &:hover { background: var(--fgt-bg-raised); color: var(--fgt-ink); }
+    &:hover { color: var(--fgt-ink); border-color: var(--fgt-ink-dim); }
+    &:focus-visible { outline: 2px solid var(--fgt-gold); outline-offset: -2px; }
 
-    // Active is a filled block AND a gold rule down the side -- two signals,
-    // because colour is never the only one (D29.7).
+    // Active is a gold fill AND the bolder word -- two signals, because colour
+    // is never the only one (D29.7).
     &.active {
-      background: var(--fgt-bg-raised);
-      color: var(--fgt-gold);
-      box-shadow: inset 2px 0 0 var(--fgt-gold);
+      border-color: var(--fgt-gold);
+      background: var(--fgt-gold);
+      color: var(--fgt-bg);
     }
   }
+
+  &__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 /* ── Shared furniture ───────────────────────────────────────────────────── */
@@ -215,9 +359,10 @@
 // word too, never the colour alone.
 .fgt-warning {
   margin: 0.25rem 0 0;
-  font-size: 0.75rem;
+  font-size: var(--fgt-text-label);
   padding: 0.3rem 0.45rem;
-  border-left: 3px solid var(--fgt-warn);
+  border: 1px solid var(--fgt-warn);
+  border-radius: var(--fgt-radius);
   background: var(--fgt-bg-sunken);
 }
 
