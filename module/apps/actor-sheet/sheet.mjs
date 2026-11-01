@@ -25,6 +25,7 @@ import { enrichAbilityCards } from "../enrich.mjs";
 import { warRule, currentWar } from "../../engine/war.mjs";
 import { processOpenIn } from "../../engine/combat-process.mjs";
 import { veiledSpec } from "../../rules/concealment.mjs";
+import { paintCircles } from "../ornament.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -617,6 +618,42 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // it can happen. Without it a `@UUID` link renders as literal text.
     await enrichAbilityCards(built.abilityCards);
     return built;
+  }
+
+  /**
+   * Night on every theme (#364): the plates are drawn for night, so core's own
+   * inputs and selects inside are told the same, whatever the sheet's own
+   * theme setting reads.
+   *
+   * @inheritdoc
+   */
+  _initializeApplicationOptions(options) {
+    const out = super._initializeApplicationOptions(options);
+    out.classes = [...out.classes.filter((c) => !/^theme-/.test(c)), "themed", "theme-dark"];
+    return out;
+  }
+
+  /** @inheritdoc */
+  _onRender(context, options) {
+    super._onRender(context, options);
+    paintCircles(this.element);
+  }
+
+  /**
+   * A tab change is the one motion a player starts on the sheet (#364): the
+   * pane's sections rise in. `changeTab` only toggles a class, so a render (an
+   * edit, a damage) never replays it.
+   *
+   * @inheritdoc
+   */
+  changeTab(tab, group, options) {
+    super.changeTab(tab, group, options);
+    const pane = this.element?.querySelector(`.tab[data-group="${group}"][data-tab="${tab}"]`);
+    if (!pane || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    pane.classList.remove("fgt-entering");
+    void pane.offsetWidth;
+    pane.classList.add("fgt-entering");
+    setTimeout(() => pane.classList.remove("fgt-entering"), 700);
   }
 
   /**

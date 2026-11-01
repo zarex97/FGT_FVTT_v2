@@ -1,3 +1,5 @@
+@use "ornament" as *;
+
 // Stat tiles, ability cards, pip rows and bars.
 
 .fgt-resource {
@@ -106,75 +108,72 @@
 
 /* ── Parameter rows (§5.6) ──────────────────────────────────────────────── */
 
-// FGO's Parameters (#364): the key, a bar of six segments E to EX, and the
-// letter. The letter stays an input, because checking the sheet against the
-// paper it came from is this row's whole job; the bar is filled to the Rank in
-// force, which is what every rule reads.
+// FGO's Parameters (#364): the key, six slanted segments E to EX lit in ember
+// gold, and the letter. The letter stays an input, because checking the sheet
+// against the paper it came from is this row's whole job; the bar is filled to
+// the Rank in force, which is what every rule reads.
 .fgt-params {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 0.25rem 1rem;
+  gap: 0.35rem 1.4rem;
 }
 
 .fgt-param {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem;
   align-items: center;
-  gap: 0.25rem 0.5rem;
-  padding: 0.2rem 0;
-  border-bottom: var(--fgt-border);
+  gap: 0.25rem 0.65rem;
 
   &__key {
-    flex: 0 0 2.5rem;
-    font-size: var(--fgt-text-label);
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    @include figure;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--fgt-ink-dim);
   }
 
   &__bar {
-    flex: 1 1 5rem;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 2px;
-    height: 0.6rem;
+    gap: 3px;
+    height: 0.8rem;
   }
 
   &__seg {
-    border: 1px solid var(--fgt-line);
-    border-radius: 2px;
-    background: var(--fgt-bg-sunken);
+    border: 1px solid rgb(255 255 255 / 5%);
+    background: var(--fgt-night-3);
+    transform: skewX(-24deg);
 
-    &--on { border-color: var(--fgt-crimson); background: var(--fgt-crimson); }
+    &--on {
+      border-color: rgb(255 210 122 / 60%);
+      background: linear-gradient(180deg, #ffd27a, #e08a2c 60%, #a8501a);
+      box-shadow: 0 0 8px rgb(224 138 44 / 35%);
+    }
+
+    // EX, the sixth: white gold.
+    &--on:nth-child(6) { background: linear-gradient(180deg, #fff3cf, var(--fgt-gold-hi)); box-shadow: 0 0 10px rgb(251 231 168 / 60%); }
   }
 
   &__rank {
-    flex: 0 0 3.25rem;
-    width: 3.25rem;
+    width: 100%;
+    height: auto;
     text-align: center;
     font-family: var(--fgt-font-display);
-    font-size: var(--fgt-text-title);
-    font-weight: 700;
-    color: var(--fgt-ink);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--fgt-gold-hi);
     background: none;
     border: 1px solid transparent;
 
-    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+    &:hover, &:focus { border-color: var(--fgt-night-4); background: var(--fgt-bg-sunken); }
   }
 
-  &__effective { font-weight: 700; color: var(--fgt-ink); }
+  &__effective { grid-column: 2 / -1; @include figure; font-size: 0.85rem; color: var(--fgt-ink); }
 
   // A granted parameter says what it was WRITTEN with as well as what it is
   // now. §5.6: only granted steps move Base Attack, so a row that shows one
   // number cannot be checked against the Servant it came from.
-  &__granted {
-    font-size: var(--fgt-text-label);
-    color: var(--fgt-gold);
-    white-space: nowrap;
-  }
-
-  &--granted { border-bottom-color: var(--fgt-gold); }
+  &__granted { grid-column: 2 / -1; font-size: var(--fgt-text-label); color: var(--fgt-gold); white-space: nowrap; }
 }
 
 /* ── Stat grid ──────────────────────────────────────────────────────────── */
@@ -303,62 +302,72 @@
 
 /* ── Ability rows (§29.2) ───────────────────────────────────────────────── */
 
-// FGO's skill row (#364): "SKILL 1" and its Cooldown on the left, the
-// picture, then the name, its Rank and its text. The kind is the control the
-// row carries (a passive has none) and the glyph on its tile.
+// FGO's skill row (#364): "SKILL 1" and its Cooldown on the left, a diamond
+// gem holding the ability's art or its kind's glyph, then the name, its Rank
+// and its text, with a gold USE at the end. The kind is the control the row
+// carries (a passive has none) and the glyph on its gem.
 .fgt-card-ability {
+  @include plate(10px);
+
   display: grid;
-  grid-template-columns: 4.5rem 2.75rem minmax(0, 1fr);
-  align-items: start;
-  gap: 0 0.6rem;
-  margin-bottom: 0.4rem;
-  padding: 0.5rem 0.6rem;
-  border: var(--fgt-border);
-  border-radius: var(--fgt-radius);
-  background: var(--fgt-bg-raised);
+  grid-template-columns: 4.6rem 3.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0 0.85rem;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.85rem 0.65rem 0.75rem;
 
-  &.is-on {
-    background: var(--fgt-bg-sunken);
-    box-shadow: inset 0 0 0 1px var(--fgt-gold);
-  }
+  &.is-on { --fgt-edge: linear-gradient(160deg, var(--fgt-gold-hi), var(--fgt-gold)); filter: drop-shadow(0 0 8px rgb(212 169 78 / 35%)); }
 
-  &__slot {
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-    padding-top: 0.1rem;
-  }
+  &__slot { display: flex; flex-direction: column; gap: 0.1rem; }
 
   &__slot-label {
-    font-size: var(--fgt-text-label);
+    font-family: var(--fgt-font-display);
+    font-size: 0.74rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--fgt-ink);
+    color: var(--fgt-gold);
   }
 
-  &__slot-cd { font-size: var(--fgt-text-label); color: var(--fgt-ink-dim); }
-  &__slot-cd-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  &__slot-cd { font-size: 0.68rem; letter-spacing: 0.06em; color: var(--fgt-ink-faint); }
+  &__slot-cd-value { @include figure; font-size: 1.25rem; line-height: 1; color: var(--fgt-ink); }
 
-  // The picture. Gold while it can be used, dashed while it cannot; the state
-  // line says why, so the tile is never the only signal.
+  // The gem. Lit gold while the ability can be used, dark while it cannot;
+  // the state line says why, so the gem is never the only signal.
   &__tile {
+    position: relative;
     display: grid;
     place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    overflow: hidden;
-    border: var(--fgt-border);
-    border-radius: var(--fgt-radius);
-    background: var(--fgt-bg-sunken);
-    color: var(--fgt-ink-dim);
+    width: 3.25rem;
+    height: 3.25rem;
+    background: radial-gradient(circle at 50% 35%, #2c3870, #0c1024 70%);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 
-    &--ready { border-color: var(--fgt-gold); color: var(--fgt-gold); }
-    &--blocked { border-style: dashed; }
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, var(--fgt-gold-hi), var(--fgt-gold-lo));
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%, 50% 0, 50% 4px, 4px 50%, 50% calc(100% - 4px), calc(100% - 4px) 50%, 50% 4px);
+    }
+
+    > * { position: relative; }
+
+    &--blocked { filter: saturate(0.3) brightness(0.65); }
   }
 
-  &__icon { width: 100%; height: 100%; object-fit: cover; border: none; }
-  &__glyph { font-size: var(--fgt-text-title); }
+  &--passive &__tile { background: radial-gradient(circle at 50% 35%, #232a48, #0c1024 70%); }
+
+  &__icon {
+    width: 70%;
+    height: 70%;
+    object-fit: cover;
+    border: none;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+
+  &__glyph { font-size: 1.25rem; color: var(--fgt-ink-dim); }
+  &__tile--ready &__glyph { color: var(--fgt-gold-hi); filter: drop-shadow(0 0 6px rgb(251 231 168 / 60%)); }
 
   &__body { min-width: 0; }
 
@@ -366,51 +375,46 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem 0.5rem;
   }
 
-  &__name {
-    flex: 0 1 auto;
-    min-width: 0;
-    font-size: var(--fgt-text-title);
-    font-weight: 600;
-  }
+  &__name { flex: 0 1 auto; min-width: 0; font-size: 1.05rem; font-weight: 700; color: var(--fgt-ink); }
 
   // Right after the name, as FGO prints "Lv. 6".
-  &__rank {
-    font-size: var(--fgt-text-title);
+  &__rank { font-family: var(--fgt-font-display); font-size: 0.98rem; font-weight: 800; color: var(--fgt-gold-hi); }
+
+  &__np,
+  &__delivery {
+    font-size: 0.62rem;
     font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 0 0.4rem;
+    border: 1px solid var(--fgt-night-4);
     color: var(--fgt-ink-dim);
   }
+
+  &__np { border-color: rgb(224 35 63 / 55%); color: var(--fgt-seal-hi); }
 
   // The controls sit at the row's far end, whatever the name's length.
   &__use,
   &__passive { margin-left: auto; }
 
-  &__np,
-  &__delivery {
-    font-size: var(--fgt-text-label);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0 0.3rem;
-    border: var(--fgt-border);
-    border-radius: 2px;
-    color: var(--fgt-ink-dim);
-  }
-
   &__use {
     flex: 0 0 auto;
-    padding: 0.15rem 0.6rem;
-    font-size: var(--fgt-text-label);
+    min-width: 4.6rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.74rem;
+    @include metal-button;
+    @include slant(8px);
   }
 
   &__passive {
-    font-size: var(--fgt-text-label);
-    font-style: italic;
-    color: var(--fgt-ink-dim);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    color: var(--fgt-ink-faint);
   }
 
   &__edit {
@@ -418,26 +422,29 @@
     width: auto;
     background: none;
     border: none;
-    color: var(--fgt-ink-dim);
+    color: var(--fgt-ink-faint);
     cursor: pointer;
     padding: 0 0.2rem;
 
-    &:hover { color: var(--fgt-gold); }
+    &:hover { color: var(--fgt-gold-hi); }
   }
 
   &__state {
-    margin: 0.25rem 0 0;
-    font-size: var(--fgt-text-label);
+    margin: 0.3rem 0 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--fgt-ok);
 
     // A blocked ability says so in words and carries a barred icon. The button
     // above it is disabled and tooltipped with the same sentence, so the
     // reason is reachable from the control as well as beside it (D29.2).
-    &--blocked { color: var(--fgt-warn); }
+    &--blocked { color: var(--fgt-seal-hi); }
   }
 
   &__cost {
-    margin: 0.15rem 0 0;
+    margin: 0.2rem 0 0;
     font-size: var(--fgt-text-label);
     color: var(--fgt-ink-dim);
 
@@ -448,18 +455,22 @@
   &__no { color: var(--fgt-danger); font-weight: 600; }
 
   &__desc {
-    margin-top: 0.3rem;
-    font-size: var(--fgt-text-body);
+    margin-top: 0.35rem;
+    font-size: 0.86rem;
+    line-height: 1.38;
 
     summary {
       cursor: pointer;
-      font-size: var(--fgt-text-label);
+      font-size: 0.66rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--fgt-ink-dim);
+      letter-spacing: 0.14em;
+      color: var(--fgt-ink-faint);
+
+      &:hover { color: var(--fgt-gold-hi); }
     }
 
-    div { padding-top: 0.25rem; color: var(--fgt-ink-dim); }
+    div { padding-top: 0.3rem; color: var(--fgt-ink-dim); }
   }
 }
 
@@ -469,7 +480,7 @@
 }
 
 @container (max-width: 760px) {
-  .fgt-card-ability { grid-template-columns: 3.75rem 2.5rem minmax(0, 1fr); }
+  .fgt-card-ability { grid-template-columns: 3.9rem 3rem minmax(0, 1fr); }
 }
 
 /* ── Details fields ─────────────────────────────────────────────────────── */

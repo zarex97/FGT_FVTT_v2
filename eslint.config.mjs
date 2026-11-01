@@ -57,6 +57,9 @@ export default [
         // L4 may touch these; the L1/L2 block below takes them away again.
         window: "readonly", document: "readonly", PIXI: "readonly",
         PointerEvent: "readonly", HTMLElement: "readonly", SubmitEvent: "readonly",
+        // The interface's motion (#364): a damage count-up, a gauge's ghost, and
+        // the reduced-motion question every one of them asks first.
+        matchMedia: "readonly", requestAnimationFrame: "readonly", performance: "readonly",
         // `File` is what `FilePicker.upload` takes, and the pre-migration
         // backup is the first thing in this system to write a file rather than
         // hand the browser a download (Ch. 39 D39.3).
