@@ -204,7 +204,8 @@ describe("Dead Count Shapeshifter, usage 1 (DC.1.*; ruling 5)", () => {
       const tree = abilityOf(w, SIEG, "sieg-blasted-tree");
       await tree.update({ "system.cooldown.remaining": 9 });
       expect((await castSkill(w, { caster: SIEG, ability: abilityOf(w, SIEG, "sieg-dragon-revelation").id })).ok).toBe(true);
-      expect(tree.system.cooldown.remaining).toBe(7);
+      // ½◈ at 3 Turns a Round is 1 since 2026-11-01 (#362): 9 → 8.
+      expect(tree.system.cooldown.remaining).toBe(8);
       expect(effectOf(w, SIEG, "dmgUpDragon").system).toMatchObject({ magnitude: 50, npMagnitude: 25 });
       expect(w.actor(SIEG).system.resources.drcs.value).toBe(0);
     }, WAR);
@@ -445,7 +446,7 @@ describe("Dead Count Shapeshifter, usage 2: Siegfried (DC.2.*; rulings 1 to 5, 2
       expect(sys.resources.drcs.value).toBe(2);
       expect(sys.health).toMatchObject({ max: 1500, value: 1500 });
       expect(sys.formReturn.pools.health).toMatchObject({ value: 420, max: 500 });
-      expect([5, 6, 8, 9]).toContain(sys.formReturn.turns);
+      expect([4, 6, 7, 9]).toContain(sys.formReturn.turns);
       const s = await live(SIEG);
       expect(s.servantClasses).toEqual(["saber"]);
       expect(s.range).toBe(1);
@@ -503,10 +504,10 @@ describe("Dead Count Shapeshifter, usage 2: Siegfried (DC.2.*; rulings 1 to 5, 2
     }, WAR);
   });
 
-  it("X is 1◈ + ½◈ x d4 summed in ◈, then turned into Turns: 5, 6, 8, 9 (found live)", async () => {
+  it("X is 1◈ + ½◈ x d4 summed in ◈, then turned into Turns: 4, 6, 7, 9 (rounded down, ruled 2026-11-01, #362)", async () => {
     const { lastingTurns } = await import("../../module/engine/transform.mjs");
     const lasts = { base: "1◈", per: "½◈" };
-    expect([1, 2, 3, 4].map((roll) => lastingTurns(lasts, roll, 3))).toEqual([5, 6, 8, 9]);
+    expect([1, 2, 3, 4].map((roll) => lastingTurns(lasts, roll, 3))).toEqual([4, 6, 7, 9]);
   });
 
   it("needs a DRCS", async () => {

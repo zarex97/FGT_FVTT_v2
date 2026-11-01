@@ -27,6 +27,7 @@ import { platformsSummonedBy } from "./platforms.mjs";
 import { AUTOMATIC_WINDOW } from "./windows.mjs";
 import { keptByForm } from "./form.mjs";
 import { statedDeliveryOf } from "./delivery.mjs";
+import { usesMagOnly } from "./mag-seal.mjs";
 
 /**
  * @typedef {object} AbilityUse
@@ -315,6 +316,13 @@ function classifyUse(item) {
   const dealsByBlock = Boolean(dmg) && !(dmg.fixed === true && (dmg.base?.fixedValue ?? dmg.fixedValue ?? 0) === 0);
   const deals = hasDamagePhase || dealsByBlock;
   if (deals && (isNP || hasDamagePhase || dealsByBlock || (declaredAttack && sys.countsAsAttack !== false))) {
+    return { kind: "attack", isAttack: true, clickable: true, toggles: false, action: "useAbility" };
+  }
+  // A non-damaging ability that runs a Combat Process of its own, with no damage
+  // in it: Rhongomyniad Mythos *"(Non-damaging) ... If this NP is not
+  // successfully Evaded, the DU is inflicted with the 'Mythos' debuff"* (#362
+  // reading 20). Its DU reacts, and it is its user's Attack for the Turn.
+  if (sys.combatProcess) {
     return { kind: "attack", isAttack: true, clickable: true, toggles: false, action: "useAbility" };
   }
 
@@ -714,6 +722,12 @@ export function usageSpecFor(ability) {
     // Effects that switch it off while carried. Asked by `useSkill` alone, so
     // the bar and every offer lit what the press refused (#244).
     negatedBy: [...(sys.negatedBy ?? [])],
+    // Effects that do NOT reach it: Face of the King is *"not affected by Skill
+    // Seal"* (#362 reading 9). Read by the Seal gate and the budget.
+    unaffectedBy: [...(sys.unaffectedBy ?? [])],
+    // Whether its Attack uses Base Attack (MAG) alone, which a MAG seal refuses
+    // (Mythos 1, #362 reading 23).
+    magOnly: usesMagOnly(sys.damage ?? null),
     // Exempts a use from its category's per-Turn cap. Kiritsugu's Magecraft
     // caps `thaumaturgy` at one a Turn and his Lethal Gunfire Suppression
     // grants a cast that "does not count towards" it -- an exemption

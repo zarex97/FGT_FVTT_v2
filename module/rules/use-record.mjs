@@ -162,7 +162,9 @@ export function useOptions(facts) {
 export function declarationRecord(processes) {
   const own = (processes ?? []).filter((p) => p?.state && !p.state.isCounter);
   const merged = mergeRecords(own.map((p) => p.state.use).filter(Boolean));
-  const hit = new Set(own.filter((p) => p.result && !p.result.flags?.negatedBy).map((p) => p.state.defenderId));
+  // A non-damaging Process hits nobody (#362 Q9).
+  const hit = new Set(own.filter((p) => p.result && !p.result.flags?.negatedBy && !p.state.attack?.nonDamaging)
+    .map((p) => p.state.defenderId));
   merged.facts.unitsHit = hit.size;
   merged.facts.missed = hit.size === 0;
   return merged;

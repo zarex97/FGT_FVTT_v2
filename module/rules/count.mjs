@@ -356,7 +356,15 @@ function criterionHolds(criterion, targets, self) {
  * @returns {number}
  */
 export function multiplierOf(block, ctx = {}) {
-  return countedValue(block?.multiplier ?? 1, ctx);
+  const m = block?.multiplier ?? 1;
+  // *"If Gray is summoned in a Grand Order Holy Grail War on the Chaldea
+  // Faction, the multiplier of Rhongomyniad begins at 4x instead of 3x"*: the
+  // base moves, the steps per criterion stay (#362 readings 21, 29). `chaldea`
+  // is the caller's: the attacker's own faction is the War's Chaldea, in a
+  // Grand Order War.
+  const sized = ctx.chaldea && m && typeof m === "object" && typeof m.grandOrderBase === "number"
+    ? { ...m, base: m.grandOrderBase } : m;
+  return countedValue(sized, ctx);
 }
 
 /** The keys each kind reads and cannot do without. */

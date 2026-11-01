@@ -31,6 +31,7 @@ import { usedOnlyDuringOwnTurn, usedOnlyAtWindows, windowsOf } from "./windows.m
 import { standingPlatformOf } from "./platforms.mjs";
 import { ownerOptionsOf } from "./options.mjs";
 import { test as testPredicate } from "./predicate.mjs";
+import { magSealOf } from "./mag-seal.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -511,6 +512,9 @@ export function canUseAbility({
   const sealed = useClassesOf(ability)
     .map((action) => preventedBy(unit, action, {
       categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
+      // What its sheet says does not reach it: Face of the King is *"not
+      // affected by Skill Seal"* (#362 reading 9).
+      ignoring: ability?.unaffectedBy ?? [],
     }))
     .find((v) => v.prevented) ?? { prevented: false };
   if (sealed.prevented) {
@@ -522,9 +526,20 @@ export function canUseAbility({
   // `useSkill` alone, so the bar and every offer, which ask this, lit what the
   // press refused (#244). Below the Seals, so a Silenced Spell still says
   // which effect prevents it.
-  const negatedBy = (ability?.negatedBy ?? []).find((id) => (unit?.effects ?? []).includes(id));
+  // ...and by an effect that names what it negates: Mythos's *"Spells & NP
+  // cannot be used"* (#362 MY.2), read off the bearer's own projection.
+  const negatedBy = (ability?.negatedBy ?? []).find((id) => (unit?.effects ?? []).includes(id))
+    ?? (unit?.abilities ?? []).find((a) => a.id === ability?.id && a.negatedByEffect)?.negatedByEffect;
   if (negatedBy) {
     return { ok: false, reason: "negated", detail: { by: negatedBy }, cost };
+  }
+
+  // An Attack using Base Attack (MAG) alone, under a MAG seal: Mythos 1, *"Attacks
+  // which use Base Attack (MAG) or deal MAG damage cannot be used"* (#362). A
+  // combined one is let through, and dealt with its STR part.
+  const magSeal = ability?.magOnly ? magSealOf(unit) : null;
+  if (magSeal) {
+    return { ok: false, reason: "magSealed", detail: { by: magSeal.source ?? "" }, cost };
   }
 
   // The same question one scale WIDER: a cap on a whole CATEGORY rather than on

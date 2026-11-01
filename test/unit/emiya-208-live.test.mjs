@@ -31,7 +31,8 @@ describe("a non-damaging Noble Phantasm's slot asks the budget the declaration a
     const use = readFileSync("module/engine/skill-use.mjs", "utf8");
     // Each path's kind: the attack path's `abilityKind` for an Attack (a damaging
     // NP is `np`, which NP Seal refuses), the use path's helper otherwise (#209 review).
-    expect(bar).toMatch(/afford\(budgetActionFor\(use\.isAttack \? abilityKind\(item\) : useBudgetKind\(item\)\)\)/);
+    // ...with what never reaches the ability beside it (Face of the King, #362): widened.
+    expect(bar).toMatch(/afford\(budgetActionFor\(use\.isAttack \? abilityKind\(item\) : useBudgetKind\(item\)\)(?:,\s*\[\.\.\.\(item\.system\?\.unaffectedBy \?\? \[\]\)\])?\)/);
     expect(use).toMatch(/budgetActionFor\(useBudgetKind\(ability\)\)/);
   });
 });

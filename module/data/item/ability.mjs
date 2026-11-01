@@ -516,6 +516,16 @@ function abilityCommon() {
     // Enhancement, his sheet's own sentence (#260 reading 3j).
     unsealable: new fields.BooleanField({ initial: false }),
 
+    // Effects that do not reach this ability at all: Gray's Face of the King,
+    // *"This Skill is not affected by Skill Seal"* -- usable while Sealed, and a
+    // Hoodie it gave is never ended by the Seal (#362 reading 9).
+    unaffectedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+
+    // A non-damaging ability that runs a Combat Process of its own, no damage in
+    // it, and the reactions it leaves its DU: Rhongomyniad Mythos, *"If this NP
+    // is not successfully Evaded"*, `{reactions: [evade]}` (#362 reading 20).
+    combatProcess: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
     // The Revised wording of the ability's description, printed on the sheet
     // when the War plays the Revised text (#260 reading 3f).
     descriptionRevised: new fields.StringField({ required: false, nullable: true, initial: null }),
@@ -712,6 +722,18 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // an `OnEvent` handler's `then:`. Appendix A has several -- Shock's
       // "current Agility +1 when max is restored", Coma's exit damage.
       onRemove: new fields.ArrayField(new fields.ObjectField()),
+      // ...and on its NATURAL expiry only, the clock running out. Gray's Logos:
+      // *"After the 'Logos' effect naturally expires, it cannot be re-applied to
+      // Gray for the next 2◈ Turns"* (#362 SM.4.lock).
+      onExpire: new fields.ArrayField(new fields.ObjectField()),
+      // Unremovable but by a source of these Ranks: Mythos is *"Unremovable
+      // except by an effect from a Rank EX Skill or NP"* (#362 MY.4).
+      removableOnlyBy: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // The bearer's abilities it negates whole -- refused, and their rules
+      // collected from nothing: Mythos's Spells, NPs (two tags spared) and
+      // Divinity (#362 MY.2, MY.3). Each entry: `{spells}`, `{nps, exceptTags}`,
+      // `{categories}`.
+      negatesAbilities: new fields.ArrayField(new fields.ObjectField()),
       // Actions that run once, when an instance is CREATED -- not when it is
       // refreshed. Shock's "current Agility -3": a current value is stored, so
       // a clause that changes it pays once rather than deriving (#106).

@@ -1163,7 +1163,14 @@ const ACTIONS = Object.freeze({
     // that has not arrived yet writes nothing, same as `Heal`.
     const raw = a.roll ? rolled(a, c) : (a.delta ?? 0);
     if (raw === null) return [];
-    const amount = a.regionScaled ? regionScale(raw, a.regionScaled, c.board?.warRegion) : raw;
+    // Paid per Unit the event counted: Anti-Spirit Combat's *"1 additional
+    // Mythos Counter for every Unit with those Attributes hit"*, Rhongomyniad's
+    // *"2 Mythos Counters for every Unit hit"* (#362). The Units are the
+    // event's `targets`; none counted pays nothing.
+    const per = a.count ? countOf(a.count, { targets: c.targets ?? [], board: c.board, self: u }) : 1;
+    if (!(per > 0)) return [];
+    const scaled = raw * per;
+    const amount = a.regionScaled ? regionScale(scaled, a.regionScaled, c.board?.warRegion) : scaled;
     if (amount === 0) return [];
     return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
   },
@@ -2451,7 +2458,28 @@ export function cooldownRate(unit, ability, ctx) {
   // NP Lag halves the rate — every other turn, keyed on the global tick so it
   // stays consistent across a reconnect.
   if (held.includes("npLag") && ability.isNP && ctx.tick % 2 === 1) return 0;
-  return 1 + (ability.regen ?? 0) + npRegenOf(unit, ability, held, ctx);
+  return naturalTickOf(unit, ability, ctx) + (ability.regen ?? 0) + npRegenOf(unit, ability, held, ctx);
+}
+
+/**
+ * The Turn's own tick: 1, or what a `NaturalTick` makes it this Turn.
+ *
+ * King's Reflection: *"At the end of Gray's Turn and at the end of any Turns she
+ * Acts, her NP Cooldown is reduced by ⅓◈ Turns instead of 1 Turn"* (#362
+ * reading 5). Her side's Turn, or a Turn she Acted in (an Evade, a Block or a
+ * Counter included, reading 6); once when both hold. The longest that holds.
+ *
+ * @param {object} unit
+ * @param {object} ability
+ * @param {SchedulerContext} ctx
+ * @returns {number}
+ */
+function naturalTickOf(unit, ability, ctx) {
+  const holds = (unit.naturalTicks ?? []).filter((t) => (t.scope === "all" || (t.scope === "np" && ability.isNP))
+    && t.on.some((w) => (w === "acted" ? Boolean(unit.acted)
+      : ctx.activeFactionId != null && sideOf(unit) === ctx.activeFactionId)));
+  if (holds.length === 0) return 1;
+  return Math.max(1, ...holds.map((t) => resolveTicks(parseTick(t.ticks), ctx)));
 }
 
 /**
@@ -2752,6 +2780,10 @@ export function expireEffects(units, ctx, reason = "expired", paused = new Set()
       // current Agility +1 when max is restored"* -- one point back, not the
       // three the maximum regains, and the asymmetry is the whole clause.
       out.push(...onRemoveIntents(u, e, ctx));
+      // ...and what the clock running out pays alone: Logos's lockout, *"after
+      // the 'Logos' effect naturally expires"* (#362 SM.4.lock). No other removal
+      // reaches it.
+      if (reason === "expired" || reason === "roundEnd") out.push(...onExpireIntents(u, e, ctx));
 
       // Expiry is never blocked by Unremovable or by removal resistance —
       // those govern Cure and Dispel, not the clock.
@@ -2820,6 +2852,14 @@ export function advanceEffects(units, ctx) {
  * @param {SchedulerContext} ctx carries `effectDef(id)`
  * @returns {Intent[]}
  */
+export function onExpireIntents(unit, instance, ctx) {
+  const def = ctx.effectDef?.(instance.defId) ?? null;
+  const actions = def?.onExpire ?? [];
+  if (actions.length === 0) return [];
+  const handler = { source: def.name ?? instance.defId, abilityId: null, defId: instance.defId };
+  return actions.flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, unit, handler, ctx));
+}
+
 export function onRemoveIntents(unit, instance, ctx) {
   const def = ctx.effectDef?.(instance.defId) ?? null;
   const actions = def?.onRemove ?? [];

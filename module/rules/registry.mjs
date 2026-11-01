@@ -93,6 +93,12 @@ export const EffectRegistry = {
         // Actions that run when the effect goes away -- Shock's "current
         // Agility +1 when max is restored", Coma's exit damage.
         onRemove: sys.onRemove ?? [],
+        // ...on the natural expiry alone (Logos's lockout, #362).
+        onExpire: sys.onExpire ?? [],
+        // Unremovable but by a source of these Ranks (Mythos, #362 MY.4).
+        removableOnlyBy: sys.removableOnlyBy ?? null,
+        // The bearer's abilities it negates whole (Mythos, #362 MY.2, MY.3).
+        negatesAbilities: sys.negatesAbilities ?? [],
         // ...and when it lands, once: Shock's "current Agility -3" (#106).
         onApply: sys.onApply ?? [],
         // ...every time it lands, a refresh included (the Nameless Forest, #247 D3).

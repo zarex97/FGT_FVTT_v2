@@ -136,8 +136,9 @@ describe("a Skill counts its criteria the same way", () => {
       const out = await castSkill(w, { caster: CASTER, ability: item.id });
       expect(out.ok, out.reason).toBe(true);
       expect(w.messages.contents.filter((m) => String(m.content).includes("FGT.Criteria.Line"))).toHaveLength(1);
-      // 3 met over the two, as the attack path counts them: 15 + 5.
-      expect(w.actor(CASTER).items.get(item.id).system.cooldown.remaining).toBe(20);
+      // 3 met over the two, as the attack path counts them: 15 + floor(4.5) = 19
+      // (ruled 2026-11-01, #362).
+      expect(w.actor(CASTER).items.get(item.id).system.cooldown.remaining).toBe(19);
     }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
   });
 });
@@ -208,8 +209,9 @@ describe("a declaration counts its criteria once, and every Process carries the 
       const cards = w.messages.contents.filter((m) => String(m.content).includes("FGT.Criteria.Line"));
       expect(cards).toHaveLength(1);
 
-      // The clock it started: 5◈ + 3 × ½◈ at 3 Turns a Round, rounded up once: 15 + 5.
-      expect(w.actor(CASTER).items.get(item.id).system.cooldown.remaining).toBe(20);
+      // The clock it started: 5◈ + 3 × ½◈ at 3 Turns a Round, summed and
+      // rounded down once (ruled 2026-11-01, #362): 15 + floor(4.5) = 19.
+      expect(w.actor(CASTER).items.get(item.id).system.cooldown.remaining).toBe(19);
 
       for (const id of ids) await playProcess(w, id, { [ALTER]: ["nothing", "declined"], [HERACLES]: ["nothing", "declined"] });
     }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });

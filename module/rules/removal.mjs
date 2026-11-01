@@ -27,6 +27,7 @@
  */
 
 import { polarityOf } from "./effect-instance.mjs";
+import { Rank } from "../domain/rank.mjs";
 
 /**
  * @typedef {object} RemovalCandidate
@@ -50,8 +51,26 @@ import { polarityOf } from "./effect-instance.mjs";
  * @param {object|null|undefined} instance the ActiveEffect
  * @returns {boolean}
  */
-export function isUnremovable(def, instance) {
+export function isUnremovable(def, instance, { by = null } = {}) {
+  // Unremovable but by a source of a Rank: Mythos is *"Unremovable except by an
+  // effect from a Rank EX Skill or NP"* (#362 MY.4). `by` is the removing
+  // ability; any other remover (a Cure, a handler, none) leaves it.
+  if (def?.removableOnlyBy) return !removerQualifies(def.removableOnlyBy, by);
   return Boolean(def?.unremovable || instance?.system?.unremovable);
+}
+
+/**
+ * Does this remover meet an effect's `removableOnlyBy`?
+ *
+ * @param {{rank?: string}} spec
+ * @param {object|null} by the removing ability (an Item, or `{rank}`)
+ * @returns {boolean}
+ */
+function removerQualifies(spec, by) {
+  if (!by) return false;
+  const raw = by.system?.rank ?? by.rank ?? null;
+  const rank = raw instanceof Rank ? raw : Rank.parseOrNull(raw);
+  return Boolean(rank) && (!spec.rank || rank.grade === spec.rank);
 }
 
 /** What a `removeEffect` phase's `selector` may name, all of them read below. */
@@ -70,11 +89,11 @@ export const SELECTOR_KEYS = Object.freeze(["polarity", "valence"]);
  * @param {{evenUnremovable?: boolean}} [opts] match an Unremovable one too, to say it stays (#348)
  * @returns {boolean}
  */
-export function selectorMatches(selector, instance, def, { evenUnremovable = false } = {}) {
+export function selectorMatches(selector, instance, def, { evenUnremovable = false, by = null } = {}) {
   if (!def) return false;
   if (selector?.polarity && polarityOf(instance.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
   if (selector?.valence && def.valence !== selector.valence) return false;
-  return evenUnremovable || !isUnremovable(def, instance);
+  return evenUnremovable || !isUnremovable(def, instance, { by });
 }
 
 /**

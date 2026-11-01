@@ -1,0 +1,51 @@
+# Face of the King (#362 FK.*, HD.*).
+#
+# > "(Active) Used during your Turn. Gray hides her face with her hoodie. Applies
+# > the 'Hoodie' effect for 2◈ Turns. The 'Hoodie' effect has the same effects as
+# > 'Presence Concealment — Rank: E'. Cooldown: 1◈ Turns after the 'Hoodie'
+# > effect is removed from Gray. ... Note: This Skill is not affected by Skill
+# > Seal."
+#
+# Hoodie IS Presence Concealment, carried at Rank E on the instance as Dongyū's
+# C+ is (#249): discovery 80%, Evade +2 by the tables. Two params Dongyū has
+# not: `name`, so every card says *Hoodie*, and `skill`, the Skill whose clock
+# its removal starts -- a grant names none and starts no clock (#249 reading 4).
+# The clock is this Skill's 1◈, counted from the removal (`countFrom`).
+# Clause 4's struck *"to Servants"* is deleted (reading 8): the shared effect's
+# own text already reads so.
+#
+# `unaffectedBy: [skillSeal]` (reading 9): usable while Skill Sealed, and the
+# Revised clause 8 never ends a Hoodie this Skill gave.
+schema: 1
+id: gray-face-of-the-king
+name: "Face of the King"
+kind: skill
+slug: faceOfTheKing
+cooldown: { max: "1◈", countFrom: deactivation }
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+unaffectedBy: [skillSeal]
+description: |
+  (Active) Used during your Turn. Gray hides her face with her hoodie. Applies the 'Hoodie' effect for 2◈ Turns. The
+  'Hoodie' effect has the same effects as '@effect[presenceConcealment]{Presence Concealment} — Rank: E'. Cooldown:
+  1◈ Turns after the 'Hoodie' effect is removed from Gray.
+  (Presence Concealment — Rank: E)
+  1. This Unit cannot be targeted for an Attack or an enemy Unit's Skill. If it is caught in an AoE Attack and fails
+     to Evade, Flip a Coin. If Heads, no damage and effects are received; if Tails, Total Damage taken from that
+     Attack is reduced by 50% & PC is deactivated.
+  2. This Unit's Attacks cannot be Blocked or Countered unless the DU's current Agility is equal to or higher than
+     it. If the DU Evades, the Evade Roll is increased by 2.
+  3. This Unit is able to Attack Masters and Move to any panel regardless of enemy Master-Servant positions.
+  4. All damage dealt is increased by 100% (doubled); if NP, 50%. Does not apply against Masters.
+  5. After performing an Attack while PC is Active, PC is deactivated at the end of the Combat Process.
+  6. When This Unit Moves into an enemy Servant's Range (or Detect, if in use), it has an 80% chance of being
+     discovered.
+  7. Active Skills targeting/affecting an enemy Unit(s) cannot be used unless stated. Note: Does not include Attack
+     Skills and Spells that deal damage.
+  8. The effects of Presence Concealment are neither a buff or a debuff, and are Unremovable.
+  Note: This Skill is not affected by Skill Seal.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: presenceConcealment, duration: "2◈", params: { rank: E, name: Hoodie, skill: faceOfTheKing } }

@@ -70,6 +70,9 @@ export function concealmentProfile(unit) {
   const instance = (unit?.effectInstances ?? []).find((e) => e.defId === CONCEALMENT) ?? null;
   const params = instance?.params ?? null;
   const granted = Boolean(params?.rank);
+  // The Skill that gave it, when the instance names one (Hoodie, #362): its
+  // clock is the one the removal starts.
+  const giver = params?.skill ? (unit?.abilities ?? []).find((a) => a.slug === params.skill) ?? null : null;
   const skill = (unit?.abilities ?? []).find((a) => a.slug === CONCEALMENT_SLUG) ?? null;
   // The Skill's Rank as raised by any shift standing on the Unit now: Espionage
   // makes Yan Qing's C an A while it lasts, and C again when it ends (#253
@@ -85,7 +88,8 @@ export function concealmentProfile(unit) {
     rank: String(rank),
     evade: evade ?? Number(lookup("presenceConcealmentEvade", rank) ?? 4),
     discover: Math.max(0, Math.min(100, Number(lookup("presenceConcealmentDiscover", rank) ?? 100))),
-    cooldown: granted ? null : (lookup("presenceConcealmentCooldown", ownRank ?? rank) ?? null),
+    cooldown: giver ? (giver.cooldownMax ?? null)
+      : granted ? null : (lookup("presenceConcealmentCooldown", ownRank ?? rank) ?? null),
     granted,
   };
 }

@@ -22,6 +22,10 @@ import { actionSourceFor } from "../rules/platforms.mjs";
 import { unitFrom, unitActor } from "./board.mjs";
 import { pressGate, abilityKind } from "./press-gate.mjs";
 import { warRule } from "./war.mjs";
+import { magSealOf, usesMagOnly } from "../rules/mag-seal.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
+import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { chebyshevBetween, occupiedPanels } from "../domain/geometry.mjs";
 
 /**
  * @typedef {object} Preflight
@@ -139,6 +143,20 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
   if (!usage.ok && !overridden) return refuse(`Cannot use this ability: ${usageRefusal(usage, attacker)}`);
 
+  // A Normal Attack whose band at this distance is MAG alone, under a MAG seal:
+  // Mythos 1 refuses it, and its STR band can still be used (#362 reading 23).
+  // Asked here, where the aimed Unit is known; an ability is the use gate's.
+  const seal = !ability && aimed ? magSealOf(self) : null;
+  if (seal) {
+    const from = occupiedPanels(self);
+    const to = occupiedPanels(aimed);
+    const range = from.length && to.length ? chebyshevBetween(from, to) : null;
+    if (usesMagOnly(normalAttackAt(self, range))) {
+      const by = EffectRegistry.get(seal.source)?.name ?? seal.source ?? "";
+      return refuse(game.i18n.format("FGT.Ability.Refused.magSealedNormal", { by, range: range ?? "?" }));
+    }
+  }
+
   // Ch. 32: at 25 Health or less a Master cannot order more than one of its
   // Servants to Act. Enforced here, where it composes with the ordinary budget.
   if (master && combat?.started) {
@@ -196,6 +214,9 @@ function usageRefusal(usage, actor = null) {
     const named = actor?.items?.find?.((i) => i.id === d.partner || i.system?.contentId === d.partner)?.name;
     if (named) usage = { ...usage, detail: { ...d, partner: named } };
   }
+  // ...and the effect that negates or seals it, by its name: the refusal read
+  // "Negated by an effect it carries (mythos)" (#362, live).
+  if (d.by && EffectRegistry.get(d.by)) usage = { ...usage, detail: { ...usage.detail, by: EffectRegistry.get(d.by).name } };
   switch (usage.reason) {
     case "cooldown": return `it is on cooldown for another ${d.remaining} turn(s).`;
     case "round": return `it cannot be used before Round ${d.requiresRound} (this is Round ${d.round}).`;

@@ -54,8 +54,8 @@ export const WAR_RULES = Object.freeze([
     name: "FGT.Settings.Ruleset", hint: "FGT.Settings.RulesetHint",
   },
   {
-    // `TICK_OVERRIDES` (domain/tick.mjs) only has rows for the three published
-    // rulesets, so the choice is closed to them (#21).
+    // The three published rulesets, and no other (#21): every ◈ span rounds
+    // down at each of them (`domain/tick.mjs#roundsToTicks`).
     key: "turnsPerRound", type: "number", initial: 3, locked: true,
     choices: { 3: "FGT.TurnsPerRound.GreatHolyGrailWar", 8: "FGT.TurnsPerRound.HolyGrailWar", 15: "FGT.TurnsPerRound.Snowfield" },
     name: "FGT.Settings.TurnsPerRound", hint: "FGT.Settings.TurnsPerRoundHint",
@@ -149,6 +149,13 @@ export const WAR_RULES = Object.freeze([
     // multi-Servant tax (Ch. 32) and Hatred of Achilles against allies (Ch. 45).
     key: "grandOrder", type: "boolean", initial: false,
     name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
+  },
+  {
+    // The faction a Grand Order War calls Chaldea: Gray's, Lanceturia's and
+    // Arthur's NP multiplier *"begins at 4x instead of 3x"* there (#362 reading
+    // 21). Read only while `grandOrder` holds. Its choices are the War's factions.
+    key: "chaldeaFaction", type: "string", initial: null, nullable: true, choicesFrom: "factions",
+    name: "FGT.Settings.ChaldeaFaction", hint: "FGT.Settings.ChaldeaFactionHint",
   },
   {
     // Ch. 05 clause 4, as an OPTIONAL rule: the one movement clause that

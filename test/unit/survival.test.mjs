@@ -207,6 +207,8 @@ export const ABILITY_ROUTES = {
   endsOnSkillSeal: doc("module/engine/seal-ends.mjs", "Skill Seal ends Presence Concealment or Mad Enhancement under the Revised text (#226, #260)"),
   printedRevision: doc("module/rules/snapshot.mjs", "the text a bearer's sheet prints, read by domain/revisions.mjs#revisionOf (#260)"),
   unsealable: doc("module/engine/seal-ends.mjs", "Skill Seal leaves it Active (#260 reading 3j)"),
+  unaffectedBy: doc("module/rules/ability-use.mjs", "the effects that never reach it, read by the Seal gate and the budget (#362)"),
+  combatProcess: doc("module/rules/ability-use.mjs", "a non-damaging ability that opens its own Combat Process, and the reactions it leaves (#362)"),
   descriptionRevised: doc("module/engine/war.mjs", "the sheet prints it under the Revised text (#260 reading 3f)"),
   countsAsNormalAttack: doc("module/engine/attack.mjs", "stamped on the attack as a Normal Attack"),
   openingChoice: doc("module/engine/opening-choice.mjs", "asked when the war starts"),
@@ -284,6 +286,9 @@ export const EFFECT_ROUTES = {
     // Read by `engine/seal-ends.mjs#sealedEffects` and
     // `engine/effect-extension.mjs#offerEffectExtensions` (#359).
     "endsOnSkillSeal", "extension",
+    // Read by `engine/scheduler.mjs#onExpireIntents`, `rules/removal.mjs#isUnremovable`
+    // and `rules/snapshot.mjs#negatingEffectOf` (#362).
+    "onExpire", "removableOnlyBy", "negatesAbilities",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
