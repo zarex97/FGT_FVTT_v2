@@ -1,4 +1,4 @@
-{{!-- The tab rail (docs/35-sheets-and-editor.md; DESIGN.md).
+{{!-- The tab bar (docs/35-sheets-and-editor.md; DESIGN.md).
 
       `data-action="tab"` is ApplicationV2's own tab action -- the framework
       binds it, tracks which tab is active and re-renders. There is no click
@@ -18,8 +18,10 @@
     <a class="fgt-nav__item {{tab.cssClass}}" data-action="tab"
        data-group="{{tab.group}}" data-tab="{{tab.id}}"
        role="tab" aria-selected="{{tab.active}}"
-       data-tooltip="{{localize tab.label}}" aria-label="{{localize tab.label}}">
-      <i class="{{tab.icon}}"></i>
+       aria-label="{{localize tab.label}}">
+      {{!-- FGO's big buttons across the top (#364): the icon AND the word. --}}
+      <i class="{{tab.icon}}" aria-hidden="true"></i>
+      <span class="fgt-nav__label">{{localize tab.label}}</span>
     </a>
   {{/each}}
 </nav>

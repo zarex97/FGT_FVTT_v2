@@ -242,7 +242,7 @@ active tab is Gold Leaf with Night text, and the rest are Night Raised.
 
 ### Portrait Card (actor sheet, signature)
 The Unit's portrait sits square in a frame of its faction colour on a Night backdrop. With no
-portrait, the class icon shows large. The foot prints the class and the name through the identity
+portrait (Foundry's silhouette), its authored class image shows at 55% of the frame. The foot prints the class and the name through the identity
 reader the bar uses, so a concealed Unit stays concealed. Servants, Masters, civilians and summons
 have one. Platforms and structures keep a plain header.
 
@@ -252,7 +252,9 @@ then the text, with the use buttons at the right. The icon tile shows a glyph pe
 Noble Phantasm, Mode), tinted ready or on cooldown. It never shows the generic item bag.
 
 ### Parameter Bars (actor sheet)
-Each Parameter is a segmented bar with its letter Rank beside it.
+Each Parameter is a row: the key, six segments from E to EX filled to the Rank in force, and the
+letter Rank. The fill is Grail Crimson, an identity accent and not a state. A `+` is printed, never
+stretched.
 
 ## Do's and Don'ts
 

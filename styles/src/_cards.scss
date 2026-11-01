@@ -104,55 +104,77 @@
   .fgt-list__row--on & { opacity: 1; }
 }
 
-/* ── Parameter tiles (§5.6) ─────────────────────────────────────────────── */
+/* ── Parameter rows (§5.6) ──────────────────────────────────────────────── */
 
+// FGO's Parameters (#364): the key, a bar of six segments E to EX, and the
+// letter. The letter stays an input, because checking the sheet against the
+// paper it came from is this row's whole job; the bar is filled to the Rank in
+// force, which is what every rule reads.
 .fgt-params {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.25rem 1rem;
 }
 
 .fgt-param {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.3rem 0.2rem;
-  border: var(--fgt-border);
-  border-radius: var(--fgt-radius);
-  background: var(--fgt-bg-sunken);
+  gap: 0.25rem 0.5rem;
+  padding: 0.2rem 0;
+  border-bottom: var(--fgt-border);
 
   &__key {
-    font-size: 0.62rem;
+    flex: 0 0 2.5rem;
+    font-size: var(--fgt-text-label);
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--fgt-ink-dim);
   }
 
+  &__bar {
+    flex: 1 1 5rem;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    height: 0.6rem;
+  }
+
+  &__seg {
+    border: 1px solid var(--fgt-line);
+    border-radius: 2px;
+    background: var(--fgt-bg-sunken);
+
+    &--on { border-color: var(--fgt-crimson); background: var(--fgt-crimson); }
+  }
+
   &__rank {
-    width: 100%;
+    flex: 0 0 3.25rem;
+    width: 3.25rem;
     text-align: center;
-    font-size: 1.15rem;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-title);
     font-weight: 700;
-    font-family: var(--font-serif, serif);
     color: var(--fgt-ink);
     background: none;
     border: 1px solid transparent;
 
-    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg); }
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
   }
 
+  &__effective { font-weight: 700; color: var(--fgt-ink); }
+
   // A granted parameter says what it was WRITTEN with as well as what it is
-  // now. §5.6: only granted steps move Base Attack, so a tile that shows one
+  // now. §5.6: only granted steps move Base Attack, so a row that shows one
   // number cannot be checked against the Servant it came from.
   &__granted {
-    font-size: 0.62rem;
+    font-size: var(--fgt-text-label);
     color: var(--fgt-gold);
     white-space: nowrap;
   }
 
-  &--granted { border-color: var(--fgt-gold); }
+  &--granted { border-bottom-color: var(--fgt-gold); }
 }
 
 /* ── Stat grid ──────────────────────────────────────────────────────────── */
@@ -279,88 +301,112 @@
   border-left-color: var(--fgt-crimson);
 }
 
-/* ── Ability cards (§29.2) ──────────────────────────────────────────────── */
+/* ── Ability rows (§29.2) ───────────────────────────────────────────────── */
 
+// FGO's skill row (#364): "SKILL 1" and its Cooldown on the left, the
+// picture, then the name, its Rank and its text. The kind is the control the
+// row carries (a passive has none) and the glyph on its tile.
 .fgt-card-ability {
+  display: grid;
+  grid-template-columns: 4.5rem 2.75rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0 0.6rem;
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.6rem;
   border: var(--fgt-border);
-  border-left: 3px solid var(--fgt-line);
   border-radius: var(--fgt-radius);
   background: var(--fgt-bg-raised);
-  padding: 0.45rem 0.55rem;
-  margin-bottom: 0.4rem;
-
-  // The kind is a coloured edge AND the control it carries: a passive has no
-  // button at all, which is the signal that does not depend on colour.
-  &--attack { border-left-color: var(--fgt-crimson); }
-  &--mode { border-left-color: var(--fgt-gold); }
-  &--active { border-left-color: var(--fgt-agility); }
-  &--dialog { border-left-color: var(--fgt-luck); }
-  &--passive { border-left-color: var(--fgt-line); }
 
   &.is-on {
     background: var(--fgt-bg-sunken);
     box-shadow: inset 0 0 0 1px var(--fgt-gold);
   }
 
+  &__slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    padding-top: 0.1rem;
+  }
+
+  &__slot-label {
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fgt-ink);
+  }
+
+  &__slot-cd { font-size: var(--fgt-text-label); color: var(--fgt-ink-dim); }
+  &__slot-cd-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  // The picture. Gold while it can be used, dashed while it cannot; the state
+  // line says why, so the tile is never the only signal.
+  &__tile {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    overflow: hidden;
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-sunken);
+    color: var(--fgt-ink-dim);
+
+    &--ready { border-color: var(--fgt-gold); color: var(--fgt-gold); }
+    &--blocked { border-style: dashed; }
+  }
+
+  &__icon { width: 100%; height: 100%; object-fit: cover; border: none; }
+  &__glyph { font-size: var(--fgt-text-title); }
+
+  &__body { min-width: 0; }
+
   &__head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem;
   }
 
-  &__icon {
-    width: 22px;
-    height: 22px;
-    border: none;
-    border-radius: 2px;
-    object-fit: cover;
-  }
-
   &__name {
-    flex: 1;
-    font-weight: 600;
-    font-size: 0.9rem;
+    flex: 0 1 auto;
     min-width: 0;
+    font-size: var(--fgt-text-title);
+    font-weight: 600;
   }
 
+  // Right after the name, as FGO prints "Lv. 6".
   &__rank {
-    font-family: var(--font-serif, serif);
+    font-size: var(--fgt-text-title);
     font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--fgt-gold);
-    padding: 0 0.3rem;
+    color: var(--fgt-ink-dim);
   }
 
-  &__np {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    padding: 0.05rem 0.3rem;
-    border-radius: 2px;
-    color: var(--fgt-bg);
-    background: var(--fgt-gold);
-  }
+  // The controls sit at the row's far end, whatever the name's length.
+  &__use,
+  &__passive { margin-left: auto; }
 
-  // Ranged, Melee or Special, as the sheet tags the Attack (#281).
+  &__np,
   &__delivery {
-    font-size: 0.6rem;
+    font-size: var(--fgt-text-label);
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 0.05rem 0.3rem;
+    padding: 0 0.3rem;
+    border: var(--fgt-border);
     border-radius: 2px;
-    border: 1px solid var(--fgt-gold);
-    color: var(--fgt-gold);
+    color: var(--fgt-ink-dim);
   }
 
   &__use {
     flex: 0 0 auto;
     padding: 0.15rem 0.6rem;
-    font-size: 0.75rem;
+    font-size: var(--fgt-text-label);
   }
 
   &__passive {
-    font-size: 0.68rem;
+    font-size: var(--fgt-text-label);
     font-style: italic;
     color: var(--fgt-ink-dim);
     text-transform: uppercase;
@@ -369,6 +415,7 @@
 
   &__edit {
     flex: 0 0 auto;
+    width: auto;
     background: none;
     border: none;
     color: var(--fgt-ink-dim);
@@ -380,7 +427,7 @@
 
   &__state {
     margin: 0.25rem 0 0;
-    font-size: 0.72rem;
+    font-size: var(--fgt-text-label);
     color: var(--fgt-ok);
 
     // A blocked ability says so in words and carries a barred icon. The button
@@ -391,7 +438,7 @@
 
   &__cost {
     margin: 0.15rem 0 0;
-    font-size: 0.72rem;
+    font-size: var(--fgt-text-label);
     color: var(--fgt-ink-dim);
 
     &--short { color: var(--fgt-danger); }
@@ -402,13 +449,13 @@
 
   &__desc {
     margin-top: 0.3rem;
-    font-size: 0.76rem;
+    font-size: var(--fgt-text-body);
 
     summary {
       cursor: pointer;
-      font-size: 0.68rem;
+      font-size: var(--fgt-text-label);
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.06em;
       color: var(--fgt-ink-dim);
     }
 
@@ -417,8 +464,12 @@
 }
 
 .fgt-warning--irreversible {
-  border-left-color: var(--fgt-danger);
+  border-color: var(--fgt-danger);
   color: var(--fgt-danger);
+}
+
+@container (max-width: 760px) {
+  .fgt-card-ability { grid-template-columns: 3.75rem 2.5rem minmax(0, 1fr); }
 }
 
 /* ── Details fields ─────────────────────────────────────────────────────── */

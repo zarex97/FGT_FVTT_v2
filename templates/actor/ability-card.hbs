@@ -7,8 +7,25 @@
 <article class="fgt-card-ability fgt-card-ability--{{use.kind}}{{#if active}} is-on{{/if}}"
          data-item-id="{{id}}">
 
-  <header class="fgt-card-ability__head">
+  {{!-- FGO's skill row (#364): the number and the Cooldown on the left, the
+        picture, then the name, its Rank and its text. --}}
+  <div class="fgt-card-ability__slot">
+    <span class="fgt-card-ability__slot-label">{{localize (concat "FGT.Sheet.Slot." slotKind) n=slot}}</span>
+    {{#if cooldownMax}}
+      <span class="fgt-card-ability__slot-cd">{{localize "FGT.Sheet.Cooldown"}}</span>
+      <span class="fgt-card-ability__slot-cd-value">{{cooldownMax}}</span>
+    {{/if}}
+  </div>
+
+  {{!-- The tile: its own art, or its kind's glyph. Gold while it can be used,
+        dashed while it cannot, and the state line below says why. --}}
+  <div class="fgt-card-ability__tile{{#if state}}{{#if state.ok}} fgt-card-ability__tile--ready{{else}} fgt-card-ability__tile--blocked{{/if}}{{/if}}">
     {{#if img}}<img class="fgt-card-ability__icon" src="{{img}}" alt="">{{/if}}
+    {{#if icon}}<i class="fgt-card-ability__glyph {{icon}}" aria-hidden="true"></i>{{/if}}
+  </div>
+
+  <div class="fgt-card-ability__body">
+  <header class="fgt-card-ability__head">
 
     <span class="fgt-card-ability__name">{{name}}</span>
 
@@ -109,4 +126,5 @@
       <div>{{{description}}}</div>
     </details>
   {{/if}}
+  </div>
 </article>
