@@ -102,8 +102,8 @@ export function modeSlotVerdict({ ending, toggle, priced, use }) {
  * @returns {number}
  */
 export function cooldownPct(remaining, max, turnsPerRound) {
-  let total = 0;
-  try { total = ticks(max, { turnsPerRound }); } catch { total = 0; }
+  let total;
+  try { total = ticks(max, { turnsPerRound }); } catch { return 100; }
   if (!(total > 0)) return 100;
   return Math.min(100, Math.round((remaining / total) * 100));
 }

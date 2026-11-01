@@ -15,8 +15,12 @@
 // the element's two pseudo-elements so the diagonal corners keep their edge.
 // The element's own children sit above both. `--fgt-edge` recolours the edge
 // (a role on a card, the faction on a portrait).
-@mixin plate($cut: var(--fgt-cut), $fill: null) {
-  position: relative;
+//
+// `$position: null` leaves the element's own positioning alone: a Foundry
+// window is absolutely placed by core, and taking that away put the sheet in
+// the page's flow, squeezing the whole interface beside it.
+@mixin plate($cut: var(--fgt-cut), $fill: null, $position: relative) {
+  @if $position { position: $position; }
   isolation: isolate;
 
   &::before,

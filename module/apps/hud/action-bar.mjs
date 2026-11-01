@@ -28,7 +28,7 @@ import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState, abilityNamesOf, resourceBar, groupEffects, remainingTurns } from "../actor-sheet/present.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { paintCircles } from "../ornament.mjs";
-import { currentBoard, currentTick, unitFrom, unitOf, luckOf, gateContext, faction } from "../../engine/board.mjs";
+import { currentBoard, unitFrom, unitOf, luckOf, gateContext, faction } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
 import { isQueued } from "../../engine/queued-ends.mjs";
@@ -76,10 +76,10 @@ export const BAR_REFRESH_HOOKS = Object.freeze([
  *
  * @param {object} snapshot
  * @param {number} turnsPerRound
+ * @param {number} tick the clock the bar's context already read
  * @returns {Array<{name: string, img: string|null, polarity: string, left: string}>}
  */
-function barEffects(snapshot, turnsPerRound) {
-  const tick = currentTick();
+function barEffects(snapshot, turnsPerRound, tick) {
   const groups = groupEffects(snapshot.effectInstances ?? [], (id) => EffectRegistry.get(id), snapshot, { tick, turnsPerRound });
   return [...groups.buffs, ...groups.debuffs, ...groups.statuses].map((row) => {
     const turns = remainingTurns(row.expiry, tick);
@@ -87,7 +87,7 @@ function barEffects(snapshot, turnsPerRound) {
       name: row.name,
       // Foundry's stock icons are no one's art: the glyph stands in for them.
       img: row.img && !row.img.startsWith("icons/svg/") ? row.img : null,
-      polarity: row.polarity,
+      polarity: row.polarity, // fgt-polarity-ok: the row's polarity, polarityOf's (`groupEffects`)
       left: turns ? ticksLabel(turns, turnsPerRound) : "∞",
     };
   });
@@ -449,7 +449,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       // What is on the Unit right now, each with its picture and its polarity,
       // where the buttons are (#364).
-      effects: barEffects(snapshot, turnsPerRound),
+      effects: barEffects(snapshot, turnsPerRound, tick),
       // `FGT.Resource.*`, which already exist. `FGT.Sheet.Health` is not a key
       // this system has.
       //

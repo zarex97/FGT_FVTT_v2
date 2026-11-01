@@ -1,18 +1,21 @@
 // The Effects tab: rows, groups and the modifier table.
 // See docs/35-sheets-and-editor.md; DESIGN.md.
 
+// Each row leads with the effect's own picture and its polarity diamond
+// (#364), on a band that warms to crimson for a debuff.
 .fgt-effect {
   display: grid;
-  grid-template-columns: 1fr auto minmax(5rem, 8rem) 4.5rem 1.2rem;
+  grid-template-columns: 2.6rem minmax(0, 1fr) auto minmax(5rem, 8rem) 4.5rem 1.2rem;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.5rem;
-  border: var(--fgt-border);
-  border-left: 3px solid var(--fgt-line);
-  border-radius: var(--fgt-radius);
-  background: var(--fgt-bg-raised);
-  margin-bottom: 0.3rem;
-  font-size: 0.78rem;
+  gap: 0.45rem 0.7rem;
+  padding: 0.45rem 0.7rem 0.45rem 0.5rem;
+  background: linear-gradient(90deg, rgb(38 47 87 / 55%), transparent);
+  margin-bottom: 0.4rem;
+  font-size: 0.86rem;
+
+  &--debuff { background: linear-gradient(90deg, rgb(110 13 29 / 38%), transparent); }
+
+  > p { grid-column: 2 / -1; margin: 0; }
 
   // Suppressed is present but not in force. Dimmed AND said in words below --
   // a grey row alone reads as a rendering accident.

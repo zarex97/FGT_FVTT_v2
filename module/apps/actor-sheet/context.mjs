@@ -857,6 +857,9 @@ function effectsContext(actor, snapshot, tick) {
 
   const decorate = (rows) => rows.map((row) => ({
     ...row,
+    // Its picture (#364); Foundry's stock icons are no one's art, and the
+    // glyph stands in for them, as it does on the action bar.
+    art: row.img && !row.img.startsWith("icons/svg/") ? row.img : null,
     remaining: remainingTurns(row.expiry, tick),
     ...sourceOf(row),
   }));
