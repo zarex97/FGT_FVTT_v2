@@ -1126,6 +1126,10 @@ export function buildAttackSpec({
       // *"These DUs can Evade/Block, but cannot Counter"*: Blasted Tree's
       // splash (#345). The rung closes for the hit, as Block does above.
       uncounterable: Boolean(block?.uncounterable) || onlyReactions(ability)?.includes("counter") === false,
+      // A non-damaging ability's own Process lands its riders and is its user's
+      // Attack, but is no successful Attack: no "damage received", no "hit"
+      // (#362 Q9, ruled 2026-11-01).
+      nonDamaging: Boolean(onlyReactions(ability)),
       // The attack's own *"damage dealt is reduced by 30%"* or *"deals 20% extra
       // damage"*, an ordinary damage-dealt figure summed with Atk Up at stage 4,
       // never a Total cut: Rama's Vishnu Bhuja Normal Attacks (#347 ruling 2e).
@@ -4275,7 +4279,8 @@ async function fireAttackPerformed(siblings) {
     // Counter's, once every one of them is over.
     const settled = await settleDeclarationCooldown(attackerId, attacker, processes);
     const hit = new Set(processes
-      .filter((p) => p.result && !p.result.flags?.negatedBy)
+      // ...and never a non-damaging Process's DU, which was not hit (#362 Q9).
+      .filter((p) => p.result && !p.result.flags?.negatedBy && !p.st.attack?.nonDamaging)
       .map((p) => p.st.defenderId));
     const first = processes[0].st;
     const defender = first.defenderId ? unitOf(unitActor(first.defenderId), board) : null;
@@ -4425,6 +4430,8 @@ async function fireAttackLanded(siblings) {
   // that skipped the damage count (that one leaves no result), a complete
   // negation or a concealment coin's "no damage and effects" does not.
   const landedOn = declared.filter(({ st: s, message: m }) => s.attackerId === attackerId && s.defenderId
+    // A non-damaging Process is no successful Attack (#362 Q9).
+    && !s.attack?.nonDamaging
     && (s.history ?? []).some((h) => h.state === "damage")
     && successfullyAttacked({ skipped: m.getFlag("fgt", "result") ? null : "skipped", result: m.getFlag("fgt", "result") }));
   if (landedOn.length === 0) return;
@@ -4694,12 +4701,15 @@ async function runAutomaticStep(state, message) {
       // 734, then inflicted Def Dwn (A) and (C), and both heard that same hit --
       // Luck and Agility drained by the debuffs it had just applied (#209, live).
       // *"Whenever damage is received"* is damage after they exist.
-      const taken = riders ? await fireDamageTaken(state, result) : { records: [], rows: [] };
+      // A non-damaging Process deals and receives nothing (#362 Q9): no hearer
+      // of damage taken or dealt, no `attackReceived`, no `attackLanded`.
+      const struck = !state.attack?.nonDamaging;
+      const taken = riders && struck ? await fireDamageTaken(state, result) : { records: [], rows: [] };
       // ...and `attackReceived`, once per Attack on each Unit it successfully
       // Attacked, at that Unit's first such Process and before its riders, so a
       // Def Dwn this Attack inflicts does not hear the Attack that inflicted it
       // (#239 readings 3a, 3b). A Knockback's measured damage is not an Attack.
-      const receivedRows = successfullyAttacked({ skipped, result }) && !state.attack?.plainDamage
+      const receivedRows = struck && successfullyAttacked({ skipped, result }) && !state.attack?.plainDamage
         && claimReceived(state, message) ? await fireAttackReceived(state, result) : [];
       // Broken: what was kept back lands now, after the damage, then the rest.
       // Held: it is dropped, and the card says so.
@@ -4748,7 +4758,7 @@ async function runAutomaticStep(state, message) {
       // about a defender whose reductions reached zero, and every on-hit rider
       // in Appendix A was silent against exactly the targets worth riding.
       // `rules/damage/riders.mjs` is now the single decision, with the reasons.
-      const dealt = riders ? await fireDamageDealt(state, result) : { records: [], rows: [] };
+      const dealt = riders && struck ? await fireDamageDealt(state, result) : { records: [], rows: [] };
       // Its mirror on the Unit that took it, `damageTaken`, is raised above,
       // before the riders.
 

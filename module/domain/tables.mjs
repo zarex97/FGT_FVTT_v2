@@ -233,7 +233,9 @@ export const TABLES = Object.freeze({
 
   /**
    * Contract rolls required. The top band is **absolute** — not "very many
-   * rolls". Rule Breaker's `bypassesContractRoll` does not defeat it (Q48).
+   * rolls" — against a contract by rolls or by conquest. Rule Breaker is no
+   * contract in that sense and takes the Servant anyway (ruled 2026-11-01, #362
+   * Q11, overturning Q48): `engine/attack.mjs#cutContract` never asks this.
    */
   independentActionContract: {
     kind: "banded",

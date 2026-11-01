@@ -199,8 +199,9 @@ A → 3, EMIYA B → 2.
 |---|---|---|---|
 | Cannot be contracted | 4 | 3 | 2 |
 
-The top band is **absolute**, not "very many rolls". Rule Breaker's `bypassesContractRoll` does
-not defeat it (Ch. 44 §44.5, **Q48**).
+The top band is **absolute**, not "very many rolls", against a contract by rolls or by conquest.
+Rule Breaker is no contract in that sense: its cut and gift take an Independent Action A+ or EX
+Servant too (ruled 2026-11-01, #362 Q11, overturning Ch. 44 §44.5's **Q48**).
 
 ### Riding — Active MOV bonus and cooldown
 

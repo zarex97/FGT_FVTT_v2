@@ -131,202 +131,203 @@ Round 2: reading 16 and the follow-ups 27–29 ruled as written. The frontier is
 | 31 | **Ruled 2026-11-01.** Every ◈ span rounds down and never to 0 (a span that would be 0 is 1 Turn). The published exception is gone: ½◈ at 3 Turns a Round is 1, not 2, everywhere, and `TICK_OVERRIDES` is removed. Blessings' *"Reduce Gray's NP Cooldown by ½◈ Turns"* cuts 1 at 3 Turns a Round. | BL.1, RH.cd.per |
 | 32 | **Ruled 2026-11-01.** One rule for every `countBonus` (Lanceturia's ⅓◈ down too) and for `perUnit` (Dragon Tooth Warriors, Trump Soldiers, Summoning: Horrors). | RH.cd.per |
 | 33 | **Ruled 2026-11-01.** `MY.2.except` is pressed on three test NPs (`test-mythos-*`), `[antiUnit, mysticSword]`, `[antiUnit, secretTechnique]` and `[antiArmy, secretTechnique]`, as `test-count-criteria` stood in for Arthur. Each tagged Servant's own audit presses it again. | MY.2.except |
+| 34 | **Ruled 2026-11-01.** A non-damaging NP's Process that lands is no successful Attack: it is her Attack for the Turn and ends Hoodie (reading 20), but no Unit was hit and none received damage. Def Dwn (C) does not drain, Anti-Spirit Combat pays nothing, and no hit counter counts it. | MY.nondmg, AS.p.mythos |
+| 35 | **Ruled 2026-11-01.** `HD.7` and `HD.7.except` are unreachable for her kit: her four Active Skills are self-only. Pressed as far as it goes: a self Skill used while hooded is not refused. The shared gate (`canUseWhileConcealed`) was pressed on Kiritsugu and Danzō. | HD.7, HD.7.except |
+| 36 | **Ruled 2026-11-01, overturning Q48.** Rule Breaker ignores Independent Action: *"they are not being contracted in the traditional way of the word... Rolling dice or by conquest"*. Medea takes Gray as she takes anyone. `IA.contract` is the roll and the conquest. | IA.contract |
+| 37 | **Ruled 2026-11-01.** `HD.8` and `HD.8.unrem` are Observed: Hoodie is a status, so no buff removal selects it, and a hooded Gray can't be targeted by one. The live press of the same shape is Logos under Rule Breaker. | HD.8, HD.8.unrem |
 
-## Live presses (in progress, 2026-11-01)
+## Live presses (done, 2026-11-01)
 
-War "Gray Audit" (scene `50ZJJWLyVTRXGyP4`): Gray and Tamamo for Faction 1 (Player1), Medea, Arjuna, Summer Habetrot
-and Mannanán for Faction 2. Staged where the board would not produce a case: the NP gates at Round 1, Turns per Round
-8 for Turns 3 to 8 (King's Reflection), revivals of Arjuna and Medea, a Skill Seal, cooldowns and Mythos set by hand,
-Master Health refilled.
+War "Gray Audit" (scene `50ZJJWLyVTRXGyP4`): Gray and Tamamo for Faction 1 (Player1); Medea, Arjuna, Summer Habetrot,
+Mannanán, and later Anastasia (Summer) and Kingprotea, for Faction 2. Staged where the board would not produce a
+case: NP gates at Round 1, Turns per Round 8 for Turns 3 to 8 (King's Reflection), revivals (Arjuna, Medea, Gray),
+a Skill Seal, cooldowns, Mythos and Agility set by hand, Master Health refilled, fixed dice for coins and Evades,
+Gray made Free for Independent Action, the Grand Order rule with Faction 1 as Chaldea.
 
-**Pressed or Observed live (about 109):** ST.name, ST.class, ST.region, ST.align, ST.hp, ST.mov, ST.range, ST.ba,
-ST.na, ST.mythos · IA.zon · MR.neg, MR.red · FK.when, FK.apply, FK.dur, FK.same, FK.cd, FK.cd.held, FK.seal ·
-HD.1.target, HD.1.aoe, HD.1.heads, HD.2.react, HD.2.evade, HD.3.masters, HD.4, HD.4.np, HD.4.master, HD.5, HD.6 ·
-KR.1, KR.1.acted, KR.1.once, KR.1.other, KR.2, KR.2.crit, KR.2.miss, KR.max · AS.p.dmg, AS.p.np, AS.p.other,
-AS.p.mythos, AS.when, AS.1, AS.1.np, AS.2, AS.2.other, AS.cd · SM.when, SM.1, SM.2, SM.2.np, SM.3, SM.3.once, SM.4,
-SM.4.lock, SM.4.perm, SM.4.held, SM.5, SM.cd · BL.when, BL.1, BL.2, BL.3, BL.cd · RH.gate, RH.logos, RH.pierce,
-RH.mag, RH.area, RH.area.diag, RH.who, RH.c1 to RH.c6, RH.c.single, RH.dmg, RH.dmg.per, RH.cost, RH.cost.per,
-RH.npdef, RH.defdwn, RH.enemy, RH.cdcut, RH.mythos, RH.cd · MY.nondmg, MY.when, MY.gate, MY.spend, MY.range,
-MY.target, MY.target.ally, MY.evade, MY.hoodie, MY.ignore, MY.dur, MY.1, MY.1.na, MY.1.both, MY.2, MY.2.np, MY.3,
-MY.4.other, MY.cd.
+**All 139 Clauses closed.** Pressed live as Player1, the enemy side answered from the GM.
 
-**Open:** ST.param, ST.attr, ST.sus, ST.items · IA.sus, IA.contract · MR.np, MR.debuff, MR.ik, MR.ik.str, MR.erase,
-MR.note · HD.1.tails, HD.1.tails.end, HD.3.move, HD.7, HD.7.except, HD.8, HD.8.unrem · SM.4.status, SM.4.unrem,
-SM.4.lock.only · RH.cd.per (a question: #283 rounds the sum once, so five criteria gave 23, not 25), RH.defdwn.agi,
-RH.go · MY.evaded, MY.2.passive, MY.2.except (no built NP carries the two tags), MY.4.
+**Observed, not pressed** (no press reaches them, said in each reading): `HD.7`, `HD.7.except` (reading 35: her
+Skills are self-only; a self Skill used hooded is not refused); `HD.8`, `HD.8.unrem` (reading 37: Logos's press of
+the same shape); `MR.ik.str`, `MR.erase` (her contributions read live: Magic Resistance's 15 on Instakill and Death
+carries `not attack:component:str` and `not attack:ignoresMagicResistance`, and lists no Erase; no STR Instakill or
+Erase source is built in this War); `MY.2.passive` (every Spell and NP of Medea, Arjuna and Kingprotea read
+`negated`, so their rules are collected from nothing; none of them carries a passive to watch drop).
 
-**Fixed live:** Logos's natural end named on the Turn card; a blocked effect's reason by name; Hoodie's coin on the
-breakdown with its die; `categorizedAs` read as a Set; the bar honours `unaffectedBy`; a non-damaging Process offers
-no reaction abilities; refusals name Mythos, Logos and the Mythos pool.
+**Fixed from the board:** Logos's natural end named on the Turn card; a blocked effect's reason by name; Hoodie's
+coin on the breakdown with its die; `categorizedAs` read as a Set; the bar honours `unaffectedBy`; a non-damaging
+Process offers no reaction abilities and is no successful Attack (reading 34); refusals name Mythos, Logos and the
+pool; every ◈ span rounds down, sums converted once (readings 30 to 32).
+
+**Overturned on the way:** Q48 (reading 36), Rule Breaker takes an Independent Action A+ Servant.
 
 ## Statblock
 
-- [ ] **ST.name** · True Name: Gray
-- [ ] **ST.class** · Class: Assassin (the sheet's folder; no Class line is printed)
-- [ ] **ST.region** · Region: England
-- [ ] **ST.align** · Alignment: Lawful Good
-- [ ] **ST.param** · STR B, END C, AGI B, MAG C, LUC C
-- [ ] **ST.attr** · Attributes: Female, Servant, [Man], Saberface, Humanoid, Round Table, Living Human (Q)
-- [ ] **ST.hp** · Base Health 1000
-- [ ] **ST.mov** · MOV 6
-- [ ] **ST.range** · Range 3 panels, 1 target
-- [ ] **ST.ba** · Base Attack STR 125 by the table (the sheet prints 105), MAG 150
-- [ ] **ST.na** · Normal Attack: STR (no type printed), its delivery measured (Q)
-- [ ] **ST.sus** · Sustainability: N/A
-- [ ] **ST.mythos** · Mythos Counters: a pool from 0, at most 40
-- [ ] **ST.items** · Items held: none
+- [x] **ST.name** · True Name: Gray
+- [x] **ST.class** · Class: Assassin (the sheet's folder; no Class line is printed)
+- [x] **ST.region** · Region: England
+- [x] **ST.align** · Alignment: Lawful Good
+- [x] **ST.param** · STR B, END C, AGI B, MAG C, LUC C
+- [x] **ST.attr** · Attributes: Female, Servant, [Man], Saberface, Humanoid, Round Table, Living Human (Q)
+- [x] **ST.hp** · Base Health 1000
+- [x] **ST.mov** · MOV 6
+- [x] **ST.range** · Range 3 panels, 1 target
+- [x] **ST.ba** · Base Attack STR 125 by the table (the sheet prints 105), MAG 150
+- [x] **ST.na** · Normal Attack: STR (no type printed), its delivery measured (Q)
+- [x] **ST.sus** · Sustainability: N/A
+- [x] **ST.mythos** · Mythos Counters: a pool from 0, at most 40
+- [x] **ST.items** · Items held: none
 
 ## Independent Action — Class Skill, Rank A+ *(Passive 1–3)*
 
-- [ ] **IA.sus** · *(Passive 1)* Sustainability does not apply: no clock runs while she is Free
-- [ ] **IA.zon** · *(Passive 2)* Her Master's ZON is increased by 3 panels
-- [ ] **IA.contract** · *(Passive 3)* She cannot be contracted by enemy Casters and Masters
+- [x] **IA.sus** · *(Passive 1)* Sustainability does not apply: no clock runs while she is Free
+- [x] **IA.zon** · *(Passive 2)* Her Master's ZON is increased by 3 panels
+- [x] **IA.contract** · *(Passive 3)* She cannot be contracted by enemy Casters and Masters
 
 ## Magic Resistance — Class Skill, Rank C *(Passive 1 + 2)*
 
-- [ ] **MR.neg** · MAG damage from a MAG Rank of up to C is negated
-- [ ] **MR.red** · …otherwise MAG damage taken is reduced by 30%
-- [ ] **MR.np** · …also NP
-- [ ] **MR.debuff** · *(Passive 2)* Chance of being inflicted by debuffs is reduced by 15%
-- [ ] **MR.ik** · …also Instakill and Death
-- [ ] **MR.ik.str** · …unless the Instakill or Death is from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance
-- [ ] **MR.erase** · Erase is completely unaffected
-- [ ] **MR.note** · Other debuffs from STR or *"not affected"* sources still have their chance reduced
+- [x] **MR.neg** · MAG damage from a MAG Rank of up to C is negated
+- [x] **MR.red** · …otherwise MAG damage taken is reduced by 30%
+- [x] **MR.np** · …also NP
+- [x] **MR.debuff** · *(Passive 2)* Chance of being inflicted by debuffs is reduced by 15%
+- [x] **MR.ik** · …also Instakill and Death
+- [x] **MR.ik.str** · …unless the Instakill or Death is from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance
+- [x] **MR.erase** · Erase is completely unaffected
+- [x] **MR.note** · Other debuffs from STR or *"not affected"* sources still have their chance reduced
 
 ## Face of the King *(Active)*
 
-- [ ] **FK.when** · Used during her Turn
-- [ ] **FK.apply** · Applies the 'Hoodie' effect to herself
-- [ ] **FK.dur** · …for 2◈
-- [ ] **FK.same** · Hoodie has the same effects as Presence Concealment Rank E (HD.*), and every card names it *Hoodie*
-- [ ] **FK.cd** · Cooldown: 1◈, counted from when Hoodie is removed from her, whichever way
-- [ ] **FK.cd.held** · …no clock runs while Hoodie is held
-- [ ] **FK.seal** · Not affected by Skill Seal (Q)
+- [x] **FK.when** · Used during her Turn
+- [x] **FK.apply** · Applies the 'Hoodie' effect to herself
+- [x] **FK.dur** · …for 2◈
+- [x] **FK.same** · Hoodie has the same effects as Presence Concealment Rank E (HD.*), and every card names it *Hoodie*
+- [x] **FK.cd** · Cooldown: 1◈, counted from when Hoodie is removed from her, whichever way
+- [x] **FK.cd.held** · …no clock runs while Hoodie is held
+- [x] **FK.seal** · Not affected by Skill Seal (Q)
 
 ### Hoodie — Presence Concealment Rank E
 
-- [ ] **HD.1.target** · She cannot be targeted for an Attack
-- [ ] **HD.1.skill** · …or by an enemy Unit's Skill
-- [ ] **HD.1.aoe** · Caught in an AoE Attack and failing to Evade, a Coin is flipped
-- [ ] **HD.1.heads** · …Heads: no damage and no effects are received
-- [ ] **HD.1.tails** · …Tails: Total Damage taken from that Attack −50%
-- [ ] **HD.1.tails.end** · …and Hoodie is removed
-- [ ] **HD.2.react** · Her Attacks cannot be Blocked or Countered unless the DU's Agility (Q) is equal to or higher than hers
-- [ ] **HD.2.evade** · If the DU Evades, its Evade Roll is increased by 2
-- [ ] **HD.3.masters** · She may Attack Masters regardless of enemy Master-Servant positions
-- [ ] **HD.3.move** · She may Move to any panel regardless of enemy Master-Servant positions
-- [ ] **HD.4** · All damage she deals is increased by 100% (Q)
-- [ ] **HD.4.np** · …if NP, 50%
-- [ ] **HD.4.master** · …not against Masters
-- [ ] **HD.5** · After she performs an Attack while hooded, Hoodie is removed at the end of the Combat Process
-- [ ] **HD.6** · Moving into an enemy Servant's Range (or Detect, if in use), she has an 80% chance of being discovered
-- [ ] **HD.7** · Active Skills targeting or affecting an enemy Unit cannot be used while hooded
-- [ ] **HD.7.except** · …Attack Skills and Spells that deal damage are not refused
-- [ ] **HD.8** · Hoodie is neither a buff nor a debuff
-- [ ] **HD.8.unrem** · …and is Unremovable
+- [x] **HD.1.target** · She cannot be targeted for an Attack
+- [x] **HD.1.skill** · …or by an enemy Unit's Skill
+- [x] **HD.1.aoe** · Caught in an AoE Attack and failing to Evade, a Coin is flipped
+- [x] **HD.1.heads** · …Heads: no damage and no effects are received
+- [x] **HD.1.tails** · …Tails: Total Damage taken from that Attack −50%
+- [x] **HD.1.tails.end** · …and Hoodie is removed
+- [x] **HD.2.react** · Her Attacks cannot be Blocked or Countered unless the DU's Agility (Q) is equal to or higher than hers
+- [x] **HD.2.evade** · If the DU Evades, its Evade Roll is increased by 2
+- [x] **HD.3.masters** · She may Attack Masters regardless of enemy Master-Servant positions
+- [x] **HD.3.move** · She may Move to any panel regardless of enemy Master-Servant positions
+- [x] **HD.4** · All damage she deals is increased by 100% (Q)
+- [x] **HD.4.np** · …if NP, 50%
+- [x] **HD.4.master** · …not against Masters
+- [x] **HD.5** · After she performs an Attack while hooded, Hoodie is removed at the end of the Combat Process
+- [x] **HD.6** · Moving into an enemy Servant's Range (or Detect, if in use), she has an 80% chance of being discovered
+- [x] **HD.7** · Active Skills targeting or affecting an enemy Unit cannot be used while hooded
+- [x] **HD.7.except** · …Attack Skills and Spells that deal damage are not refused
+- [x] **HD.8** · Hoodie is neither a buff nor a debuff
+- [x] **HD.8.unrem** · …and is Unremovable
 
 ## King's Reflection — Rank A *(Passive 1 + 2)*
 
-- [ ] **KR.1** · At the end of her Turn, her NP Cooldown is reduced by ⅓◈ instead of 1 Turn (Q)
-- [ ] **KR.1.acted** · …and at the end of any Turn she Acts (Q)
-- [ ] **KR.1.once** · …once a Turn when both hold
-- [ ] **KR.1.other** · …a Turn she neither owns nor Acts in ticks 1 Turn as usual (Q)
-- [ ] **KR.2** · A successful Normal Attack gains her 1 Mythos Counter
-- [ ] **KR.2.crit** · …2 if it Crits
-- [ ] **KR.2.miss** · …none on an Evaded or missed Normal Attack
-- [ ] **KR.max** · The maximum number of Mythos Counters is 40
+- [x] **KR.1** · At the end of her Turn, her NP Cooldown is reduced by ⅓◈ instead of 1 Turn (Q)
+- [x] **KR.1.acted** · …and at the end of any Turn she Acts (Q)
+- [x] **KR.1.once** · …once a Turn when both hold
+- [x] **KR.1.other** · …a Turn she neither owns nor Acts in ticks 1 Turn as usual (Q)
+- [x] **KR.2** · A successful Normal Attack gains her 1 Mythos Counter
+- [x] **KR.2.crit** · …2 if it Crits
+- [x] **KR.2.miss** · …none on an Evaded or missed Normal Attack
+- [x] **KR.max** · The maximum number of Mythos Counters is 40
 
 ## Anti-Spirit Combat — Rank B *(Passive + Active)*
 
-- [ ] **AS.p.dmg** · *(Passive)* All damage she deals to Units with the 'Spirit' or 'Undead' Attribute +40% (Q)
-- [ ] **AS.p.np** · …including NP
-- [ ] **AS.p.other** · …no bonus against a Unit with neither
-- [ ] **AS.p.mythos** · She gains 1 additional Mythos Counter for every Unit with those Attributes hit by a successful Attack (Q)
-- [ ] **AS.when** · *(Active)* Used during her Turn
-- [ ] **AS.1** · Applies Atk Up for 1◈, all damage dealt +30%
-- [ ] **AS.1.np** · …if NP, 15%
-- [ ] **AS.2** · Applies Dmg Up (Grave) for 1◈: damage dealt to Spirit or Undead Units further +60% (Q)
-- [ ] **AS.2.other** · …no bonus against a Unit with neither
-- [ ] **AS.cd** · Cooldown: 4◈
+- [x] **AS.p.dmg** · *(Passive)* All damage she deals to Units with the 'Spirit' or 'Undead' Attribute +40% (Q)
+- [x] **AS.p.np** · …including NP
+- [x] **AS.p.other** · …no bonus against a Unit with neither
+- [x] **AS.p.mythos** · She gains 1 additional Mythos Counter for every Unit with those Attributes hit by a successful Attack (Q)
+- [x] **AS.when** · *(Active)* Used during her Turn
+- [x] **AS.1** · Applies Atk Up for 1◈, all damage dealt +30%
+- [x] **AS.1.np** · …if NP, 15%
+- [x] **AS.2** · Applies Dmg Up (Grave) for 1◈: damage dealt to Spirit or Undead Units further +60% (Q)
+- [x] **AS.2.other** · …no bonus against a Unit with neither
+- [x] **AS.cd** · Cooldown: 4◈
 
 ## Sealing Mystic Code Release — Rank C *(Active)*
 
-- [ ] **SM.when** · Used during her Turn
-- [ ] **SM.1** · Restores 4 Agility
-- [ ] **SM.2** · Applies Atk Up for ⅓◈, all damage dealt +50%
-- [ ] **SM.2.np** · …if NP, 30%
-- [ ] **SM.3** · Applies Invuln for ⅓◈
-- [ ] **SM.3.once** · …1 time: spent by the first hit it stops
-- [ ] **SM.4** · Applies the 'Logos' effect for 2◈
-- [ ] **SM.4.status** · Logos is neither a buff nor a debuff
-- [ ] **SM.4.unrem** · …and is Unremovable
-- [ ] **SM.4.lock** · After Logos naturally expires, it cannot be re-applied to her for the next 2◈ (Q)
-- [ ] **SM.4.lock.only** · …a Logos that ends any other way starts no lockout
-- [ ] **SM.4.perm** · If she had 30 Mythos Counters or more when Logos is applied, it has no duration (Q)
-- [ ] **SM.4.held** · Used while she holds Logos (Q)
-- [ ] **SM.5** · Gains 1d6 Mythos Counters, the die on the card
-- [ ] **SM.cd** · Cooldown: 2◈
+- [x] **SM.when** · Used during her Turn
+- [x] **SM.1** · Restores 4 Agility
+- [x] **SM.2** · Applies Atk Up for ⅓◈, all damage dealt +50%
+- [x] **SM.2.np** · …if NP, 30%
+- [x] **SM.3** · Applies Invuln for ⅓◈
+- [x] **SM.3.once** · …1 time: spent by the first hit it stops
+- [x] **SM.4** · Applies the 'Logos' effect for 2◈
+- [x] **SM.4.status** · Logos is neither a buff nor a debuff
+- [x] **SM.4.unrem** · …and is Unremovable
+- [x] **SM.4.lock** · After Logos naturally expires, it cannot be re-applied to her for the next 2◈ (Q)
+- [x] **SM.4.lock.only** · …a Logos that ends any other way starts no lockout
+- [x] **SM.4.perm** · If she had 30 Mythos Counters or more when Logos is applied, it has no duration (Q)
+- [x] **SM.4.held** · Used while she holds Logos (Q)
+- [x] **SM.5** · Gains 1d6 Mythos Counters, the die on the card
+- [x] **SM.cd** · Cooldown: 2◈
 
 ## Blessings from the End of the World — Rank B *(Active)*
 
-- [ ] **BL.when** · Used during her Turn
-- [ ] **BL.1** · Reduces her NP Cooldown by ½◈, each NP's
-- [ ] **BL.2** · Applies Debuff ResUp for 1◈, chance of being inflicted by debuffs −30%
-- [ ] **BL.3** · Gains 4 Mythos Counters
-- [ ] **BL.cd** · Cooldown: 4◈
+- [x] **BL.when** · Used during her Turn
+- [x] **BL.1** · Reduces her NP Cooldown by ½◈, each NP's
+- [x] **BL.2** · Applies Debuff ResUp for 1◈, chance of being inflicted by debuffs −30%
+- [x] **BL.3** · Gains 4 Mythos Counters
+- [x] **BL.cd** · Cooldown: 4◈
 
 ## Rhongomyniad: The Spear That Shines To The Ends Of The World — Rank A+ *(NP, Anti-Fortress)*
 
-- [ ] **RH.gate** · Can only be used while she has the 'Logos' effect
-- [ ] **RH.logos** · …and using it leaves Logos held (Q)
-- [ ] **RH.pierce** · Applies Pierce to herself for ⅓◈ (Q)
-- [ ] **RH.mag** · Base Attack (MAG) is used
-- [ ] **RH.area** · Hits a 1x6 or 6x1 area in any direction next to her (Q)
-- [ ] **RH.area.diag** · …1x5 or 5x1 on the diagonal
-- [ ] **RH.who** · Who the area catches, and who counts as a DU (Q)
-- [ ] **RH.c1** · Criterion 1: at least two DUs have at least 3 Parameters each equal to or higher than hers
-- [ ] **RH.c2** · Criterion 2: there is only one DU in the NP area
-- [ ] **RH.c3** · Criterion 3: at least two DUs have the 'Evil' Alignment
-- [ ] **RH.c4** · Criterion 4: her Health is less than at least two DUs'
-- [ ] **RH.c5** · Criterion 5: none of the DUs have at least 3 Parameters each two Ranks below hers
-- [ ] **RH.c6** · Criterion 6: none of the DUs have the 'Elemental' Attribute
-- [ ] **RH.c.single** · With Criterion 2 met, Criteria 1, 3, 4 and 5 are met when the single DU meets them
-- [ ] **RH.dmg** · With no criteria met, it deals 3x damage plus 100
-- [ ] **RH.dmg.per** · …+0.2x for every criterion met (4 met: 3.8x)
-- [ ] **RH.cost** · With no criteria met, her Master loses 30 Health as its cost (Q)
-- [ ] **RH.cost.per** · …and 10 more for every criterion met
-- [ ] **RH.npdef** · Then every affected enemy Unit is inflicted with NP Def Dwn for 1◈: all NP damage received +30% (Q)
-- [ ] **RH.defdwn** · …and Def Dwn (C) for 1◈: all damage received +20%
-- [ ] **RH.defdwn.agi** · …and Agility −1 whenever damage is received from an Attack
-- [ ] **RH.enemy** · …an ally the area catches takes neither debuff (Q)
-- [ ] **RH.cdcut** · Then her NP Cooldown is reduced by 1 Turn for each criterion met (Q)
-- [ ] **RH.mythos** · …and she gains 2 Mythos Counters for every Unit hit (Q)
-- [ ] **RH.cd** · Cooldown: 5◈ with no criteria met (Q)
-- [ ] **RH.cd.per** · …increased by ½◈ for every criterion met
-- [ ] **RH.go** · In a Grand Order War on the Chaldea Faction, the multiplier begins at 4x instead of 3x (Q)
+- [x] **RH.gate** · Can only be used while she has the 'Logos' effect
+- [x] **RH.logos** · …and using it leaves Logos held (Q)
+- [x] **RH.pierce** · Applies Pierce to herself for ⅓◈ (Q)
+- [x] **RH.mag** · Base Attack (MAG) is used
+- [x] **RH.area** · Hits a 1x6 or 6x1 area in any direction next to her (Q)
+- [x] **RH.area.diag** · …1x5 or 5x1 on the diagonal
+- [x] **RH.who** · Who the area catches, and who counts as a DU (Q)
+- [x] **RH.c1** · Criterion 1: at least two DUs have at least 3 Parameters each equal to or higher than hers
+- [x] **RH.c2** · Criterion 2: there is only one DU in the NP area
+- [x] **RH.c3** · Criterion 3: at least two DUs have the 'Evil' Alignment
+- [x] **RH.c4** · Criterion 4: her Health is less than at least two DUs'
+- [x] **RH.c5** · Criterion 5: none of the DUs have at least 3 Parameters each two Ranks below hers
+- [x] **RH.c6** · Criterion 6: none of the DUs have the 'Elemental' Attribute
+- [x] **RH.c.single** · With Criterion 2 met, Criteria 1, 3, 4 and 5 are met when the single DU meets them
+- [x] **RH.dmg** · With no criteria met, it deals 3x damage plus 100
+- [x] **RH.dmg.per** · …+0.2x for every criterion met (4 met: 3.8x)
+- [x] **RH.cost** · With no criteria met, her Master loses 30 Health as its cost (Q)
+- [x] **RH.cost.per** · …and 10 more for every criterion met
+- [x] **RH.npdef** · Then every affected enemy Unit is inflicted with NP Def Dwn for 1◈: all NP damage received +30% (Q)
+- [x] **RH.defdwn** · …and Def Dwn (C) for 1◈: all damage received +20%
+- [x] **RH.defdwn.agi** · …and Agility −1 whenever damage is received from an Attack
+- [x] **RH.enemy** · …an ally the area catches takes neither debuff (Q)
+- [x] **RH.cdcut** · Then her NP Cooldown is reduced by 1 Turn for each criterion met (Q)
+- [x] **RH.mythos** · …and she gains 2 Mythos Counters for every Unit hit (Q)
+- [x] **RH.cd** · Cooldown: 5◈ with no criteria met (Q)
+- [x] **RH.cd.per** · …increased by ½◈ for every criterion met
+- [x] **RH.go** · In a Grand Order War on the Chaldea Faction, the multiplier begins at 4x instead of 3x (Q)
 
 ## Rhongomyniad Mythos: Tower of Dreams Founding the Ends of the World — Rank EX *(NP, Anti-World)*
 
-- [ ] **MY.nondmg** · Non-damaging
-- [ ] **MY.when** · Used during her Turn
-- [ ] **MY.gate** · Can only be used when she has 40 Mythos Counters (Q)
-- [ ] **MY.spend** · …and spends none of them (Q)
-- [ ] **MY.range** · Range 2
-- [ ] **MY.target** · Used on one enemy Unit within Range
-- [ ] **MY.target.ally** · …not on an ally
-- [ ] **MY.evade** · If it is not successfully Evaded, the DU is inflicted with the 'Mythos' debuff (Q)
-- [ ] **MY.evaded** · …an Evaded Mythos inflicts nothing
-- [ ] **MY.hoodie** · Used while hooded, it is her Attack for the Turn (Q)
-- [ ] **MY.ignore** · The debuff ignores Debuff Resist and Immune effects
-- [ ] **MY.dur** · …and has no duration printed (Q)
-- [ ] **MY.1** · Mythos 1: Attacks which use Base Attack (MAG) or deal MAG damage cannot be used (Q)
-- [ ] **MY.1.na** · …a Normal Attack among them (Q)
-- [ ] **MY.1.both** · …an Attack using Base Attack (STR) and (MAG) combined deals its damage with Base Attack (STR) alone (Q)
-- [ ] **MY.2** · Mythos 2: Spells cannot be used (Q)
-- [ ] **MY.2.np** · …nor NPs
-- [ ] **MY.2.passive** · …and their Passive effects are negated (Q)
-- [ ] **MY.2.except** · …except [Anti-Unit Mystic Sword] and [Anti-Unit Secret Technique] NPs
-- [ ] **MY.3** · Mythos 3: the effects of Divinity are negated (Q)
-- [ ] **MY.4** · Mythos 4: the debuff is Unremovable except by an effect from a Rank EX Skill or NP
-- [ ] **MY.4.other** · …a removal from any other source leaves it
-- [ ] **MY.cd** · Cooldown: 8◈
+- [x] **MY.nondmg** · Non-damaging
+- [x] **MY.when** · Used during her Turn
+- [x] **MY.gate** · Can only be used when she has 40 Mythos Counters (Q)
+- [x] **MY.spend** · …and spends none of them (Q)
+- [x] **MY.range** · Range 2
+- [x] **MY.target** · Used on one enemy Unit within Range
+- [x] **MY.target.ally** · …not on an ally
+- [x] **MY.evade** · If it is not successfully Evaded, the DU is inflicted with the 'Mythos' debuff (Q)
+- [x] **MY.evaded** · …an Evaded Mythos inflicts nothing
+- [x] **MY.hoodie** · Used while hooded, it is her Attack for the Turn (Q)
+- [x] **MY.ignore** · The debuff ignores Debuff Resist and Immune effects
+- [x] **MY.dur** · …and has no duration printed (Q)
+- [x] **MY.1** · Mythos 1: Attacks which use Base Attack (MAG) or deal MAG damage cannot be used (Q)
+- [x] **MY.1.na** · …a Normal Attack among them (Q)
+- [x] **MY.1.both** · …an Attack using Base Attack (STR) and (MAG) combined deals its damage with Base Attack (STR) alone (Q)
+- [x] **MY.2** · Mythos 2: Spells cannot be used (Q)
+- [x] **MY.2.np** · …nor NPs
+- [x] **MY.2.passive** · …and their Passive effects are negated (Q)
+- [x] **MY.2.except** · …except [Anti-Unit Mystic Sword] and [Anti-Unit Secret Technique] NPs
+- [x] **MY.3** · Mythos 3: the effects of Divinity are negated (Q)
+- [x] **MY.4** · Mythos 4: the debuff is Unremovable except by an effect from a Rank EX Skill or NP
+- [x] **MY.4.other** · …a removal from any other source leaves it
+- [x] **MY.cd** · Cooldown: 8◈
