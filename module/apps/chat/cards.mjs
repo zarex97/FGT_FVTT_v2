@@ -21,6 +21,7 @@ import { isCovering } from "../../rules/cover.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
 import { warRule } from "../../engine/war.mjs";
+import { markSystemCard } from "./surface.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -528,6 +529,7 @@ export function promptOptions(prompt, state = null) {
  */
 export function activateChatListeners() {
   Hooks.on("renderChatMessageHTML", (message, html) => {
+    markSystemCard(html);
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
     armCounterRung(message);
