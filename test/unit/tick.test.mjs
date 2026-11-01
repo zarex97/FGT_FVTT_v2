@@ -3,10 +3,10 @@ import { parseTick, resolveTicks, ticks, fractionTicks, formatTick } from "../..
 import { INFINITE } from "../../module/domain/enums.mjs";
 
 describe("fractionTicks", () => {
-  it("reproduces the source's published table exactly", () => {
-    // docs/04-time-model.md
+  it("rounds every published cell down (ruled 2026-11-01, #362)", () => {
+    // docs/04-time-model.md. ½◈ at 3 was a published exception of 2; it is 1.
     const table = {
-      3: { "1/3": 1, "2/3": 2, "1/2": 2 },
+      3: { "1/3": 1, "2/3": 2, "1/2": 1 },
       8: { "1/3": 2, "2/3": 5, "1/2": 4 },
       15: { "1/3": 5, "2/3": 10, "1/2": 7 },
     };
@@ -24,9 +24,8 @@ describe("fractionTicks", () => {
     expect(fractionTicks(1, 4, 10)).toBe(2);  // floor(2.5)
   });
 
-  it("keeps the one deliberate anomaly visible: 1/2 at 3 turns is 2, not floor(1.5)=1", () => {
-    expect(Math.floor(0.5 * 3)).toBe(1);
-    expect(fractionTicks(1, 2, 3)).toBe(2);
+  it("keeps no exception: 1/2 at 3 turns is floor(1.5) = 1 (ruled 2026-11-01, #362)", () => {
+    expect(fractionTicks(1, 2, 3)).toBe(1);
   });
 
   it("never rounds a stated fraction away to nothing (#21)", () => {
@@ -61,7 +60,8 @@ describe("parseTick / resolveTicks at 3 turns per round", () => {
     expect(ticks("4◈-⅓◈", ctx)).toBe(11);
     expect(ticks("6◈+⅓◈", ctx)).toBe(19);
     expect(ticks("7◈+⅓◈", ctx)).toBe(22);
-    expect(ticks("1◈+½◈", ctx)).toBe(5);
+    // ½◈ at 3 is 1 since 2026-11-01 (#362).
+    expect(ticks("1◈+½◈", ctx)).toBe(4);
   });
 
   it("accepts ASCII fractions interchangeably with Unicode", () => {

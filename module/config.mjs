@@ -10,7 +10,6 @@
  */
 
 import { TABLES } from "./domain/tables.mjs";
-import { TICK_OVERRIDES } from "./domain/tick.mjs";
 import { GRADES, SERVANT_CLASSES, PARAMETERS } from "./domain/enums.mjs";
 
 export const FGT = {
@@ -27,7 +26,6 @@ export const FGT = {
   tables: TABLES,
 
   /** The published fixed-operator fraction table (Ch. 04). */
-  tickOverrides: TICK_OVERRIDES,
 
   /** Per-player, per-turn (Ch. 19). */
   budgets: { servantMoves: 4, masterMoves: 3, servantAttacks: 2 },

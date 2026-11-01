@@ -127,6 +127,10 @@ Round 2: reading 16 and the follow-ups 27–29 ruled as written. The frontier is
 | 27 | Anti-Spirit Combat names no relation: an allied Spirit or Undead hit by her line takes the +40% and pays her the extra Mythos Counter. | AS.p.dmg, AS.p.mythos, RH.who |
 | 28 | Mythos 2's exceptions are two new `npTags`, `mysticSword` and `secretTechnique`, worn beside a scale tag. Only `antiUnit` with one of them is exempt: Ushiwakamaru's *Anti-Army Secret Technique* stays sealed. | MY.2.except |
 | 29 | *"Summoned … on the Chaldea Faction"* is read at the NP's declaration, from her current faction. | RH.go |
+| 30 | **Ruled 2026-11-01.** A sum of ◈ spans (`countBonus`, `perUnit`) is added up in ◈ and converted once. Rhongomyniad's five ½◈ at 3 Turns a Round are 2½◈, 7 Turns: 15 + 7 = 22. This replaces the per-criterion figure reading 18 gave. | RH.cd.per |
+| 31 | **Ruled 2026-11-01.** Every ◈ span rounds down and never to 0 (a span that would be 0 is 1 Turn). The published exception is gone: ½◈ at 3 Turns a Round is 1, not 2, everywhere, and `TICK_OVERRIDES` is removed. Blessings' *"Reduce Gray's NP Cooldown by ½◈ Turns"* cuts 1 at 3 Turns a Round. | BL.1, RH.cd.per |
+| 32 | **Ruled 2026-11-01.** One rule for every `countBonus` (Lanceturia's ⅓◈ down too) and for `perUnit` (Dragon Tooth Warriors, Trump Soldiers, Summoning: Horrors). | RH.cd.per |
+| 33 | **Ruled 2026-11-01.** `MY.2.except` is pressed on three test NPs (`test-mythos-*`), `[antiUnit, mysticSword]`, `[antiUnit, secretTechnique]` and `[antiArmy, secretTechnique]`, as `test-count-criteria` stood in for Arthur. Each tagged Servant's own audit presses it again. | MY.2.except |
 
 ## Live presses (in progress, 2026-11-01)
 
