@@ -27,6 +27,8 @@ The bar's singleton opens when a controlled token is selected and the player own
 
 Its context packs a single snapshot per render, threaded through every builder, so all state decisions see consistent data (`module/apps/hud/action-bar.mjs:129-131`). Portrait concealment checks the unit's identity state; the name shown respects Presence Concealment. Budget, affordances, cooldowns, and field deactivation eligibility are computed inline against the snapshot.
 
+**Where it sits (#364).** The bar mounts in Foundry's `#ui-bottom`, just above the hotbar (`ActionBar#_insertElement`), and fills the middle column. Core appends a frameless application to `<body>`, so the bar was once laid over the page with `position: fixed` at 1500px wide: it covered the players list, the hotbar and the chat input, and the turn panel's End Turn sat below the fold. Inside `#ui-bottom`, core's layout keeps it clear of all three. It takes `#interface`'s theme, light or dark, through the `--fgt-*` tokens (`DESIGN.md`). Its three columns are who, what they can do, and the Turn. The rows and the turn panel scroll on their own, and the turn panel's footer stays in sight. The bar's only motion is a press: a re-render draws fresh elements in their final state.
+
 When armed for a Counter (Ch. 21), actions are recategorized: Normal Attack lights up and glows as available; every other action dims with a message. Abilities that are not Attacks dim; Riding Attack dims because it is a MOVE as well, and Counter is not a move opportunity (`module/apps/hud/action-bar.mjs:136-155`). The bar's refresh logic protects against losing the Counter prompt if the player clicks empty canvas — an armed bar stays armed until disarmed explicitly (`module/apps/hud/action-bar.mjs:88-90`).
 
 ### What each targeted action does
@@ -47,7 +49,7 @@ The registry marks three actions `targeted`. **Attack** opens the targeting sess
 
 - **`portraitBlock`** returns which image and name the viewer is entitled to, applying Presence Concealment (`module/apps/hud/present.mjs:31-38`).
 - **`slotFor`** builds one ability or action slot's state: cost, cooldown, ring (on/built), disabled flag, and reason why if it is disabled (`module/apps/hud/present.mjs:52-90`). A slot carries its refusal reason so the tooltip never lies; a prevented use names what prevents it (*"Prevented by Silence"*, #243).
-- **`rowsFor`** groups abilities into rows (pinned, skills, noble phantasms, modes), omits empty rows, and lists action buttons (`module/apps/hud/present.mjs:107-128`). Pins are shortcuts that duplicate an ability into the pinned row; they never hide it.
+- **`rowsFor`** groups abilities into rows (pinned, skills, noble phantasms, modes), omits empty rows, and lists action buttons (`module/apps/hud/present.mjs:107-128`). Pins are shortcuts that duplicate an ability into the pinned row; they never hide it. An ability with no art of its own (every authored ability carries Foundry's `icons/svg/item-bag.svg`) shows its kind's glyph instead (`abilityArt`, `GROUP_GLYPH`: a bolt for a Skill, a star for a Noble Phantasm, a switch for a Mode), so a row says which is which (#364).
 
 Because these are pure, every slot state is testable with literals (`test/unit/action-bar-present.test.mjs`). The bar rendering becomes a dumb template spraying the result.
 
