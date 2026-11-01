@@ -1,0 +1,59 @@
+# packs/_source/servants/gray.yml
+# Conversion source: char_orig_sheets/by-class/Assassin/Gray.md
+#
+# Audit #362, `docs/superpowers/specs/2026-10-31-gray-clauses.md` (29 readings,
+# ruled by grilling 2026-10-31).
+#
+# Built to be reused: Independent Action and Magic Resistance are the Class
+# templates; Hoodie is Presence Concealment at Rank E, as Dongyū's grant; the
+# Rhongomyniad criteria are Lanceturia's; the line is Danzō's.
+schema: 1
+id: gray
+name: Gray
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Gray
+# The folder's: the sheet prints no Class line.
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: lawful, morality: good }
+region: [england]
+# "Female, Servant, [Man], Saberface, Humanoid, Round Table, Living Human".
+# Spirit is implied by Servant, and she is a Living Human too (reading 2).
+attributes: [female, servant, man, saberface, humanoid, roundTable, livingHuman]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+# BA(STR) 125 at STR B by the table, which beats the printed 105 (§46.6);
+# BA(MAG) 150 at MAG C and Health 1000 at END C agree.
+parameters: { str: B, end: C, agi: B, mag: C, luc: C }
+baseHealth: 1000
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 125, mag: 150 }
+# No N.Atk Type printed: STR, fixed, its delivery measured (reading 1).
+normalAttack: { mode: fixed, component: str }
+# "Sustainability: N/A": Independent Action A+.
+sustainability: null
+
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
+# "Mythos Counters: 0/40" (King's Reflection's maximum).
+resources:
+  mythos: { value: 0, max: 40 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - ref: class-independent-action
+    rank: "A+"
+    description: |
+      (Passive 1) Sustainability does not apply.
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Cannot be contracted by enemy Casters and Masters.
+  - { ref: class-magic-resistance, rank: C }
+  - { ref: gray-face-of-the-king }
+  - { ref: gray-kings-reflection }
+  - { ref: gray-anti-spirit-combat }
+  - { ref: gray-sealing-mystic-code-release }
+  - { ref: gray-blessings }
+  - { ref: gray-rhongomyniad }
+  - { ref: gray-rhongomyniad-mythos }

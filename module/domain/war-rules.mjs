@@ -151,6 +151,13 @@ export const WAR_RULES = Object.freeze([
     name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
   },
   {
+    // The faction a Grand Order War calls Chaldea: Gray's, Lanceturia's and
+    // Arthur's NP multiplier *"begins at 4x instead of 3x"* there (#362 reading
+    // 21). Read only while `grandOrder` holds. Its choices are the War's factions.
+    key: "chaldeaFaction", type: "string", initial: null, nullable: true, choicesFrom: "factions",
+    name: "FGT.Settings.ChaldeaFaction", hint: "FGT.Settings.ChaldeaFactionHint",
+  },
+  {
     // Ch. 05 clause 4, as an OPTIONAL rule: the one movement clause that
     // refuses a step onto a panel that looks empty. True: a rule as written.
     key: "masterProtection", type: "boolean", initial: true, locked: true,

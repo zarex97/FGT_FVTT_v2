@@ -1027,8 +1027,16 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // restore the maximum clamped could not be seen at all.
           const keys = (phase.changes ?? []).map((c) => c.key);
           const before = keys.map((k) => resourceValue(unitActor(target.unitId), k));
+          // A gain the die decides: Sealing Mystic Code Release's *"Gain 1d6
+          // Mythos Counters"* (#362 SM.5). Rolled once per change, and on the
+          // card beside the line it moved.
+          const dice = [];
+          for (const c of phase.changes ?? []) {
+            dice.push(c.roll ? (await new Roll(String(c.roll)).evaluate()).total : null);
+          }
           await applyWorld(
-            (phase.changes ?? []).map((c) => {
+            (phase.changes ?? []).map((c0, n) => {
+              const c = dice[n] === null ? c0 : { ...c0, delta: dice[n] };
               // An ABSOLUTE write, for a clause that names the resulting number
               // rather than a change. *"Remove all Fragarach Counters from
               // Mannanán"* is `set: 0`; expressing it as a very large negative
@@ -1057,7 +1065,9 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             `skill:${ability.id}:resource`,
           );
           keys.forEach((k, n) => {
-            const line = resourceLine(k, before[n], resourceValue(unitActor(target.unitId), k));
+            const moved = resourceLine(k, before[n], resourceValue(unitActor(target.unitId), k));
+            const die = dice[n] === null ? null : `${phase.changes[n].roll} = ${dice[n]}`;
+            const line = die && moved ? `${die}: ${moved}` : moved;
             if (line) applied.push({ unitId: target.unitId, summary: { id: "resource", name: line, outcome: "applied", reason: null } });
           });
           break;
@@ -1081,7 +1091,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         }
 
         case "removeEffect": {
-          const removed = await resolveRemoval(phase, doc, snapshot);
+          const removed = await resolveRemoval(phase, doc, snapshot, ability);
           await applyWorld(
             removed.map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
@@ -1099,7 +1109,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // ...and one for each it reached and could not take: Haradhanu
           // Janaka's *"removes all debuffs"* left an Unremovable Curse in
           // silence (#348, live). A held removal is a line too.
-          for (const id of heldUnremovable(phase, doc)) {
+          for (const id of heldUnremovable(phase, doc, ability)) {
             applied.push({ unitId: target.unitId, summary: {
               id: `keep:${id}`,
               name: game.i18n.format("FGT.Removal.Unremovable", { effect: EffectRegistry.get(id)?.name ?? id }),
@@ -2497,8 +2507,8 @@ async function chosenCooldowns(phase, ability, doc) {
  * @param {object} bearer the bearer's unit snapshot
  * @returns {Promise<string[]>} the definition ids to remove
  */
-async function resolveRemoval(phase, doc, bearer) {
-  const candidates = await pickedCandidates(phase, doc, removalCandidates(phase, doc));
+async function resolveRemoval(phase, doc, bearer, by = null) {
+  const candidates = await pickedCandidates(phase, doc, removalCandidates(phase, doc, by));
   const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
 
   /** @type {Record<string, number>} */
@@ -2528,13 +2538,13 @@ async function resolveRemoval(phase, doc, bearer) {
  * @param {object} doc the bearer's actor document
  * @returns {string[]} definition ids
  */
-function heldUnremovable(phase, doc) {
+function heldUnremovable(phase, doc, by = null) {
   const selector = phase.selector ?? null;
   if (!selector) return [];
   return [...(doc.effects ?? [])]
     .filter((e) => {
       const def = EffectRegistry.get(e.system?.defId);
-      return isUnremovable(def, e) && selectorMatches(selector, e, def, { evenUnremovable: true });
+      return isUnremovable(def, e, { by }) && selectorMatches(selector, e, def, { evenUnremovable: true });
     })
     .map((e) => e.system.defId);
 }
@@ -2573,8 +2583,8 @@ async function pickedCandidates(phase, doc, candidates) {
  * @param {object} doc
  * @returns {Array<{defId: string, polarity: string|undefined, unremovable: boolean}>}
  */
-function removalCandidates(phase, doc) {
-  const named = new Set(removals(phase, doc));
+function removalCandidates(phase, doc, by = null) {
+  const named = new Set(removals(phase, doc, by));
   return doc.effects
     .filter((e) => named.has(e.system?.defId))
     .map((e) => {
@@ -2582,13 +2592,13 @@ function removalCandidates(phase, doc) {
       return {
         defId: e.system.defId,
         polarity: polarityOf(e.system, def),
-        unremovable: isUnremovable(def, e),
+        unremovable: isUnremovable(def, e, { by }),
         ownResist: ownRemovalResist(def),
       };
     });
 }
 
-function removals(phase, doc) {
+function removals(phase, doc, by = null) {
   const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
   if (named.length > 0) return named;
 
@@ -2599,7 +2609,7 @@ function removals(phase, doc) {
     // An unremovable effect stays: Appendix A marks a few that no cleanse
     // reaches, and a blanket "remove all debuffs" must not be the exception.
     // The INSTANCE may say so too (`isUnremovable`, #198).
-    .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId)))
+    .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId), { by }))
     .map((e) => e.system.defId);
 }
 

@@ -1,0 +1,46 @@
+# Rhongomyniad Mythos: Tower of Dreams Founding the Ends of the World, Rank EX (#362 MY.*).
+#
+# > "(Non-damaging) Used during your Turn. Can only be used when Gray has 40
+# > Mythos Tokens. Range=2. Used on an enemy Unit within Range. If this NP is not
+# > successfully Evaded, the DU is inflicted with the 'Mythos' debuff; this debuff
+# > ignores Debuff Resist & Immune effects. ... Cooldown: 8◈ Turns."
+#
+# *"Mythos Tokens"* are her Mythos Counters, read and never spent (reading 19).
+# A non-damaging NP that can be Evaded runs a Combat Process of its own with no
+# damage in it (`combatProcess`), the DU's only reaction an Evade (reading 20):
+# it is her Attack for the Turn (Ch. 17), so it ends Hoodie at that Process's
+# end. The debuff lands on a Process not Evaded.
+schema: 1
+id: gray-rhongomyniad-mythos
+name: "Rhongomyniad Mythos: Tower of Dreams Founding the Ends of the World"
+rank: EX
+kind: noblePhantasm
+slug: rhongomyniadMythos
+isNP: true
+npTags: [antiWorld]
+copyable: { allowed: false, reason: named }
+cooldown: "8◈"
+timing: { window: ownTurn }
+requirements:
+  - { kind: resourceAtLeast, key: mythos, amount: 40 }
+combatProcess: { reactions: [evade] }
+description: |
+  (Non-damaging) Used during your Turn. Can only be used when Gray has 40 Mythos Tokens. Range=2. Used on an enemy
+  Unit within Range. If this NP is not successfully Evaded, the DU is inflicted with the '@effect[mythos]{Mythos}'
+  debuff; this debuff ignores Debuff Resist & Immune effects. Its effects are as follows-
+  1. Attacks which use Base Attack (MAG) or deal MAG damage cannot be used. If an Attack were to use Base Attack
+     (STR) & Base Attack (MAG) combined, damage calculation is performed only with Base Attack (STR).
+  2. Spells & NP cannot be used and their Passive effects are negated. The exceptions to this effect are [Anti-Unit
+     Mystic Sword] & [Anti-Unit Secret Technique] NPs.
+  3. The effects of Divinity are negated.
+  4. This debuff is Unremovable except by an effect from a Rank EX Skill or NP.
+  Cooldown: 8◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: mythos, permanent: true }

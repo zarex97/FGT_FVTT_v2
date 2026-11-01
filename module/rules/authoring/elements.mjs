@@ -330,6 +330,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "slot", type: "text" },
     { key: "ticks", type: "text" },
   ]),
+  entry("NaturalTick", "A Cooldown's own Turn tick takes this length instead, on its own side's Turn or a Turn it Acted.", [
+    { key: "scope", type: "select", choices: ["np", "all"] },
+    { key: "ticks", type: "text" },
+    { key: "on", type: "tokenList" },
+  ]),
   entry("UseFailure", "A use of the named abilities may fail outright: paid for, no clock, and what follows.", [
     { key: "of", type: "tokenList" },
     { key: "chance", type: "number" },

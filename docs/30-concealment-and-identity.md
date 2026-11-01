@@ -52,6 +52,15 @@ Evade bonus, `rules/identity.mjs#discoverChance` (whose hand-copied table is gon
 100% of the time) and the cooldown. A grant lands `noneNoRefresh`, so a Unit whose own PC is Active keeps it, and
 its end starts no clock on the Unit's own Skill (`onConcealmentRemoved`'s `granted`).
 
+**A named concealment from an ordinary Skill** (#362 FK.*). Gray's Face of the King lands *"the 'Hoodie' effect"*,
+which *"has the same effects as 'Presence Concealment — Rank: E'"*: PC at Rank E on the instance, as Dongyū's grant,
+with two params more. `name` is what every card and the effect document call it (`engine/landing.mjs`'s summary,
+`io.createEffects`). `skill` names the Skill that gave it, and its removal, by any route, starts THAT Skill's own
+clock (`cooldown: {max: "1◈", countFrom: deactivation}`), where a grant naming none starts none. *"This Skill is not
+affected by Skill Seal"* is the ability's `unaffectedBy: [skillSeal]`: `rules/budget.mjs#preventedBy` skips the
+named effects for it (the use gate, the press gate and the bill all pass it), and a Hoodie it gave is no Class
+Skill's PC, so the Revised clause 8 never reaches it.
+
 **A Disguise** (#253 readings 5, 10-14). Yan Qing's Doppelganger: *"Yan Qing can disguise himself as any other
 character (figurine), including Masters and Servants. However, it is only the appearance."* This system has Fog of
 War (`engine/token-vision.mjs`), so the sheet's no-fog fallback, PC B+, is not built. He picks any Unit on his

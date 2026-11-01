@@ -260,7 +260,7 @@ export function preventerName(by, effectName) {
   return effectName(by) ?? by;
 }
 
-export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
+export function preventedBy(unit, action, { categorizedOnly = false, ignoring = [] } = {}) {
   // A failed use that ended every action this Turn (Merlin, `UseFailure then:
   // endActions`, #300): every action, as a blanket effect would.
   if (unit?.turnState?.actionsEnded) return { prevented: true, by: "actionsEnded" };
@@ -275,6 +275,9 @@ export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
 
   for (const [id, actions] of Object.entries(PREVENTS)) {
     if (!held.includes(id)) continue;
+    // An ability its sheet says the effect does not reach: Face of the King
+    // *"is not affected by Skill Seal"* (#362 reading 9).
+    if (ignoring.includes(id)) continue;
     // `seal` spares Spells; `silence` spares everything but them. The two are
     // complements and the table above says so directly.
     if (actions.includes(action)) return { prevented: true, by: id };
@@ -311,8 +314,8 @@ export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
  * @param {ActionKind} action
  * @returns {{ok: boolean, reason: string|null, pool: string|null, free: boolean}}
  */
-export function canConsume(budget, unit, action) {
-  const prevention = preventedBy(unit, action);
+export function canConsume(budget, unit, action, { ignoring = [] } = {}) {
+  const prevention = preventedBy(unit, action, { ignoring });
   if (prevention.prevented) {
     // Named as the player reads it: the bar printed "prevented by itemRite"
     // (#230, live). A suppression's scope has no effect of its name, and stays.
@@ -464,8 +467,8 @@ export function canConsume(budget, unit, action) {
  * @param {ActionKind} action
  * @returns {{ok: boolean, reason: string|null, budget: Budget}}
  */
-export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, board = null } = {}) {
-  const verdict = canConsume(budget, unit, action);
+export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, board = null, ignoring = [] } = {}) {
+  const verdict = canConsume(budget, unit, action, { ignoring });
   if (!verdict.ok) return { ok: false, reason: verdict.reason, budget };
   // A further Attack of a Unit allowed several: free, and counted (#328).
   if (verdict.repeat) return { ok: true, reason: null, budget: { ...budget, attackedUnits: [...budget.attackedUnits, unit.id] } };

@@ -121,6 +121,13 @@ Unit it hits (`rules/damage/riders.mjs#inflictedEffectIds`, carried on the decla
 (`annotatePlatforms` writes `ownedPlatformContentIds`). Beside `onPlatform`, which asks where it stands: Auctoritas's
 Usage 1 is priced *"while Usage 2 of this NP is Active"*, aboard or not.
 
+### A pool's count, and a relation (#362)
+
+`self:resource:<pool>:gte:<n>` is emitted for every count a pool clears, as the rank ladder is: Logos is permanent
+*"if Gray had 30 Mythos Counters or more"*. `target:relation:<self|ally|enemy|neutral>` is how an effect's
+recipient stands to its caster, added where both are known (`engine/landing.mjs#optionsFor`): Rhongomyniad's line
+hits allies, and its two debuffs reach *"all affected enemy Units"* alone.
+
 ## Invariants & edge cases
 
 **Rank comparisons read the letter** (#193 reading 11). `gradesClearedBy` emits `rank:<p>:gte:B` for B−, B and B+ alike: *"a Rank of B or higher"* is met by B−. It compared whole ranks before, so B− sat below B.

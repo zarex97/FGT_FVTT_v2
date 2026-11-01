@@ -765,7 +765,7 @@ describe("`attack:plainDamage` is how a Clause tells an Attack from measured dam
       .map(({ doc }) => doc.id).sort();
     expect(inflictors).toEqual([
       "anastasia-summer-snegleta", "dioscuri-tyndaridae", "gilles-blasphemy-aesthetic", "gogh-het-gele-huis",
-      "gogh-the-yellow-house", "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter",
+      "gogh-the-yellow-house", "gray-rhongomyniad", "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter",
       "vlad-berserker-kazikli-bey", "yan-qing-np",
     ]);
   });

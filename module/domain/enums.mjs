@@ -158,6 +158,9 @@ export const REACTIONS = Object.freeze(["evade", "block", "counter", "none"]);
 
 export const CONTRACT_STATES = Object.freeze(["contracted", "free", "unbound"]);
 
+/** How one Unit stands to another (`rules/relations.mjs#relationOf`). */
+export const RELATIONS = Object.freeze(["self", "ally", "enemy", "neutral"]);
+
 /** Sentinel for a duration that never counts down. @see docs/04-time-model.md */
 export const INFINITE = Number.POSITIVE_INFINITY;
 

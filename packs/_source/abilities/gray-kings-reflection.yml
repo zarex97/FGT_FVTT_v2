@@ -1,0 +1,39 @@
+# King's Reflection, Rank A (#362 KR.*).
+#
+# > "(Passive 1) At the end of Gray's Turn and at the end of any Turns she Acts,
+# > her NP Cooldown is reduced by ⅓◈ Turns instead of 1 Turn.
+# > (Passive 2) Upon performing a successful Normal Attack, gain 1 Mythos Counter
+# > (2 if Crit). The maximum number of Mythos Counters is 40."
+#
+# Passive 1 is `NaturalTick` (reading 5): every NP clock's own Turn tick is ⅓◈
+# on her side's Turn and on a Turn she Acted, once when both hold; an Evade, a
+# Block or a Counter is Acting (reading 6). NP Lock, Lag and Degen still win.
+# Passive 2 is once per successful Attack (`attackLanded`, #239): a Block and a
+# hit for 0 pay, an Evade does not. The 40 is the pool's `max` on her sheet.
+schema: 1
+id: gray-kings-reflection
+name: "King's Reflection"
+rank: A
+kind: skill
+slug: kingsReflection
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) At the end of Gray's Turn and at the end of any Turns she Acts, her NP Cooldown is reduced by ⅓◈ Turns
+  instead of 1 Turn.
+  (Passive 2) Upon performing a successful Normal Attack, gain 1 Mythos Counter (2 if Crit). The maximum number of
+  Mythos Counters is 40.
+passiveRules:
+  - { key: NaturalTick, scope: np, ticks: "⅓◈", on: [ownTurn, acted] }
+  - key: OnEvent
+    event: attackLanded
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    then:
+      - { key: ResourceDelta, resource: mythos, delta: 1 }
+  - key: OnEvent
+    event: attackLanded
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:crit"]
+    then:
+      - { key: ResourceDelta, resource: mythos, delta: 1 }

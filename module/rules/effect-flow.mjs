@@ -414,10 +414,12 @@ export function effectGatePasses(spec, rule, ctx) {
  * A closed list per definition, so an authored key nothing reads is refused at
  * the build rather than carried in silence (`tools/lib/content.mjs`).
  * Presence Concealment granted at a Rank (Dongyū, #249): `rank` its Rank,
- * `evade` an Evade bonus its sheet states over the table's.
+ * `evade` an Evade bonus its sheet states over the table's. Gray's Hoodie
+ * (#362): `name` the name every card calls it by, and `skill` the slug of the
+ * Skill whose Cooldown its removal starts.
  */
 export const EFFECT_PARAMS = Object.freeze({
-  presenceConcealment: Object.freeze(["rank", "evade"]),
+  presenceConcealment: Object.freeze(["rank", "evade", "name", "skill"]),
   // The Aura's reach, read by `rules/elements.mjs#Aura` off the instance:
   // Triumphal Return's S.Crit Up beside Jeanne reaches 3 (#260 reading 7).
   sCritUp: Object.freeze(["radius"]),

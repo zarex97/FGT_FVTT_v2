@@ -35,6 +35,15 @@ bypassesResistance
 ```
 
 `onRemove` runs when an instance goes, **by any route** (#208 reading 13): expiry (`scheduler.expireEffects`, which flags its removals `onRemoveRan`) and every other removal, a Cure, a strip, a dispel, an `until <event>` (`engine/applier.mjs#resolveRemovals`, where every removal meets). A refresh or a replacement is the effect continuing and runs nothing. What a clause removes is itself a removal and comes back through. It had been expiry alone, so Atk Up (Trace) stripped left the Circuits standing, and Shock's *"current Agility +1 when max is restored"* was paid only by running out. `onApply` runs once when one is created, never on a refresh.
+`onExpire` runs on the **natural expiry alone**, the clock running out (`scheduler.expireEffects`, a Turn's or a
+Round's end), never on another removal: Gray's Logos places its 2◈ lockout there (*"After the 'Logos' effect
+naturally expires, it cannot be re-applied to Gray for the next 2◈ Turns"*, #362), and Logos's `blockedBy:
+[logosLockout]` refuses a new one while it stands. `removableOnlyBy: {rank}` makes an effect Unremovable but by a
+removing ability of that Rank (`rules/removal.mjs#isUnremovable`'s `by`): Mythos falls only to a Rank EX Skill or
+NP. `negatesAbilities` negates the bearer's own abilities whole, refused and their rules collected from nothing
+(`rules/snapshot.mjs#negatingEffectOf`): `{spells}`, `{nps, exceptTags}` (a tag group all held spares one) and
+`{categories}` (a slug, or `categorizedAs`).
+
 `onApply` is where a clause that changes a STORED value lives, because a rule element is re-derived on
 every preparation (Ch. 08, invariant 9).
 
