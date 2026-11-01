@@ -8,7 +8,11 @@
  * `apps/actor-sheet/present.mjs`.
  */
 
-import { ticksLabel } from "../actor-sheet/present.mjs";
+import { ticksLabel, isBlankPortrait } from "../actor-sheet/present.mjs";
+import { ticks } from "../../domain/tick.mjs";
+
+// One reader of "no face", the sheet's; re-exported for the bar's callers.
+export { isBlankPortrait };
 
 /** The rows, in the order they are shown. */
 const ROW_ORDER = Object.freeze(["pinned", "actions", "skills", "np", "modes", "fields", "effects"]);
@@ -54,8 +58,11 @@ export function abilityArt(ability) {
  */
 export function portraitBlock(unit, { img, defaultImage, publicName, trueName, isOwner }) {
   const concealed = unit?.kind === "servant" && !unit?.identityRevealed && !isOwner;
+  // No face of its own (Foundry's silhouette): its authored class image, so
+  // the medal shows a crest and not a placeholder (#364).
+  const own = isBlankPortrait(img) && defaultImage ? defaultImage : img;
   return {
-    img: concealed ? (defaultImage || img) : img,
+    img: concealed ? (defaultImage || img) : own,
     name: concealed ? publicName : trueName,
     subtitle: concealed ? null : (publicName === trueName ? null : publicName),
   };
@@ -83,6 +90,25 @@ export function modeSlotVerdict({ ending, toggle, priced, use }) {
 }
 
 /**
+ * How much of a Cooldown is still to run, 0-100, for the slot's closing wipe
+ * (#364). `cooldownMax` is the authored ◈ expression ("4◈"), not a number. A
+ * Cooldown longer than its own maximum (one that was increased) reads full; a
+ * maximum that cannot be read reads full too, since the label beside it still
+ * says how long is left.
+ *
+ * @param {number} remaining turns
+ * @param {string|number|null} max the authored Cooldown
+ * @param {number} turnsPerRound
+ * @returns {number}
+ */
+export function cooldownPct(remaining, max, turnsPerRound) {
+  let total;
+  try { total = ticks(max, { turnsPerRound }); } catch { return 100; }
+  if (!(total > 0)) return 100;
+  return Math.min(100, Math.round((remaining / total) * 100));
+}
+
+/**
  * One slot, with every state the bar draws.
  *
  * @param {object} ability a snapshot ability entry
@@ -97,7 +123,7 @@ export function modeSlotVerdict({ ending, toggle, priced, use }) {
 export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, counter = null }) {
   const remaining = ability?.cooldownRemaining ?? 0;
   const cooldown = remaining > 0
-    ? { remaining, label: ticksLabel(remaining, turnsPerRound) }
+    ? { remaining, label: ticksLabel(remaining, turnsPerRound), pct: cooldownPct(remaining, ability?.cooldownMax, turnsPerRound) }
     : null;
 
   // A ring says "this is switched on", which is a different fact from "this is

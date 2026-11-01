@@ -8,6 +8,7 @@
 // `_tokens` comes first: everything below it names colours rather than
 // spelling them, which is what makes §29.9's two themes possible at all.
 
+@use "fonts";
 @use "tokens";
 @use "shell";
 @use "cards";

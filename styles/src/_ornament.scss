@@ -1,0 +1,139 @@
+// The ornament every surface shares (DESIGN.md): mixins only, so no class is
+// owned here. A partial that draws a plate `@use`s this file.
+
+// A polygon with every corner cut by `$cut`.
+@function cut-corners($cut, $nudge: 0px) {
+  @return polygon(
+    calc(#{$cut} - #{$nudge}) 0, calc(100% - #{$cut} + #{$nudge}) 0,
+    100% calc(#{$cut} - #{$nudge}), 100% calc(100% - #{$cut} + #{$nudge}),
+    calc(100% - #{$cut} + #{$nudge}) 100%, calc(#{$cut} - #{$nudge}) 100%,
+    0 calc(100% - #{$cut} + #{$nudge}), 0 calc(#{$cut} - #{$nudge})
+  );
+}
+
+// A plate: a panel whose edge is metal and whose corners are cut, built from
+// the element's two pseudo-elements so the diagonal corners keep their edge.
+// The element's own children sit above both. `--fgt-edge` recolours the edge
+// (a role on a card, the faction on a portrait).
+//
+// `$position: null` leaves the element's own positioning alone: a Foundry
+// window is absolutely placed by core, and taking that away put the sheet in
+// the page's flow, squeezing the whole interface beside it.
+@mixin plate($cut: var(--fgt-cut), $fill: null, $position: relative) {
+  @if $position { position: $position; }
+  isolation: isolate;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  &::before {
+    inset: 0;
+    background: var(--fgt-edge, var(--fgt-metal));
+    clip-path: cut-corners($cut);
+  }
+
+  &::after {
+    inset: 1px;
+    clip-path: cut-corners($cut, 0.4px);
+    @if $fill {
+      background: $fill;
+    } @else {
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 3.5%), transparent 40%),
+        linear-gradient(180deg, var(--fgt-bg-raised), var(--fgt-bg));
+    }
+  }
+}
+
+// A parallelogram, for tabs, chips and buttons.
+@mixin slant($s: 10px) {
+  clip-path: polygon(#{$s} 0, 100% 0, calc(100% - #{$s}) 100%, 0 100%);
+}
+
+// A gold metal button: the one control that commits.
+@mixin metal-button {
+  border: 0;
+  color: #1b1206;
+  background: var(--fgt-metal-button);
+  font-family: var(--fgt-font-display);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 30%);
+  cursor: pointer;
+  transition: filter var(--fgt-dur-state), transform var(--fgt-dur-press) var(--fgt-ease-out);
+
+  &:hover { filter: brightness(1.12); }
+  &:active { transform: scale(0.96); }
+  &:focus-visible { outline: 2px solid var(--fgt-gold-hi); outline-offset: 2px; }
+
+  &:disabled,
+  &[disabled] {
+    cursor: not-allowed;
+    color: var(--fgt-ink-faint);
+    background: var(--fgt-night-3);
+    text-shadow: none;
+    filter: none;
+    transform: none;
+  }
+}
+
+// A section title: a small gold diamond, the words in Cinzel, a rule that
+// fades out to the right.
+@mixin section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  font-family: var(--fgt-font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--fgt-gold);
+
+  &::before {
+    content: "";
+    flex: none;
+    width: 6px;
+    height: 6px;
+    background: var(--fgt-gold);
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--fgt-gold-line), transparent);
+  }
+}
+
+// A small uppercase label above a group.
+@mixin label {
+  font-family: var(--fgt-font-body);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fgt-ink-faint);
+}
+
+// A figure.
+@mixin figure {
+  font-family: var(--fgt-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+// Thin, quiet scrollbars in the system's line colour.
+@mixin scrollbars {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fgt-night-4) transparent;
+}
