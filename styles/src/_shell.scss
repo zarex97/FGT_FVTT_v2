@@ -1,11 +1,12 @@
-// The sheet shell: window, header, nav rail, tab panes.
-// See docs/35-sheets-and-editor.md; DESIGN.md.
+// The sheet shell: window, header, portrait card, tabs, panes.
+// See docs/35-sheets-and-editor.md; DESIGN.md ("Grail War Nocturne").
 //
 // The layout is a CSS grid over the six PARTS ApplicationV2 renders as
-// siblings. The header spans the full width, the nav rail sits under it on the
-// left, and the four tab parts all occupy the same cell -- only one of them is
+// siblings. The four tab parts all occupy the same cell -- only one of them is
 // `.active`, and the rest are display:none. That is why they can share a cell
 // without stacking.
+
+@use "ornament" as *;
 
 .application.fgt.sheet .window-content {
   overflow: hidden;
@@ -30,9 +31,6 @@
 // ApplicationV2 restores the position after each re-render. Scrolling
 // `.window-content` instead would work and would jump back to the top on every
 // edit, because the sheet re-renders on change.
-//
-// One scroll container per tab is now the point rather than the problem: the
-// position ApplicationV2 preserves is per part, and only one part is visible.
 .fgt-tab {
   grid-area: body;
   min-height: 0;
@@ -41,12 +39,105 @@
 
   display: flex;
   flex-direction: column;
-  gap: var(--fgt-gap);
-  padding: 0.75rem;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem 1rem 0.9rem;
+  @include scrollbars;
 
   // Foundry's own tab handling toggles `.active`. Anything else is not on
   // screen, which is what lets all four share one grid cell.
   &:not(.active) { display: none; }
+
+  // A tab the player just opened: its sections rise in, one after another
+  // (`FGTActorSheet#changeTab`). A render never sets this class.
+  &.fgt-entering > * { animation: fgt-rise 0.45s var(--fgt-ease-out) both; }
+  &.fgt-entering > :nth-child(2) { animation-delay: 45ms; }
+  &.fgt-entering > :nth-child(3) { animation-delay: 90ms; }
+  &.fgt-entering > :nth-child(4) { animation-delay: 135ms; }
+  &.fgt-entering > :nth-child(n + 5) { animation-delay: 180ms; }
+}
+
+@keyframes fgt-rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* ── The actor sheet's window (#364) ────────────────────────────────────── */
+
+// FGO's Servant screen in night and gold: the window is a plate with cut
+// corners and a metal edge; the portrait card's column on the left, the tab
+// buttons across the top of the right, the pane under them. A platform or a
+// structure has no card and keeps the header across the top. Under 760px the
+// card's column stacks on top too.
+.application.fgt.sheet.actor {
+  --background: transparent;
+  container-type: inline-size;
+  @include plate(18px, $position: null);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 26px 44px rgb(0 0 0 / 70%));
+
+  // Core's header, kept: its drag, its controls and its close are core's own.
+  .window-header {
+    gap: 0.6rem;
+    height: 2.75rem;
+    padding: 0 0.85rem 0 1.25rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--fgt-gold) 35%, transparent);
+    background: linear-gradient(90deg, rgb(212 169 78 / 13%), transparent 60%);
+    color: var(--fgt-ink-dim);
+
+    .window-title {
+      font-family: var(--fgt-font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--fgt-gold-hi);
+    }
+
+    .window-icon { color: var(--fgt-gold); }
+    button { color: var(--fgt-ink-faint); }
+    button:hover { color: var(--fgt-gold-hi); }
+  }
+
+  .window-content {
+    background: none;
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "header nav"
+      "header body";
+  }
+
+  .window-content:has(> .fgt-header--plain) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+
+  .window-resize-handle { color: var(--fgt-gold-line); }
+}
+
+@container (max-width: 760px) {
+  .application.fgt.sheet.actor .window-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+
+  // Doubled, so it outranks the column the card's own block sets further down.
+  .fgt-header.fgt-header--card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 24rem;
+
+    .fgt-portrait { flex: 0 0 10rem; }
+    .fgt-header__identity { flex: 1 1 12rem; }
+    .fgt-header__vitals { flex: 1 1 100%; }
+  }
 }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
@@ -55,23 +146,16 @@
   grid-area: header;
   display: grid;
   grid-template-columns: auto 1fr minmax(12rem, 18rem);
-  gap: 0.75rem;
-  padding: 0.75rem;
-
-  background: linear-gradient(180deg, var(--fgt-bg-raised), var(--fgt-bg));
-  border-bottom: var(--fgt-border);
-
-  // The faction's colour, as a rail rather than as a tint: a tinted panel
-  // fights the theme and a rail does not.
-  border-left: 4px solid var(--fgt-faction);
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--fgt-gold) 22%, transparent);
 
   &__portrait {
     width: 88px;
     height: 88px;
     object-fit: cover;
-    border: var(--fgt-border);
-    border-radius: var(--fgt-radius);
-    background: var(--fgt-bg-sunken);
+    border: 2px solid var(--fgt-faction);
+    background: var(--fgt-portrait-bg);
     // Clickable -- it opens the FilePicker (`data-action="editImage"`) --
     // and nothing else marked that, so it looked exactly as inert as it was.
     cursor: pointer;
@@ -80,132 +164,256 @@
   &__identity {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
     min-width: 0;
   }
 
   &__name {
-    font-size: 1.4rem;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-display);
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.04em;
     background: none;
     border: 1px solid transparent;
     color: var(--fgt-ink);
 
     // Display-first: a derived-looking field that turns into an input only
     // when you mean to use it. The sheet is a stat block, not a form.
-    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+    &:hover, &:focus { border-color: var(--fgt-night-4); background: var(--fgt-bg-sunken); }
   }
 
   &__line {
     margin: 0;
-    font-size: 0.8rem;
-    letter-spacing: 0.04em;
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--fgt-gold);
+    color: var(--fgt-ink-faint);
   }
 
-  &__truename {
-    margin: 0;
-    font-style: italic;
-    font-size: 0.85rem;
-    color: var(--fgt-ink-dim);
-  }
+  &__truename { margin: 0; font-style: italic; color: var(--fgt-ink-dim); }
 
   &__concealed {
     font-style: normal;
-    font-size: 0.68rem;
-    padding: 0 0.3rem;
-    border: 1px solid var(--fgt-line);
-    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0 0.4rem;
+    color: var(--fgt-seal-hi);
+    border: 1px solid rgb(224 35 63 / 50%);
+    background: rgb(224 35 63 / 8%);
   }
 
   &__faction {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.78rem;
+    gap: 0.45rem;
+    @include label;
 
-    select { flex: 1; min-width: 0; }
+    select { flex: 1; min-width: 0; text-transform: none; letter-spacing: normal; font-weight: 600; color: var(--fgt-ink); }
   }
 
   &__vitals {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.4rem;
     justify-content: center;
+  }
+
+  // The card's column: the portrait, who it is, then the three resources.
+  &--card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-height: 0;
+    overflow-y: auto;
+    border-bottom: none;
+    border-right: 1px solid color-mix(in srgb, var(--fgt-gold) 18%, transparent);
+    @include scrollbars;
   }
 }
 
-/* ── Nav rail ───────────────────────────────────────────────────────────── */
+/* ── Portrait card (#364) ───────────────────────────────────────────────── */
 
-// The `tabs` class is required for `changeTab` to find this nav -- and it
-// brings Foundry's own tab-bar styling with it, which is a horizontal bar that
-// distributes its items across the full axis. Down a 700px-tall rail that put
-// four icons a hundred pixels apart, so both axes are restated here.
+// FGO's tall frame, in the faction's colour: the face over a summoning circle,
+// the class and the name on a gold-lettered foot.
+.fgt-portrait {
+  --fgt-portrait-ink: #efe8d6;
+  --fgt-edge: linear-gradient(160deg, color-mix(in srgb, var(--fgt-faction) 55%, white), var(--fgt-faction) 45%, color-mix(in srgb, var(--fgt-faction) 45%, black));
+  @include plate(14px, var(--fgt-portrait-bg));
+
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px;
+
+  &__frame {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fgt-faction) 40%, transparent), transparent 58%),
+      radial-gradient(circle at 50% 120%, rgb(99 184 255 / 18%), transparent 60%),
+      linear-gradient(180deg, #160b14, #090a16);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%, 0 10px);
+  }
+
+  &__circle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 118%;
+    height: auto;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    opacity: 0.85;
+    animation: fgt-spin 50s linear infinite;
+  }
+
+  &__art {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    cursor: pointer;
+  }
+
+  // A class crest is a glyph, not a face: large, centred, and lit.
+  &__frame--class &__art {
+    width: 74%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 26px rgb(251 231 168 / 50%)) drop-shadow(0 10px 18px rgb(0 0 0 / 60%));
+  }
+
+  &__foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.55rem 0.5rem 0.45rem;
+    border-top: 1px solid var(--fgt-gold-line);
+    background: linear-gradient(90deg, transparent, rgb(212 169 78 / 16%), transparent);
+    color: var(--fgt-portrait-ink);
+    // Core sets `figcaption` in italic; the foot is a name plate, not a caption.
+    font-style: normal;
+    text-align: center;
+  }
+
+  &__class {
+    font-family: var(--fgt-font-display);
+    font-weight: 800;
+    font-size: 1.85rem;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, var(--fgt-gold-hi), var(--fgt-gold) 55%, var(--fgt-gold-lo));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 0 rgb(0 0 0 / 60%));
+  }
+
+  &__name {
+    display: block;
+    width: 100%;
+    font-family: var(--fgt-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--fgt-portrait-ink);
+  }
+
+  // The name is an input for whoever may rename the Unit.
+  input.fgt-portrait__name {
+    height: auto;
+    border: 1px solid transparent;
+    background: none;
+
+    &:hover, &:focus { border-color: color-mix(in srgb, var(--fgt-portrait-ink) 35%, transparent); }
+  }
+}
+
+/* ── Tab buttons ────────────────────────────────────────────────────────── */
+
+// FGO's big buttons across the top (#364): slanted plates, an icon and a word
+// each, the active one gold metal. The `tabs` class is required for
+// `changeTab` to find this nav, and it brings Foundry's tab-bar rules,
+// restated here.
 .fgt-nav {
   grid-area: nav;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  justify-content: stretch;
   align-items: stretch;
-  gap: 0.15rem;
-  padding: 0.4rem 0.25rem;
-  background: var(--fgt-bg-sunken);
-  border-right: var(--fgt-border);
-  border-bottom: none;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem 0 0.9rem;
+  border: 0;
+  background: none;
 
   &__item {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    height: 2.25rem;
-    border-radius: var(--fgt-radius);
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 0;
+    height: 2.4rem;
+    padding: 0 0.6rem;
+    border: 0;
     color: var(--fgt-ink-dim);
+    background: linear-gradient(180deg, var(--fgt-night-3), var(--fgt-bg-raised));
+    @include slant(10px);
+    font-family: var(--fgt-font-display);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     cursor: pointer;
+    transition: color var(--fgt-dur-state), transform var(--fgt-dur-press) var(--fgt-ease-out);
 
-    &:hover { background: var(--fgt-bg-raised); color: var(--fgt-ink); }
+    &:hover { color: var(--fgt-gold-hi); }
+    &:active { transform: translateY(1px); }
+    &:focus-visible { outline: 2px solid var(--fgt-gold-hi); outline-offset: -3px; }
 
-    // Active is a filled block AND a gold rule down the side -- two signals,
-    // because colour is never the only one (D29.7).
+    // Active is gold metal AND dark lettering -- two signals, because colour
+    // is never the only one (D29.7).
     &.active {
-      background: var(--fgt-bg-raised);
-      color: var(--fgt-gold);
-      box-shadow: inset 2px 0 0 var(--fgt-gold);
+      color: #1b1206;
+      background: var(--fgt-metal-button);
+      text-shadow: 0 1px 0 rgb(255 255 255 / 35%);
     }
   }
+
+  &__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 /* ── Shared furniture ───────────────────────────────────────────────────── */
 
+// A section of a pane: no box, a gold title and its rule.
 .fgt-panel {
-  border: var(--fgt-border);
-  border-radius: var(--fgt-radius);
-  background: var(--fgt-bg-raised);
-  padding: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
 
-  &__title {
-    margin: 0 0 0.45rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--fgt-ink-dim);
-    border-bottom: var(--fgt-border);
-    padding-bottom: 0.25rem;
-  }
+  &__title { @include section-title; }
 }
 
 .fgt-empty {
   margin: 0;
   font-style: italic;
-  font-size: 0.8rem;
-  color: var(--fgt-ink-dim);
+  color: var(--fgt-ink-faint);
 }
 
 .fgt-hint {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--fgt-text-label);
   color: var(--fgt-ink-dim);
 
   &--warn { color: var(--fgt-warn); }
@@ -215,34 +423,41 @@
 // word too, never the colour alone.
 .fgt-warning {
   margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  padding: 0.3rem 0.45rem;
-  border-left: 3px solid var(--fgt-warn);
-  background: var(--fgt-bg-sunken);
+  font-size: var(--fgt-text-label);
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--fgt-warn);
+  background: linear-gradient(90deg, rgb(232 163 58 / 12%), var(--fgt-bg-sunken));
 }
 
 .fgt-button {
-  padding: 0.4rem 0.6rem;
-  font-weight: 600;
-  border: var(--fgt-border);
-  border-radius: var(--fgt-radius);
-  background: var(--fgt-bg-raised);
+  padding: 0.45rem 0.8rem;
+  font-family: var(--fgt-font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 0;
   color: var(--fgt-ink);
+  background: linear-gradient(180deg, var(--fgt-night-4), var(--fgt-bg-raised));
+  @include slant(8px);
   cursor: pointer;
+  transition: filter var(--fgt-dur-state), transform var(--fgt-dur-press) var(--fgt-ease-out);
 
-  &:hover:not(:disabled) { border-color: var(--fgt-gold); color: var(--fgt-gold); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover:not(:disabled) { filter: brightness(1.2); color: var(--fgt-gold-hi); }
+  &:active:not(:disabled) { transform: scale(0.97); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 
   &--attack {
     width: 100%;
-    border-color: var(--fgt-crimson);
+    color: #fff;
+    background: linear-gradient(180deg, var(--fgt-seal-hi), var(--fgt-seal) 50%, var(--fgt-seal-lo));
   }
 }
 
 .fgt-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.3rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -251,14 +466,14 @@
 .fgt-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.68rem;
-  font-weight: 600;
+  gap: 0.3rem;
+  font-size: 0.66rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  letter-spacing: 0.1em;
+  padding: 0.1rem 0.55rem;
   border: 1px solid currentcolor;
+  @include slant(5px);
 
   &--danger { color: var(--fgt-danger); }
   &--warn { color: var(--fgt-warn); }
@@ -270,30 +485,27 @@
 
 .fgt-bar {
   display: grid;
-  grid-template-columns: 3.5rem 1fr 3.2rem auto 3.2rem;
+  grid-template-columns: 3.6rem 1fr 3.2rem auto 3.2rem;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
+  gap: 0.35rem;
+  font-size: var(--fgt-text-label);
 
-  &__label {
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--fgt-ink-dim);
-  }
+  &__label { @include label; }
 
   &__track {
     position: relative;
-    height: 0.95rem;
-    border: var(--fgt-border);
-    border-radius: 2px;
-    background: var(--fgt-bg-sunken);
+    height: 0.9rem;
     overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 7%);
+    background: var(--fgt-bg-sunken);
+    transform: skewX(-18deg);
   }
 
   &__fill {
     position: absolute;
     inset: 0 auto 0 0;
-    background: var(--fgt-health);
+    background: linear-gradient(90deg, #8a1a2b, var(--fgt-health));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%);
   }
 
   // The number is printed ON the bar, always. A bar alone is a colour, and
@@ -302,25 +514,28 @@
     position: relative;
     display: block;
     text-align: center;
-    line-height: 0.95rem;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 3px var(--fgt-bg-sunken);
+    line-height: 0.9rem;
+    @include figure;
+    font-size: 0.78rem;
+    transform: skewX(18deg);
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
   }
 
   &__none {
     display: block;
     text-align: center;
-    line-height: 0.95rem;
+    line-height: 0.9rem;
     font-style: italic;
     color: var(--fgt-ink-dim);
+    transform: skewX(18deg);
   }
 
-  &__sep { color: var(--fgt-ink-dim); }
+  &__sep { color: var(--fgt-ink-faint); }
 
-  input { width: 100%; text-align: center; font-size: 0.72rem; }
+  input { width: 100%; text-align: center; @include figure; font-size: 0.85rem; }
 
-  &--agility &__fill { background: var(--fgt-agility); }
-  &--luck &__fill { background: var(--fgt-luck); }
+  &--agility &__fill { background: linear-gradient(90deg, #0f5e50, var(--fgt-agility)); }
+  &--luck &__fill { background: linear-gradient(90deg, #4b2c8c, var(--fgt-luck)); }
 }
 
 /* ── Legacy sheet body, still used by the item sheet ────────────────────── */

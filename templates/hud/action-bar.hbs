@@ -1,38 +1,74 @@
-{{!-- The action bar (§29.5). Rows wrap; nothing here has an upper bound,
-      which is exactly what the token HUD column could not survive. --}}
+{{!-- The action bar (§29.5; DESIGN.md, "Grail War Nocturne"). Rows wrap;
+      nothing here has an upper bound, which is exactly what the token HUD
+      column could not survive. --}}
 <div class="fgt-actionbar">
   <div class="fgt-actionbar__portrait">
-    <img src="{{portrait.img}}" alt="{{portrait.name}}">
+    {{!-- The medal: the face, its faction's ring, and the summoning circle
+          turning behind it. --}}
+    <div class="fgt-medal"{{#if portrait.factionColor}} style="--fgt-faction: {{portrait.factionColor}}"{{/if}}>
+      <svg class="fgt-medal__circle" data-fgt-circle></svg>
+      <span class="fgt-medal__ring"></span>
+      <span class="fgt-medal__core"></span>
+      <img src="{{portrait.img}}" alt="{{portrait.name}}">
+    </div>
     <div class="fgt-actionbar__identity">
       <span class="fgt-actionbar__name">{{portrait.name}}</span>
       {{#if portrait.subtitle}}<span class="fgt-actionbar__subtitle">{{portrait.subtitle}}</span>{{/if}}
+      {{#if effects.length}}
+        {{!-- What is on the Unit now, each with its picture; the corner
+              diamond is its polarity, an arrow AND a hue. --}}
+        <ul class="fgt-actionbar__effects">
+          {{#each effects as |fx|}}
+            <li class="fgt-fx fgt-fx--{{fx.polarity}}" data-tooltip="{{fx.name}} · {{fx.left}}">
+              <span class="fgt-fx__pic">
+                {{#if fx.img}}<img src="{{fx.img}}" alt="">{{else}}<i class="fa-solid fa-sparkles"></i>{{/if}}
+              </span>
+              <span class="fgt-fx__pol" aria-label="{{fx.polarity}}"></span>
+              <span class="fgt-fx__left">{{fx.left}}</span>
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
     </div>
     <div class="fgt-actionbar__resources">
       {{#each resources as |r|}}
-        <span class="fgt-actionbar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
+        <div class="fgt-gauge fgt-gauge--{{r.key}}" data-gauge="{{r.key}}" data-pct="{{r.pct}}">
+          <span class="fgt-gauge__label">{{localize r.label}}</span>
+          <span class="fgt-gauge__track">
+            <span class="fgt-gauge__ghost" style="width: {{r.pct}}%"></span>
+            <span class="fgt-gauge__fill" style="width: {{r.pct}}%"></span>
+          </span>
+          <span class="fgt-gauge__value">{{r.value}}{{#if r.max}}<small> / {{r.max}}</small>{{/if}}</span>
+        </div>
       {{/each}}
       {{!-- §6.10's pools. They gate abilities, so they belong beside the
             buttons rather than a tab away on the sheet. --}}
       {{#each pools as |p|}}
-        <span class="fgt-actionbar__resource fgt-actionbar__resource--pool"><b>{{p.label}}</b> {{p.value}}{{#if p.max}} / {{p.max}}{{/if}}</span>
+        <div class="fgt-gauge fgt-gauge--pool" data-gauge="pool-{{@index}}" data-pct="{{p.pct}}">
+          <span class="fgt-gauge__label">{{p.label}}</span>
+          <span class="fgt-gauge__track">
+            <span class="fgt-gauge__ghost" style="width: {{p.pct}}%"></span>
+            <span class="fgt-gauge__fill" style="width: {{p.pct}}%"></span>
+          </span>
+          <span class="fgt-gauge__value">{{p.value}}{{#if p.max}}<small> / {{p.max}}</small>{{/if}}</span>
+        </div>
       {{/each}}
     </div>
   </div>
 
-  {{!-- §12.8. Said out loud, because the bar opening by itself is otherwise a
-        surprise: the player did not press anything to get here. --}}
-  {{#if counter.armed}}
-    <div class="fgt-actionbar__counter">{{localize "FGT.Counter.Armed"}}</div>
-  {{/if}}
-
   <div class="fgt-actionbar__rows">
+    {{!-- §12.8. Said out loud, because the bar opening by itself is otherwise a
+          surprise: the player did not press anything to get here. --}}
+    {{#if counter.armed}}
+      <div class="fgt-actionbar__counter"><b>{{localize "FGT.HUD.CounterTag"}}</b> {{localize "FGT.Counter.Armed"}}</div>
+    {{/if}}
     {{#each rows as |row|}}
       <div class="fgt-actionbar__row" data-row="{{row.id}}">
         <span class="fgt-actionbar__row-label">{{localize row.label}}</span>
         <div class="fgt-actionbar__slots">
           {{#each row.slots as |slot|}}
             <button type="button"
-                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}{{#if slot.counter}} fgt-slot--counter{{/if}}"
+                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}{{#if slot.counter}} fgt-slot--counter{{/if}}{{#unless slot.disabled}}{{#unless slot.cooldown}} fgt-slot--ready{{/unless}}{{/unless}}"
                     {{!-- `row.id`, NOT `../row.id`: a block parameter stays in
                           scope inside the nested each, and `../` walks past it
                           to nothing. It rendered as an empty attribute, so the
@@ -43,7 +79,8 @@
               {{#if slot.img}}<img class="fgt-slot__art" src="{{slot.img}}" alt="">{{/if}}
               {{#if slot.icon}}<i class="fgt-slot__icon {{slot.icon}}"></i>{{/if}}
               {{#if slot.cost}}<span class="fgt-slot__cost">{{slot.cost.amount}}◈</span>{{/if}}
-              {{#if slot.cooldown}}<span class="fgt-slot__cooldown">{{slot.cooldown.label}}</span>{{/if}}
+              {{!-- The summoning circle closes as the Cooldown runs out. --}}
+              {{#if slot.cooldown}}<span class="fgt-slot__cooldown" style="--fgt-cd: {{slot.cooldown.pct}}">{{slot.cooldown.label}}</span>{{/if}}
               {{#if slot.tally}}<span class="fgt-slot__tally">{{slot.tally.tally}}/{{slot.tally.count}}</span>{{/if}}
             </button>
           {{/each}}

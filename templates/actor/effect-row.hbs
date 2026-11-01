@@ -3,7 +3,14 @@
       Registered as the `fgt-effect-row` partial: the Effects tab renders it
       four times, once per group, and four copies of this markup would be four
       places for the remove-guard to go missing from. --}}
-<div class="fgt-effect{{#if suppressed}} fgt-effect--suppressed{{/if}}" data-effect-id="{{id}}">
+<div class="fgt-effect fgt-effect--{{polarity}}{{#if suppressed}} fgt-effect--suppressed{{/if}}" data-effect-id="{{id}}">
+
+  {{!-- Its own picture, and the diamond on its corner: an arrow AND a hue for
+        a buff or a debuff (#364). --}}
+  <span class="fgt-fx fgt-fx--{{polarity}}">
+    <span class="fgt-fx__pic">{{#if art}}<img src="{{art}}" alt="">{{else}}<i class="fa-solid fa-sparkles"></i>{{/if}}</span>
+    <span class="fgt-fx__pol"></span>
+  </span>
 
   <span class="fgt-effect__name">
     {{name}}

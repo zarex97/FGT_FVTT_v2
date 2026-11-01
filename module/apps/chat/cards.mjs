@@ -21,7 +21,10 @@ import { isCovering } from "../../rules/cover.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
 import { warRule } from "../../engine/war.mjs";
-import { markSystemCard } from "./surface.mjs";
+import { markSystemCard, viewerRole } from "./surface.mjs";
+import { playNoblePhantasmCutIn } from "./cut-in.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
+import { polarityOf } from "../../rules/effect-instance.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -51,6 +54,8 @@ export async function renderAttackCard({ state, attacker, ability, targets }) {
         },
         // ...and how it was delivered, for the same reason (#281).
         delivery: context.delivery,
+        // A Noble Phantasm's declaration plays the cut-in on every client (#364).
+        np: ability?.type === "noblePhantasm" ? { name: ability.name, rank: ability.system?.rank ?? null } : null,
       },
     },
   });
@@ -120,6 +125,17 @@ async function cardContext({
   const board = currentBoard();
 
   return {
+    // Whose card this is, to the one reading it (#364): its banner, its frame's
+    // hue and the YOU on its side. Computed here, where `game.user` is the
+    // viewer, because `fillAttackCard` re-renders this context on every client.
+    viewer: viewerOf(viewerRole({
+      isGM: game.user.isGM,
+      ownsActor: Boolean(attacker?.isOwner),
+      ownsTarget: Boolean(defender?.isOwner),
+    }), "attack"),
+    // Each side's face, the public one: a concealed Servant shows its class.
+    attackerImg: attacker ? publicIdentityOf(attacker, board).img : null,
+    defenderImg: defender ? publicIdentityOf(defender, board).img : null,
     // The PUBLIC names. A card is one document every client reads, so it must
     // not print a concealed Servant's true name -- the same reason its token
     // shows a class image rather than its face.
@@ -226,6 +242,77 @@ async function cardContext({
       ownedActorIds: game.actors.filter((a) => a.isOwner).map((a) => a.id),
     }).map((r) => ({ ...r, lines: renderBreakdown(r) })),
   };
+}
+
+/**
+ * A role's banner: its word and its icon (#364). The word depends on the
+ * card: an attack's defender is attacked, a Skill's target is targeted.
+ *
+ * @param {string} role from `viewerRole`
+ * @param {"attack"|"skill"} kind
+ * @returns {{role: string, label: string, icon: string, mine: string, theirs: string}}
+ */
+function viewerOf(role, kind) {
+  const ICONS = {
+    attacker: "fa-solid fa-swords", defender: "fa-solid fa-shield-halved",
+    observer: "fa-solid fa-eye", gm: "fa-solid fa-crown", both: "fa-solid fa-crown",
+  };
+  return {
+    role,
+    label: game.i18n.localize(`FGT.Role.${kind}.${role}`),
+    icon: ICONS[role] ?? ICONS.observer,
+    // Which side of the duel is the reader's: the attacker's (left), the
+    // defender's (right), or both.
+    mine: ["attacker", "both", "gm"].includes(role) ? "you" : (role === "defender" ? "dim" : ""),
+    theirs: ["defender", "both", "gm"].includes(role) ? "you" : (role === "attacker" ? "dim" : ""),
+  };
+}
+
+/**
+ * An effect's picture and polarity diamond, for a card's row (#364).
+ *
+ * @param {string|null} effectId
+ * @returns {string} HTML
+ */
+function effectArt(effectId) {
+  const def = effectId ? EffectRegistry.get(effectId) : null;
+  const polarity = polarityOf({}, def) ?? "status";
+  const img = def?.img && !def.img.startsWith("icons/svg/") ? def.img : null;
+  const pic = img
+    ? `<img src="${foundry.utils.escapeHTML(img)}" alt="">`
+    : '<i class="fa-solid fa-sparkles"></i>';
+  return `<span class="fgt-fx fgt-fx--${polarity}"><span class="fgt-fx__pic">${pic}</span><span class="fgt-fx__pol"></span></span>`;
+}
+
+/** Messages this client has drawn at least once. */
+const arrived = new Set();
+
+/** Messages whose damage has already counted up on this client. */
+const rolledUp = new Set();
+
+/**
+ * Count a fresh card's damage up from zero, once, on the client that sees it
+ * land (#364). A card re-rendered later, or read back after a reload, is drawn
+ * at its value. Nothing moves under reduced motion.
+ *
+ * @param {object} message
+ * @param {HTMLElement} html
+ */
+function rollUpDamage(message, html) {
+  const node = html.querySelector(".fgt-card__total");
+  if (!node || rolledUp.has(message.id)) return;
+  rolledUp.add(message.id);
+  const to = Number(String(node.textContent).replace(/[^\d.-]/g, ""));
+  const fresh = Date.now() - (message.timestamp ?? 0) < 8000;
+  if (!fresh || !(to > 0) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / 900);
+    node.textContent = String(Math.round(to * (1 - Math.pow(1 - k, 4))));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  node.textContent = "0";
+  requestAnimationFrame(step);
 }
 
 /**
@@ -347,6 +434,7 @@ function fillAttackCard(message, html) {
     .then((content) => {
       const target = html.querySelector(".fgt-card");
       if (target) target.outerHTML = content;
+      rollUpDamage(message, html);
     })
     .catch((err) => console.error("FGT | Could not re-render an attack card:", err));
 }
@@ -528,8 +616,19 @@ export function promptOptions(prompt, state = null) {
  * Wire the card's buttons. Registered once at `ready`.
  */
 export function activateChatListeners() {
+  // A Noble Phantasm's declaration stops the table (#364).
+  Hooks.on("createChatMessage", (message) => {
+    const np = message.getFlag?.("fgt", "np");
+    if (message.getFlag?.("fgt", "kind") !== "attack" || !np) return;
+    playNoblePhantasmCutIn({ key: `${message.getFlag("fgt", "attackerId")}:${np.name}`, name: np.name, rank: np.rank });
+  });
   Hooks.on("renderChatMessageHTML", (message, html) => {
-    markSystemCard(html);
+    // A card that just arrived slides in, once; the log's own first draw and
+    // every later update draw it still (#364).
+    if (markSystemCard(html) && !arrived.has(message.id) && Date.now() - (message.timestamp ?? 0) < 8000) {
+      html.classList.add("fgt-fresh");
+    }
+    arrived.add(message.id);
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
     armCounterRung(message);
@@ -860,14 +959,29 @@ function fillSkillEffects(message, html) {
   const list = html.querySelector("[data-fgt-effects]");
   if (!flags || !list) return;
 
-  const { names, hidden } = skillEffectsFor(flags.rows, {
+  const { rows: seen, hidden } = skillEffectsFor(flags.rows, {
     id: game.user.id,
     isGM: game.user.isGM,
     openTable: openTable(),
     casterControllers: flags.casterControllers ?? [],
   });
 
-  const rows = names.map((n) => `<li>${foundry.utils.escapeHTML(n)}</li>`);
+  // Whose card this is, to the reader (#364): the caster's controllers, one a
+  // row landed on, or neither.
+  const card = html.querySelector(".fgt-card");
+  if (card && !card.querySelector(".fgt-role")) {
+    const viewer = viewerOf(viewerRole({
+      isGM: game.user.isGM,
+      ownsActor: (flags.casterControllers ?? []).includes(game.user.id),
+      ownsTarget: (flags.rows ?? []).some((r) => (r.controllers ?? []).includes(game.user.id)),
+    }), "skill");
+    card.dataset.role = viewer.role;
+    card.insertAdjacentHTML("afterbegin",
+      `<div class="fgt-role"><i class="${viewer.icon}"></i><span>${foundry.utils.escapeHTML(viewer.label)}</span></div>`);
+  }
+
+  // Each row with its effect's picture and polarity diamond.
+  const rows = seen.map((r) => `<li>${effectArt(r.effectId)}<span>${foundry.utils.escapeHTML(r.name)}</span></li>`);
   // A count rather than silence: "something happened" is public, "what" is not.
   if (hidden > 0) {
     rows.push(

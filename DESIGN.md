@@ -1,272 +1,249 @@
 ---
 name: Fate/Grail Tactics
-description: A Grail War at night, played on a war table lit in gold.
+description: Grail War Nocturne. A Holy Grail War at night, in lacquer, gold leaf and Command Seal crimson.
 colors:
-  night: "#17161c"
-  night-raised: "#21202a"
-  night-sunken: "#100f14"
-  bone-ink: "#e8e3d8"
-  bone-ink-dim: "#a09a8e"
-  dusk-line: "#3a3644"
-  gold-leaf: "#c9a227"
-  grail-crimson: "#9b2226"
-  ok-green: "#4c9a5b"
-  warn-amber: "#c8860d"
-  danger-red: "#c0392b"
-  health-red: "#a83232"
-  agility-teal: "#2f7d6d"
-  luck-violet: "#7a5ea8"
-  parchment: "#f2eee3"
-  parchment-raised: "#fffdf7"
-  parchment-sunken: "#e3ddcd"
-  ink: "#23201a"
-  ink-dim: "#6a6458"
-  parchment-line: "#c5bda8"
-  gold-deep: "#8a6d12"
+  night-sunken: "#05060c"
+  night: "#0a0d1a"
+  night-raised: "#111629"
+  night-3: "#1a2140"
+  night-4: "#262f57"
+  bone-ink: "#efe8d6"
+  ink-dim: "#a3a6bd"
+  ink-faint: "#7a7f9e"
+  gold-hi: "#fbe7a8"
+  gold: "#d4a94e"
+  gold-lo: "#7c5a1c"
+  gold-line: "#b88b35"
+  seal-hi: "#ff5a74"
+  seal: "#e0233f"
+  seal-lo: "#6e0d1d"
+  guard-hi: "#a9d0ff"
+  guard: "#4f8fe2"
+  guard-lo: "#183f80"
+  health: "#e34a5f"
+  agility: "#2fc2a5"
+  luck: "#a982ff"
+  mana: "#63b8ff"
+  warn: "#e8a33a"
 typography:
   display:
-    fontFamily: "Modesto Condensed, Signika, serif"
-    fontSize: "1.5rem"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "0.02em"
+    fontFamily: "FGT Cinzel, Trajan Pro, Georgia, serif"
+    fontSize: "1.6rem"
+    fontWeight: 800
+    lineHeight: 1
+    letterSpacing: "0.1em"
   title:
-    fontFamily: "Signika, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 600
-    lineHeight: 1.25
+    fontFamily: "FGT Cinzel, Georgia, serif"
+    fontSize: "0.95rem"
+    fontWeight: 700
+    letterSpacing: "0.16em"
   body:
-    fontFamily: "Signika, sans-serif"
-    fontSize: "0.85rem"
+    fontFamily: "FGT Barlow Semi Condensed, Arial Narrow, sans-serif"
+    fontSize: "0.9rem"
     fontWeight: 400
-    lineHeight: 1.4
+    lineHeight: 1.38
   figure:
-    fontFamily: "Signika, sans-serif"
-    fontSize: "0.85rem"
-    fontWeight: 600
-    lineHeight: 1.2
+    fontFamily: "FGT Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 700
     fontFeature: "\"tnum\" 1"
+  hero:
+    fontFamily: "FGT Barlow Condensed, Arial Narrow, sans-serif"
+    fontSize: "3.2rem"
+    fontWeight: 800
+    lineHeight: 0.95
   label:
-    fontFamily: "Signika, sans-serif"
-    fontSize: "0.72rem"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "0.06em"
+    fontFamily: "FGT Barlow Semi Condensed, sans-serif"
+    fontSize: "0.68rem"
+    fontWeight: 700
+    letterSpacing: "0.16em"
 rounded:
-  hair: "2px"
-  base: "4px"
-  pill: "999px"
+  none: "0px"
 spacing:
   gap: "0.5rem"
+  cut: "12px"
 components:
+  plate:
+    backgroundColor: "{colors.night-raised}"
+    textColor: "{colors.bone-ink}"
+    rounded: "{rounded.none}"
+  button-commit:
+    backgroundColor: "{colors.gold}"
+    textColor: "{colors.night-sunken}"
+    padding: "0.4rem 1rem"
+  button-end-turn:
+    backgroundColor: "{colors.seal}"
+    textColor: "{colors.bone-ink}"
+    height: "2.4rem"
   slot:
     backgroundColor: "{colors.night-raised}"
-    textColor: "{colors.bone-ink}"
-    rounded: "{rounded.base}"
-    size: "40px"
-  slot-armed:
-    backgroundColor: "{colors.night-raised}"
-    textColor: "{colors.gold-leaf}"
-    rounded: "{rounded.base}"
-  button:
-    backgroundColor: "{colors.night-raised}"
-    textColor: "{colors.bone-ink}"
-    rounded: "{rounded.base}"
-    padding: "0.25rem 0.75rem"
+    textColor: "{colors.gold-hi}"
+    size: "3.1rem"
   tab-active:
-    backgroundColor: "{colors.gold-leaf}"
-    textColor: "{colors.night}"
-    rounded: "{rounded.base}"
-  card:
-    backgroundColor: "{colors.night-raised}"
-    textColor: "{colors.bone-ink}"
-    rounded: "{rounded.base}"
-    padding: "0.5rem 0.75rem"
-  chip:
-    backgroundColor: "{colors.night-sunken}"
-    textColor: "{colors.bone-ink-dim}"
-    rounded: "{rounded.pill}"
-    padding: "0 0.5rem"
+    backgroundColor: "{colors.gold}"
+    textColor: "{colors.night-sunken}"
 ---
 
 # Design System: Fate/Grail Tactics
 
 ## Overview
 
-**Creative North Star: "The War Table at Night"**
+**Creative North Star: "Grail War Nocturne"**
 
-A command table in a dark room, lit by gold lamplight. The surfaces are near-black with a violet
-cast, the ink is warm bone, and gold falls only on what matters: what is ready, what is armed,
-what is yours. Everything on the table is meant to be read at a glance by a general who has
-several Units to move and an opponent waiting, so legibility outranks ornament everywhere. The
-night and the gold give the war its mood. They never make a figure harder to read.
+A Holy Grail War fought at night. Every surface is lacquer, blue-black and never a neutral grey.
+Its edges are gold leaf, its corners are cut, and the one hue that means "act now", "it is spent"
+or "it fell" is Command Seal crimson. The interface reads as a game, never as a web page. The
+night and the gold carry the war's mood, and they never make a figure harder to read.
 
-The system is dense. It sits inside Foundry VTT beside core's sidebar, hotbar and canvas, so
-every surface earns its space. The action bar, the chat cards and the actor sheet are
-the three surfaces a player looks at all game. They share one set of tokens and follow
-Foundry's interface theme, light or dark. The palette is dark first, and the light theme
-redefines only what has to move.
+There is one signature move: the **summoning circle** (`module/apps/ornament.mjs`). It turns slowly
+behind every portrait and medal, closes over a slot as its Cooldown runs out, and erupts in the
+Noble Phantasm cut-in. It is drawn from a few loops, not traced, so it is crisp at every size.
 
-The actor sheet takes its structure from Fate/Grand Order's Servant screen: a framed portrait
-card, big tab buttons, skill rows that lead with the cooldown, and Parameters as segmented bars
-with a letter Rank. It keeps this system's palette, not FGO's glossy blue.
+The actor sheet takes its structure from Fate/Grand Order's Servant screen: a tall framed portrait
+card, big tab buttons, skill rows that lead with "SKILL 1" and the Cooldown, and Parameters as
+segmented bars with the letter Rank. It keeps this system's palette, not FGO's glossy blue.
+
+There is one look, night, whatever Foundry's own theme says (#364). The system's windows force
+core's dark variables (`themed theme-dark`), so core's own inputs agree with the plates around them.
 
 **Key Characteristics:**
-- Night surfaces separated by tone, never by shadow.
-- Gold marks state: ready, armed, selected, focused. It is never decoration.
-- Colour is never the only signal: a shape, an icon or a word stands beside every hue.
-- Dense, with figures in tabular numerals and refusals in the engine's own words.
-- Crisp, tactile controls: a small radius, a clear pressed state, a gold ring when armed.
+- Plates: panels with cut corners and a metal edge, built from two pseudo-elements (`plate` in
+  `styles/src/_ornament.scss`). An edge's hue can carry meaning: the reader's role on a card, the
+  faction on a portrait.
+- Gold marks what can be done and what is ornament. Crimson marks what must be done, spent or lost.
+- Colour is never the only signal: an icon, an arrow or a word stands beside every hue.
+- Motion rewards a player's own act and announces what the game did to them. It never decorates a
+  re-render.
 
 ## Colors
 
-Near-black with a violet cast, warm bone ink, and one gold that means something.
-
 ### Primary
-- **Gold Leaf** (#c9a227; light theme Gold Deep #8a6d12): the mark of state. It is the armed
-  slot's ring, the active tab, a focus ring, a ready Noble Phantasm, the default faction colour.
-  Its rarity is the point.
+- **Gold Leaf** (#d4a94e, with Gold High #fbe7a8 and Gold Low #7c5a1c): the metal of every edge,
+  the commit button, the active tab, a ready slot's glyph. As a three-stop gradient it reads as metal.
 
 ### Secondary
-- **Grail Crimson** (#9b2226): the war's own colour, kept for identity accents such as the
-  sheet header's edge. It is never a state.
+- **Command Seal Crimson** (#e0233f, with #ff5a74 and #6e0d1d): End Turn, a Noble Phantasm's slot and
+  ribbon, the attacker's side of a card, a defeat, a debuff's frame.
+- **Guard Blue** (#4f8fe2, with #a9d0ff and #183f80): the defender's side of a card.
 
 ### Status
-- **OK Green** (#4c9a5b), **Warn Amber** (#c8860d), **Danger Red** (#c0392b): outcomes and
-  verdicts on cards and refusals, each paired with an icon or a word.
-- **Health Red** (#a83232), **Agility Teal** (#2f7d6d), **Luck Violet** (#7a5ea8): the three
-  depleting resources. Agility is teal, not green, so the three stay apart under deuteranopia
-  and protanopia.
+- **Health** (#e34a5f), **Agility** (#2fc2a5), **Luck** (#a982ff), **Mana and pools** (#63b8ff):
+  each printed with its word. Agility is teal, not green, so the three stay apart under
+  deuteranopia and protanopia.
+- **Buff** teal with an up-arrow, **debuff** red with a down-arrow, on an effect's corner diamond.
 
 ### Neutral
-- **Night** (#17161c): the base surface. **Night Raised** (#21202a) for panels, slots and cards.
-  **Night Sunken** (#100f14) for wells, tracks and inputs.
-- **Bone Ink** (#e8e3d8): text. **Bone Ink Dim** (#a09a8e): labels and secondary text.
-- **Dusk Line** (#3a3644): 1px borders and dividers.
-- The light theme swaps these for Parchment (#f2eee3), Parchment Raised (#fffdf7), Parchment
-  Sunken (#e3ddcd), Ink (#23201a), Ink Dim (#6a6458) and Parchment Line (#c5bda8).
+- **Night** (#0a0d1a), **Night Raised** (#111629), **Night Sunken** (#05060c), and #1a2140 and
+  #262f57 for tracks and tiles. **Bone Ink** (#efe8d6) is the text, with Ink Dim (#a3a6bd) and
+  Ink Faint (#7a7f9e) below it.
 
 ### Named Rules
-**The Gold Means State Rule.** Gold marks something a player can act on or must notice now.
-A gold that only decorates teaches players to ignore the gold that matters.
+**The Tokens Only Rule.** Every colour is a `--fgt-*` custom property in `styles/src/_tokens.scss`.
+A hex at a use site is a bug.
 
-**The Faction Colour Rule.** `--fgt-faction` is set per Unit from its faction's colour, which
-the board and the bar already read. It frames that Unit's portrait card and nothing else.
-
-**The Tokens Only Rule.** Every colour is a `--fgt-*` custom property defined for both themes in
-`styles/src/_tokens.scss`. A hex at a use site is a bug.
+**The Crimson Means Now Rule.** Crimson is kept for what must be done or what was lost. It never
+decorates.
 
 ## Typography
 
-**Display Font:** Modesto Condensed (with Signika), shipped by Foundry
-**Body Font:** Signika (with sans-serif), shipped by Foundry
+**Display Font:** Cinzel, shipped as `FGT Cinzel`, for names, titles, tabs and banners.
+**Body Font:** Barlow Semi Condensed, shipped as `FGT Barlow Semi Condensed`, for the interface.
+**Figures:** Barlow Condensed, shipped as `FGT Barlow Condensed`, for every number a player compares.
 
-**Character:** Signika is a workhorse UI face that stays legible at small, dense sizes.
-Modesto Condensed is Foundry's own condensed display face, used for names and titles only.
-Nothing is loaded from outside Foundry.
+All three ship as woff2 in `fonts/` under the SIL Open Font License, with Latin and Latin Extended
+subsets, so a name like Tenmōkaikai renders in the face. Nothing loads from the web.
+
+**Character:** Cinzel is engraved and Roman, the lettering of a war fought over a relic. Barlow is a
+condensed workhorse that keeps a dense HUD readable.
 
 ### Hierarchy
-- **Display** (700, 1.5rem, 1.1): a Unit's name on its sheet and portrait card.
-- **Title** (600, 1rem, 1.25): section and card titles, ability names.
-- **Body** (400, 0.85rem, 1.4): card prose, ability text, refusals.
-- **Figure** (600, 0.85rem, tabular numerals): every number a player compares, such as Health,
-  costs, cooldowns and damage.
-- **Label** (600, 0.72rem, 0.06em, uppercase): one short label above a group. It is not a
-  sentence.
-
-### Named Rules
-**The Five Sizes Rule.** Type takes one of the five sizes above. The incumbent SCSS uses about
-twenty sizes between 0.6rem and 0.85rem. Each moves to the nearest step as its surface is
-polished, and nothing goes below 0.68rem.
-
-**The Tabular Figures Rule.** A figure that changes during play is set in tabular numerals, so a
-bar of Health does not jitter as it falls.
+- **Display** (Cinzel 800, 1.6rem, tracked 0.1em, gold metal fill): a class on a portrait's foot.
+- **Title** (Cinzel 700, about 0.95rem, tracked 0.16em, uppercase): window titles, tabs, section
+  titles, role banners.
+- **Body** (Barlow Semi Condensed 400, 0.9rem, 1.38): card and ability prose.
+- **Figure** (Barlow Condensed 700, tabular): gauges, costs, Cooldowns.
+- **Hero** (Barlow Condensed 800 italic, 3.2rem, gold metal fill, skewed): a card's damage.
+- **Label** (Barlow Semi Condensed 700, 0.68rem, tracked 0.16em, uppercase): one short label above a
+  group.
 
 ## Layout
 
-Dense and gridded. Panels pack their contents with the `--fgt-gap` rhythm (0.5rem) and multiples
-of it. Every surface lives inside Foundry's layout:
-
-- **The action bar** mounts in Foundry's `#ui-bottom`, above the hotbar, on its own Night
-  backing. It stays clear of the players list, the hotbar and the chat input. The turn panel
-  is its right-hand segment.
-- **Chat cards** fit the sidebar's width (about 300px). Long breakdowns fold behind a toggle.
-- **The actor sheet** opens at 900×720: the portrait card on the left and the tabbed content
-  on the right. Below 760px the card stacks on top.
+- **The action bar** mounts in Foundry's `#ui-bottom`, above the hotbar, and fills the middle column
+  in three columns: who (the medal, the effect strip, the gauges), what they can do (rows of slots),
+  and the Turn (End Turn pinned to its foot).
+- **Chat cards** are plates in the sidebar's width. Each opens with the reader's role banner.
+- **The actor sheet** opens at 900×720: the portrait card's column on the left, the tabs across
+  the top of the right, the pane below. Under 760px the card stacks on top.
 
 ## Elevation & Depth
 
-Flat by default. Surfaces separate by tone: Night Sunken for wells, Night for the base, Night
-Raised for panels and controls. A 1px Dusk Line draws edges. There are no resting shadows. Depth
-for state is a glow or ring in Gold Leaf: `box-shadow: inset 0 0 0 1px var(--fgt-gold)` for an
-armed or selected control, and `0 0 4px var(--fgt-gold)` for a ready one.
-
-### Named Rules
-**The Tone Not Shadow Rule.** A panel is lifted by a lighter tone, never by a drop shadow over
-the canvas.
+Depth is layered, not flat. A plate lifts off the board with a soft drop shadow
+(`drop-shadow(0 16px 26px rgb(0 0 0 / 65%))`). Inside a plate, tone separates the wells. Glow is
+kept for state: a ready Noble Phantasm breathes crimson, an answer to a Counter breathes gold, and
+the reader's own side of a duel is ringed in gold.
 
 ## Shapes
 
-Small, square-shouldered corners. 4px (`--fgt-radius`) for panels, slots, buttons and cards. 2px
-for tracks and inline marks. A full pill only for chips and pips. Borders are 1px. The FGO-style
-portrait card is the one framed shape: a 2px frame in the faction colour.
+Corners are cut, never rounded: 10 to 18px on plates, 6 to 10px on buttons and tiles. Tabs, chips
+and buttons are slanted parallelograms. Skill gems and buff diamonds are rotated squares. Gauges and
+Parameter segments are skewed. The portrait card is the one tall frame.
 
 ## Components
 
 ### Slots (action bar)
-Square 40px controls holding an icon, on Night Raised with a Dusk Line edge.
-- **Ready:** full ink.
-- **Disabled:** `fgt-slot--disabled` dims the slot and keeps its tooltip, the refusal, on
-  hover. The `disabled` attribute stays off so the tooltip shows.
-- **On (a mode or a waiting plan):** `fgt-slot--on` wears the gold ring.
-- **Armed (a Counter):** the Attack slot glows Gold Leaf. Every other slot dims, with its
-  reason.
+Metal tiles with cut corners. A ready slot's glyph is lit gold. A Cooldown closes a conic shade over
+it with its figure. A disabled slot is desaturated, with its refusal in the tooltip. A Noble
+Phantasm's slot is larger and crimson, and breathes when ready. An armed Counter lights what can
+answer and darkens the rest.
 
-### Buttons
-Crisp and tactile.
-- **Shape:** 4px radius.
-- **Default:** Night Raised, Bone Ink, 1px Dusk Line.
-- **Hover / Focus:** the border turns Gold Leaf, and a `:focus-visible` ring shows.
-- **Pressed:** a 1px inset, under 100ms.
+### Gauges
+A word, a skewed track and a figure. When a resource falls, the fill drops at once and a pale ghost
+of the loss drains after it (`ActionBar#animateGauges`).
+
+### Effects
+Every effect shows its own picture in a metal frame (crimson for a debuff), with a diamond on its
+corner: teal with an up-arrow for a buff, red with a down-arrow for a debuff. Foundry's stock icons
+are no one's art, so a sparkle glyph stands in for them until the effect has its own.
 
 ### Cards (chat)
-Each card is the audit record of one Process or Skill use, on the system's surface, not core's
-parchment. It follows the interface theme.
-- **Corner Style:** 4px.
-- **Background:** Night Raised, or Parchment Raised in the light theme.
-- **Rows:** each row says whose it is, what changed and which die decided it.
+A plate whose edge is the reader's role: crimson for the attacker, blue for the defender, split for
+the GM, gold for an observer. A banner says it in words with an icon. The duel row shows each side's
+public face and marks the reader's own **YOU**. A Noble Phantasm's ribbon is crimson. The damage is
+the hero figure, counted up once when the card lands. A whisper's edge is dashed.
+
+### The Noble Phantasm cut-in
+When a Noble Phantasm is declared, every client sees a crimson band sweep the board with its name,
+over a flash and the summoning circle, in under two seconds (`apps/chat/cut-in.mjs`). It is held
+back under reduced motion and Foundry's photosensitive mode.
 
 ### Tabs (actor sheet)
-Big buttons across the top, in FGO's arrangement: Overview, Abilities, Effects, Details. The
-active tab is Gold Leaf with Night text, and the rest are Night Raised.
+Slanted plates with an icon and a word. The active tab is gold metal with dark lettering. Opening a
+tab lets its sections rise in. A render never replays it.
 
 ### Portrait Card (actor sheet, signature)
-The Unit's portrait sits square in a frame of its faction colour on a Night backdrop. With no
-portrait, the class icon shows large. The foot prints the class and the name through the identity
-reader the bar uses, so a concealed Unit stays concealed. Servants, Masters, civilians and summons
-have one. Platforms and structures keep a plain header.
+A tall frame in the faction's colour: the face over a turning summoning circle. A Unit with no face
+shows its class crest large and centred. The foot gives the class in gold metal Cinzel and the name
+beneath, both through the identity reader.
 
 ### Skill Rows (actor sheet)
-In FGO's order: "SKILL n" and its cooldown on the left, an icon tile, the name with its Rank,
-then the text, with the use buttons at the right. The icon tile shows a glyph per kind (Skill,
-Noble Phantasm, Mode), tinted ready or on cooldown. It never shows the generic item bag.
+In FGO's order: "SKILL n" with the Cooldown, a diamond gem holding the ability's art or its kind's
+glyph (gold when usable), the name with its Rank, the text, and a gold USE.
 
 ### Parameter Bars (actor sheet)
-Each Parameter is a segmented bar with its letter Rank beside it.
+The key, six skewed segments from E to EX lit ember-gold to the Rank in force (EX in white gold), and
+the letter Rank.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** define every colour as a `--fgt-*` token for both themes.
-- **Do** pair every hue with a shape, an icon or a word (D29.7).
-- **Do** name a refusal in the engine's own words, on the control it refuses.
-- **Do** animate only what a player starts (a tab switch, a press, a card unfolding), under
-  200ms with ease-out, and turn it off under `prefers-reduced-motion`.
+- **Do** define every colour as a `--fgt-*` token.
+- **Do** pair every hue with an icon, an arrow or a word (D29.7).
+- **Do** keep core's window positioning when dressing a window (`plate($position: null)`).
+- **Do** gate every motion on `prefers-reduced-motion`, and the cut-in on photosensitive mode too.
 - **Do** keep every class name and `data-*` attribute that code or tests read.
 
 ### Don't:
-- **Don't** animate a re-render. The bar re-renders on nearly every hook.
-- **Don't** use gold as decoration (The Gold Means State Rule).
-- **Don't** cast a resting shadow over the canvas (The Tone Not Shadow Rule).
-- **Don't** load a font from outside Foundry.
-- **Don't** show the generic item bag as an ability's icon.
+- **Don't** animate a re-render. A part re-renders as a fresh element.
+- **Don't** spend crimson on decoration.
+- **Don't** load a font from outside the system.
+- **Don't** show Foundry's item bag or silhouette as a picture. Use the kind's glyph or the class crest.

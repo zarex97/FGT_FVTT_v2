@@ -24,14 +24,15 @@ import { isDelivery } from "../../rules/delivery.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
-import { detectRangeOf } from "../../rules/identity.mjs";
+import { detectRangeOf, publicNameOf } from "../../rules/identity.mjs";
+import { abilityArt } from "../hud/present.mjs";
 import { hasGranted, GRANTS } from "../../rules/granted.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
 import { actedWeight, multiServantRule } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost, abilityNamesOf,
-  groupEffects, describeModifier, remainingTurns,
+  groupEffects, describeModifier, remainingTurns, portraitCard,
 } from "./present.mjs";
 import { warRule, currentWar, descriptionFor } from "../../engine/war.mjs";
 
@@ -290,6 +291,19 @@ function headerContext(actor, snapshot) {
 
   return {
     factionColor: faction?.color ?? "var(--fgt-gold)",
+    // FGO's framed portrait (#364): the face and the name this viewer is
+    // entitled to, through the same reader the action bar and the cards use, so
+    // a concealed Servant's card says "Assassin" to an opponent. `null` for a
+    // platform or a structure, which keep the plain header.
+    card: portraitCard({
+      type: actor.type,
+      img: (concealed && system.defaultImage) ? system.defaultImage : actor.img,
+      defaultImage: system.defaultImage ?? null,
+      classId: system.classContainer ?? null,
+      className: cardClassName(actor),
+      // fgt-name-ok: the true name only where `concealed` says this viewer may see it
+      name: concealed ? publicNameOf(snapshot, currentBoard(), {}) : actor.name,
+    }),
     line: identityLine(actor),
     showTrueName: Boolean(system.trueName) && !concealed,
     trueName: system.trueName ?? "",
@@ -309,6 +323,22 @@ function headerContext(actor, snapshot) {
       ...resourceBar(system[key]),
     })),
   };
+}
+
+/**
+ * The class on the portrait card's foot: the container a Servant is seen as,
+ * or what the actor is when it has none (a Master, a civilian, a summon).
+ *
+ * @param {object} actor
+ * @returns {string}
+ */
+function cardClassName(actor) {
+  const system = actor.system;
+  if (system.classContainer) return titleCase(system.classContainer);
+  // Spread first: `servantClasses` is a SetField, so it arrives as a `Set`.
+  const classes = [...(formSheet(actor).servantClasses ?? [])];
+  if (classes.length) return classes.map(titleCase).join(" / ");
+  return game.i18n.localize(`TYPES.Actor.${actor.type}`);
 }
 
 /**
@@ -681,10 +711,15 @@ export function abilitiesContext(actor, snapshot, turnsPerRound, boardNow = curr
   // The order every reference sheet prints them in. An ability with no `kind`
   // falls in with the personal skills rather than vanishing -- content that
   // omits the field is common and losing it from the sheet would be silent.
+  //
+  // Each group is numbered from 1, the "SKILL 1" of FGO's skill rows (#364).
+  // Keyed by the GROUP, never the item's own `kind`, so a kind the label has no
+  // key for still reads "Skill 3".
+  const numbered = (list, slotKind) => list.map((card, i) => ({ ...card, slot: i + 1, slotKind }));
   return {
-    classSkills: cards.filter((c) => c.kind === "classSkill"),
-    skills: cards.filter((c) => c.kind !== "classSkill" && c.kind !== "noblePhantasm"),
-    noblePhantasms: cards.filter((c) => c.kind === "noblePhantasm"),
+    classSkills: numbered(cards.filter((c) => c.kind === "classSkill"), "classSkill"),
+    skills: numbered(cards.filter((c) => c.kind !== "classSkill" && c.kind !== "noblePhantasm"), "skill"),
+    noblePhantasms: numbered(cards.filter((c) => c.kind === "noblePhantasm"), "noblePhantasm"),
     anyAbilities: cards.length > 0,
   };
 }
@@ -720,14 +755,20 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
   });
 
+  const isNP = item.type === "noblePhantasm" || Boolean(item.system.isNP);
   return {
     id: item.id,
     hiddenInThisWar: verdict.reason === "notInThisWar",
     name: item.name,
-    img: item.img,
+    // Its own art, or its kind's glyph in place of Foundry's item bag, as on
+    // the action bar (#364 ruling 19). `img` is null when the glyph stands in.
+    ...abilityArt({ img: item.img, group: use.toggles ? "mode" : (isNP ? "np" : "skill") }),
+    // The Cooldown as authored, which is a ◈ expression ("4◈"), not a number:
+    // FGO's "Cooldown" under the skill's number. None for a passive.
+    cooldownMax: use.kind === "passive" ? null : (item.system.cooldown?.max ?? null),
     rank: item.system.rank ?? null,
     kind: item.type === "noblePhantasm" ? "noblePhantasm" : (item.system.kind ?? "skill"),
-    isNP: item.type === "noblePhantasm" || Boolean(item.system.isNP),
+    isNP,
     // The sheet's `{R}`, `{M}` or `{S}` at the Attack's head (#281); none when it
     // states nothing and is measured by Range.
     delivery: isDelivery(item.system.damage?.delivery) ? item.system.damage.delivery : null,
@@ -816,6 +857,9 @@ function effectsContext(actor, snapshot, tick) {
 
   const decorate = (rows) => rows.map((row) => ({
     ...row,
+    // Its picture (#364); Foundry's stock icons are no one's art, and the
+    // glyph stands in for them, as it does on the action bar.
+    art: row.img && !row.img.startsWith("icons/svg/") ? row.img : null,
     remaining: remainingTurns(row.expiry, tick),
     ...sourceOf(row),
   }));

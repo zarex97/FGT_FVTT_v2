@@ -17,6 +17,7 @@ import { currentHealth } from "../../domain/health.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { preventerName } from "../../rules/budget.mjs";
 import { magnitudeOf, polarityOf } from "../../rules/effect-instance.mjs";
+import { GRADES } from "../../domain/enums.mjs";
 
 /**
  * The five parameters, in the order every reference sheet prints them.
@@ -102,6 +103,9 @@ export function parameterTiles(parameters, grantedSteps = {}, effective = null) 
     return {
       key,
       rank,
+      // The bar beside the letter, FGO's way (#364): filled to the Rank in
+      // force, because that is the one every rule reads.
+      segments: rankSegments(now ?? rank),
       // The transition, shown only when there IS one. The written Rank stays on
       // the tile and stays editable -- it is the one field on this sheet whose
       // job is being checkable against the paper sheet it came from -- and the
@@ -118,6 +122,82 @@ export function parameterTiles(parameters, grantedSteps = {}, effective = null) 
       granted: steps > 0,
     };
   });
+}
+
+/**
+ * A Rank as a bar of six segments, E to EX (#364).
+ *
+ * Only the letter fills: `+` steps are printed beside the bar and never
+ * stretch it, so A and A+++ fill the same five. A value off the ladder (none
+ * written, "—", a typo) fills nothing rather than guessing.
+ *
+ * @param {string|null} rank
+ * @returns {boolean[]} six, filled from the left
+ */
+export function rankSegments(rank) {
+  const text = String(rank ?? "").trim().toUpperCase();
+  const base = text.startsWith("EX") ? "EX" : text.charAt(0);
+  const filled = GRADES.indexOf(base) + 1;
+  return GRADES.map((_, i) => i < filled);
+}
+
+/** The actor types that get the portrait card; the rest keep a plain header. */
+export const PORTRAIT_CARD_TYPES = Object.freeze(["servant", "master", "civilian", "summon"]);
+
+/** Foundry's placeholder face, which an actor with no portrait carries. */
+const BLANK_PORTRAIT = "icons/svg/mystery-man.svg";
+
+/** Where the system ships a class's icon. */
+const CLASS_ICON_ROOT = "systems/fgt/assets/classes/";
+
+/**
+ * The classes `assets/classes/` holds an icon for. Not `SERVANT_CLASSES`:
+ * Saver is a class no roster Servant holds yet, and it has no icon to show.
+ */
+export const CLASS_ICONS = Object.freeze([
+  "saber", "archer", "lancer", "rider", "caster", "assassin", "berserker", "ruler",
+  "avenger", "alterEgo", "foreigner", "moonCancer", "pretender", "beast", "shielder",
+]);
+
+/**
+ * The portrait card, after FGO's Servant screen (#364 rulings 13-17).
+ *
+ * The face is the one this viewer is entitled to, already decided by the
+ * caller. With no face at all (Foundry's placeholder silhouette), the class
+ * icon shows large in its place: the Unit's own `defaultImage`, which content
+ * authors for exactly this, or the system's icon for its class. When the name
+ * this viewer may see IS the class, a concealed Servant's, the foot says it
+ * once.
+ *
+ * @param {object} args
+ * @param {string} args.type the actor type
+ * @param {string|null} args.img the face this viewer is entitled to
+ * @param {string|null} [args.defaultImage] the Unit's authored class image
+ * @param {string|null} args.classId the class container, when there is one
+ * @param {string} args.className the class, or the actor type, as words
+ * @param {string} args.name the name this viewer is entitled to
+ * @returns {{img: string, isClassIcon: boolean, className: string|null, name: string}|null}
+ */
+export function portraitCard({ type, img, defaultImage = null, classId, className, name }) {
+  if (!PORTRAIT_CARD_TYPES.includes(type)) return null;
+  const classIcon = defaultImage || (CLASS_ICONS.includes(classId) ? `${CLASS_ICON_ROOT}${classId}.webp` : null);
+  const face = isBlankPortrait(img) && classIcon ? classIcon : img;
+  return {
+    img: face || BLANK_PORTRAIT,
+    isClassIcon: Boolean(classIcon) && face === classIcon,
+    className: className === name ? null : className,
+    name,
+  };
+}
+
+/**
+ * Whether a face is no face: none at all, or Foundry's placeholder silhouette.
+ *
+ * @param {string|null|undefined} img
+ * @returns {boolean}
+ */
+export function isBlankPortrait(img) {
+  return !img || img === BLANK_PORTRAIT;
 }
 
 /**

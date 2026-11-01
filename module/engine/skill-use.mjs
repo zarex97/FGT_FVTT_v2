@@ -1965,6 +1965,8 @@ export async function postCard(actor, ability, targets, applied) {
       return {
         name: who && !line.startsWith(`${who}:`) ? `${who}: ${line}` : line,
         controllers: ownersOf(unitActor(a.unitId)),
+        // Which effect, so the card can show its picture and its polarity (#364).
+        effectId: a.summary?.id ?? null,
       };
     });
 
