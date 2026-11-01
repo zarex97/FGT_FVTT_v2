@@ -12,7 +12,9 @@
 // Every one of these has a shape, an icon or a word beside it wherever it is
 // used. Colour is never the only signal (D29.7).
 
-.fgt {
+// What each theme moves. Mixins, because a chat card reads the interface's
+// theme where core forces the chat log light (below).
+@mixin dark-palette {
   --fgt-bg: #17161c;
   --fgt-bg-raised: #21202a;
   --fgt-bg-sunken: #100f14;
@@ -21,11 +23,31 @@
   --fgt-line: #3a3644;
 
   --fgt-gold: #c9a227;
-  --fgt-crimson: #9b2226;
-
+  --fgt-built: #77aacc;
   --fgt-ok: #4c9a5b;
   --fgt-warn: #c8860d;
   --fgt-danger: #c0392b;
+}
+
+@mixin light-palette {
+  --fgt-bg: #f2eee3;
+  --fgt-bg-raised: #fffdf7;
+  --fgt-bg-sunken: #e3ddcd;
+  --fgt-ink: #23201a;
+  --fgt-ink-dim: #6a6458;
+  --fgt-line: #c5bda8;
+
+  --fgt-gold: #8a6d12;
+  --fgt-built: #2f6b8f;
+  --fgt-ok: #2f6b3a;
+  --fgt-warn: #96650a;
+  --fgt-danger: #94291d;
+}
+
+.fgt {
+  @include dark-palette;
+
+  --fgt-crimson: #9b2226;
 
   // The three depleting resources (§6). Distinguishable under deuteranopia and
   // protanopia, which is why Agility is teal rather than the obvious green.
@@ -36,10 +58,6 @@
   // Overwritten per sheet from the faction's own colour, which the board and
   // the HUD already read from `rules/factions.mjs`.
   --fgt-faction: var(--fgt-gold);
-
-  // A built field's ring on its Noble Phantasm's slot: a different fact from a
-  // mode switched on, so a different hue beside the same ring shape.
-  --fgt-built: #77aacc;
 
   // Behind a portrait in BOTH themes: the class icons a concealed or unpainted
   // Unit shows are white glyphs, and vanished on the light theme's parchment.
@@ -65,16 +83,13 @@
 
 .theme-light .fgt,
 .fgt.theme-light {
-  --fgt-bg: #f2eee3;
-  --fgt-bg-raised: #fffdf7;
-  --fgt-bg-sunken: #e3ddcd;
-  --fgt-ink: #23201a;
-  --fgt-ink-dim: #6a6458;
-  --fgt-line: #c5bda8;
+  @include light-palette;
+}
 
-  --fgt-gold: #8a6d12;
-  --fgt-built: #2f6b8f;
-  --fgt-ok: #2f6b3a;
-  --fgt-warn: #96650a;
-  --fgt-danger: #94291d;
+// Core forces the chat log light (`ol.chat-log.themed.theme-light`), because
+// its messages sit on parchment. A system card is off the parchment, so it
+// follows the interface instead (#364): dark cards in a dark sidebar. The chat
+// popout, outside `#interface` and forced light by core, stays light.
+#interface.theme-dark .fgt.fgt-message {
+  @include dark-palette;
 }

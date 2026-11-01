@@ -13,6 +13,7 @@ A single card is read by many viewers, and each reads a different version of the
 | File | Role |
 |---|---|
 | `module/apps/chat/cards.mjs` | Creating and updating attack cards; redacting breakdowns per viewer |
+| `module/apps/chat/surface.mjs` | Marking a card's message so it wears the system's surface and theme (#364) |
 | `module/rules/card-visibility.mjs` | Computing what each viewer should see: `cardFor`, `skillEffectsFor`, `redactBreakdown` |
 | `module/rules/roll-log.mjs` | Roll records: every roll, what moved it, and what replaced it |
 | `module/rules/game-log.mjs` | Log entries, appending, GM overrides, export payload (rules layer) |
@@ -25,6 +26,12 @@ A single card is read by many viewers, and each reads a different version of the
 ### Building and updating cards
 
 `renderAttackCard` creates a new attack message with the card context and stores process state on message flags (`module/apps/chat/cards.mjs:26-50`). `updateAttackCard` re-renders the card when the process advances, pulling state from the message flag and refreshing the template context (`module/apps/chat/cards.mjs:57-74`). The deadline for timeouts is stored on the message itself, so two clients cannot disagree by clock drift (`module/apps/chat/cards.mjs:67-69`).
+
+### How a card looks (#364)
+
+A message that holds a system card is marked `fgt fgt-message` by `markSystemCard` (`module/apps/chat/surface.mjs`), the first thing the `renderChatMessageHTML` hook does. `fgt` carries the `--fgt-*` tokens and `fgt-message` keys the message's frame, so the card sits on the system's surface in place of core's parchment (`DESIGN.md`, *Cards*). A player's own chat line has no card and stays on the parchment.
+
+The card follows the interface's theme, which core does not do for its own messages: it forces `ol.chat-log` to `themed theme-light`, because they sit on parchment. `#interface.theme-dark .fgt.fgt-message` re-applies the dark palette (`styles/src/_tokens.scss`). The chat popout lies outside `#interface` and core forces it light, so it stays light. A whispered or blind message keeps its meaning by shape: a dashed frame beside core's "To:" line. A decision that waits on this viewer is framed in gold, and one that waits on someone else is framed in the line colour. A defeat's frame takes the danger hue. Every fold (breakdown, rolls, ladder) starts closed.
 
 ### Card visibility
 
