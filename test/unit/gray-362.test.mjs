@@ -179,3 +179,15 @@ describe("options she reads", () => {
     expect(multiplierOf(block, { use: { criteriaMet: 2 }, chaldea: true })).toBeCloseTo(4.4);
   });
 });
+
+describe("a non-damaging Process is no successful Attack (#362 Q9)", () => {
+  it("is marked on its attack spec, and every hit counter and hearer asks the mark", async () => {
+    const { readFileSync } = await import("node:fs");
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(attack).toMatch(/nonDamaging: Boolean\(onlyReactions\(ability\)\)/);
+    expect(attack).toMatch(/const struck = !state\.attack\?\.nonDamaging;/);
+    expect(attack).toMatch(/!s\.attack\?\.nonDamaging/);
+    expect(attack).toMatch(/!p\.st\.attack\?\.nonDamaging/);
+    expect(readFileSync("module/rules/use-record.mjs", "utf8")).toMatch(/!p\.state\.attack\?\.nonDamaging/);
+  });
+});
