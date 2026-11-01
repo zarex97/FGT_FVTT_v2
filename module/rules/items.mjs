@@ -18,6 +18,7 @@ import { currentHealth, maxHealth, watermarkKey } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
 import { EffectRegistry } from "./registry.mjs";
+import { resourceLabel } from "../domain/resources.mjs";
 import { phaseAt, inOwnHomeBase } from "./environment.mjs";
 
 /**
@@ -744,6 +745,20 @@ function requirementDetail(req, ctx) {
   // The Skill it needs and lacks: *"Allows the use of Vishnu Bhuja"* read
   // "Requires a Skill this Unit does not have." on Rama's bar (#347, live).
   if (req.kind === "hasSkill") return { detail: { names: req.name ?? req.abilityId ?? "" } };
+  // The pool and how much of it, never "the pool it spends": Rhongomyniad
+  // Mythos reads 40 Mythos Counters and spends none (#362 reading 19, live).
+  if (req.kind === "resourceAtLeast") {
+    return { detail: { amount: req.amount ?? 0, held: resourceHeld(ctx.unit, req.key), pool: resourceLabel(req.key) } };
+  }
+  // A predicate gate on an effect held, by its name: Rhongomyniad *"Can only be
+  // used while Gray has the 'Logos' effect"* read "Its conditions are not met
+  // right now" (#362, live).
+  if (req.kind === "predicate") {
+    const needs = [req.predicate ?? []].flat()
+      .filter((o) => typeof o === "string" && o.startsWith("self:effect:"))
+      .map((o) => EffectRegistry.get(o.slice("self:effect:".length))?.name ?? o.slice("self:effect:".length));
+    return needs.length > 0 ? { reason: "needsEffect", detail: { names: needs.join(", ") } } : {};
+  }
   // The platform it waits on, by the name the requirement authors (#351).
   if (req.kind === "platformActive" || req.kind === "platformInactive") return { detail: { names: req.name ?? req.contentId ?? "" } };
   if (req.kind === "abilityAllows") {

@@ -10,7 +10,7 @@ The system has **four duration kinds** besides ◈:
 - *this turn* — expires immediately at turn end, carrying zero remaining turns (`module/domain/tick.mjs:221-222`).
 - *permanent*, *until <event>*, *N times* — not time-limited. `permanent` effects stay forever; `until <event>` carry the event on the instance (`endsOn`) and `fireEvent` removes them when it fires on their bearer, so Mannanán's Crit Up *"for that Combat Phase"* is `until combatPhaseEnd` (`module/engine/scheduler.mjs#fireEvent`). An event handler's `ApplyEffect` carries it too (#208 reading 12): the action stamps `duration` for an `until <event>` and `engine/applier.mjs#entryOfIntent` forwards that one form, so EMIYA's Circuits last *"for the rest of the Round"* as `until roundEnd`. It had kept only `expiry` and dropped the duration, and the effect was permanent. A unit hears `combatPhaseEnd` only if the Phase involved it (the attacker and its defenders), so an effect that must end with the Phase is applied to those. The event name keeps its case; use counts are removed by consumption. All resolve to `INFINITE` for comparison purposes (`module/domain/tick.mjs:223-228`).
 
-Fractions **always round down** (`module/domain/tick.mjs:68`), with one published exception: ½◈ at 3 turns per round is 2 turns, not 1. That exception lives in the source's own published table rather than in a rounding hack, so it stays visible (`module/domain/tick.mjs:29-33`).
+Fractions **always round down**, and never to nothing: a span that would floor to 0 is 1 Turn (`module/domain/tick.mjs#roundsToTicks`). Ruled 2026-11-01 (#362): there is no exception. The published table once made ½◈ at 3 Turns a Round 2; it is 1, and the table is gone. A **sum of spans** — five criteria's ½◈ each, four Dragon Tooth Warriors' ⅔◈ each, Sieg's 1◈ + ½◈ × d4 — is added up in ◈ first and converted once, by the same rule (`engine/cooldown.mjs#countBonusTicks`, `perUnit`, `engine/transform.mjs#lastingTurns`): five ½◈ at 3 Turns a Round are 2½◈, 7 Turns.
 
 ## Where it lives
 
@@ -53,7 +53,7 @@ The return type is `TickExpr`, a discriminated union with six variants: `kind: "
 - `permanent`, `untilEvent`, `uses`: return `INFINITE` — these don't count down.
 - `rounds`: multiply the whole number by `turnsPerRound`, then add the fractional part via `fractionTicks`.
 
-The fraction resolution calls `TICK_OVERRIDES` first — the source's own exception table (`module/domain/tick.mjs:29-33`) — and falls back to floor division (`module/domain/tick.mjs:65-69`). The negative fractional adjustments are clamped: `0◈-2/3◈` at 3 turns per round resolves to 0, not negative (`module/domain/tick.mjs:233`).
+The fraction resolution is floor division, never below 1 (`module/domain/tick.mjs#roundsToTicks`). The negative fractional adjustments are clamped: `0◈-2/3◈` at 3 turns per round resolves to 0, not negative (`module/domain/tick.mjs:233`).
 
 ### Setting and consumers
 
@@ -103,7 +103,8 @@ its boundary late, never not at all, and `globalTurn` cannot stand still under a
 
 ## Traps and anti-patterns
 
-**Leaving a table's gaps to fall through to a generic rule.** `TICK_OVERRIDES` covers only the
+**Leaving a table's gaps to fall through to a generic rule.** (History: the table was removed on
+2026-11-01, #362, when its one exception was ruled away; the minimum of one Turn below stands.) `TICK_OVERRIDES` covered only the
 three published rulesets, and `fractionTicks` fell through to plain `Math.floor` for anything else
 — but the table exists specifically because a rounding rule can be *wrong* (its own `3 → "1/2"` cell
 overrides `floor` for exactly that reason), so falling back to the rule the table was written to

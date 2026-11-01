@@ -76,6 +76,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Siegfried (#341): Armor of Fafnir's Total cut by the attack's Rank, its
   // bypass from behind and the Max Health it wounds; Rheingold's longer cut.
   "AttackRankTier", "Defenceless", "WoundsMaxHealth", "CooldownCutOverride",
+  // Gray (#362): King's Reflection's ⅓◈ natural tick.
+  "NaturalTick",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage
   // block, so `Pierce` had no effect document despite being in Appendix A.

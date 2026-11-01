@@ -141,8 +141,7 @@ export function manifestFor(spec, { owner, board, chosenAllyIds = [], rolls = {}
  * **The worked example is a three-Turns-per-Round example and nothing else.**
  * ◈ is turns-per-Round and varies by war variant — 3 for the Great Holy Grail
  * War, 8 for the Holy Grail War, 15 for Snowfield — so ⅓◈ is 1, 2 or 5 Turns
- * respectively, and those come from `TICK_OVERRIDES` rather than from
- * `floor(turns / 3)`, which disagrees at every one of them. Hard-coding the 5
+ * respectively, rounded down by `domain/tick.mjs#roundsToTicks`. Hard-coding the 5
  * would silently shorten every war that is not the Great Holy Grail War.
  *
  * @param {object} spec the platform's `dimension`

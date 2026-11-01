@@ -1,0 +1,54 @@
+# Anti-Spirit Combat, Rank B (#362 AS.*).
+#
+# > "(Passive) All damage dealt to Units with the 'Spirit' or 'Undead' Attribute
+# > is increased by 40% including NP. Gain 1 additional Mythos Counter for every
+# > Unit with those Attributes hit by a successful Attack.
+# > (Active) Used during your Turn. Has the following effects-
+# > 1. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+# > 2. Applies Dmg Up (Grave) for 1◈ Turns, all damage dealt to Units with the
+# >    'Spirit' or 'Undead' Attribute is (further) increased by 60%.
+# > Cooldown: 4◈ Turns"
+#
+# The passive is Dmg Up (Gods)'s shape on two Attributes, *Spirit* implied by
+# *Servant* (readings 2, 3), allies her line catches included (reading 27). The
+# Mythos gain is every Attack she makes, per Unit it successfully Attacked that
+# holds either Attribute (reading 4, #239): `attackLanded` hands its handlers the
+# Units it landed on as `targets`, each asked as `self:` (the Count's subject). Dmg Up (Grave) adds to the 40 (reading 26).
+schema: 1
+id: gray-anti-spirit-combat
+name: "Anti-Spirit Combat"
+rank: B
+kind: skill
+slug: antiSpiritCombat
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage dealt to Units with the 'Spirit' or 'Undead' Attribute is increased by 40% including NP. Gain
+  1 additional Mythos Counter for every Unit with those Attributes hit by a successful Attack.
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+  2. Applies @effect[dmgUpGrave]{Dmg Up (Grave)} for 1◈ Turns, all damage dealt to Units with the 'Spirit' or
+     'Undead' Attribute is (further) increased by 60%.
+  Cooldown: 4◈ Turns
+passiveRules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: 40
+    predicate:
+      - { anyOf: ["target:attribute:spirit", "target:attribute:undead"] }
+  - key: OnEvent
+    event: attackLanded
+    automatic: true
+    then:
+      - key: ResourceDelta
+        resource: mythos
+        delta: 1
+        count: { of: targets, requires: [{ anyOf: ["self:attribute:spirit", "self:attribute:undead"] }] }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+      - { id: dmgUpGrave, magnitude: 60, duration: "1◈" }

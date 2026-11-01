@@ -233,7 +233,9 @@ export const TABLES = Object.freeze({
 
   /**
    * Contract rolls required. The top band is **absolute** — not "very many
-   * rolls". Rule Breaker's `bypassesContractRoll` does not defeat it (Q48).
+   * rolls" — against a contract by rolls or by conquest. Rule Breaker is no
+   * contract in that sense and takes the Servant anyway (ruled 2026-11-01, #362
+   * Q11, overturning Q48): `engine/attack.mjs#cutContract` never asks this.
    */
   independentActionContract: {
     kind: "banded",
@@ -489,8 +491,8 @@ export function lookup(id, rank) {
     case "scaled": {
       // A published exception, consulted before the arithmetic and matched on
       // the EXACT rank. Data rather than a special case in the lookup, the same
-      // way `TICK_OVERRIDES` carries the source's own fraction table
-      // (`domain/tick.mjs`): a ladder that is right at six ranks and wrong at a
+      // way a published fraction table once was (`domain/tick.mjs`): a ladder
+      // that is right at six ranks and wrong at a
       // seventh is still the ladder, and hiding the seventh inside a rounding
       // rule is how it stops being checkable.
       const override = table.overrides?.[rank.toString()];

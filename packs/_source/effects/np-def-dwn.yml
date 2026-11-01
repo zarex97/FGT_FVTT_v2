@@ -1,0 +1,24 @@
+# NP Def Dwn: Gray's Rhongomyniad (#362 reading 8).
+#
+# > "Then, all affected enemy Units are inflicted with ~~Def Dwn (B)~~ NP Def
+# > Dwn for 1◈ Turns, all NP damage received is increased by ~~20%; if NP,~~
+# > 30%"
+#
+# The struck text is deleted: an NP's damage taken rises by the magnitude, and
+# nothing else does. No `npValue`: the full figure against an NP, as Def Dwn
+# (C)'s "including NP" is written.
+schema: 1
+id: npDefDwn
+name: "NP Def Dwn"
+description: "All NP damage received is increased by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    predicate: ["attack:kind:np"]

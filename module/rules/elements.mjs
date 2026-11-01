@@ -84,7 +84,7 @@ export function empty() {
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [], lethalCancels: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
-    defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [],
+    defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [], naturalTicks: [],
     attackAllowances: [], bansAlliedServantAttacks: [], attackNullifiers: [], attackRiders: [],
   };
 }
@@ -1540,6 +1540,27 @@ export const EXECUTORS = Object.freeze({
       return;
     }
     out.cooldownCutOverrides.push({ slot: el.slot, ticks: el.ticks, source });
+  },
+
+  /**
+   * A Cooldown's own Turn tick, replaced on some Turns (#362 reading 5).
+   *
+   * > *"At the end of Gray's Turn and at the end of any Turns she Acts, her NP
+   * > Cooldown is reduced by ⅓◈ Turns instead of 1 Turn."* (King's Reflection)
+   *
+   * `on` names the Turns it holds: `ownTurn` (her side's), `acted` (a Turn she
+   * Acted in, an Evade, a Block or a Counter among them). Once a Turn when both
+   * hold. A rate that stops or reverses the clock (NP Lock, NP Degen, NP Lag)
+   * still wins, and NP Regen still adds (`engine/scheduler.mjs#cooldownRate`).
+   */
+  NaturalTick(el, { source, out }) {
+    const on = Array.isArray(el.on) ? el.on.filter((w) => w === "ownTurn" || w === "acted") : [];
+    if (typeof el.ticks !== "string" || on.length === 0 || (el.scope !== "np" && el.scope !== "all")) {
+      console.error(`FGT | NaturalTick from ${source} needs ticks, a scope (np, all) and on (ownTurn, acted).`);
+      out.unhandled.push({ key: el.key, source });
+      return;
+    }
+    out.naturalTicks.push({ scope: el.scope, ticks: el.ticks, on, source });
   },
 
   /**

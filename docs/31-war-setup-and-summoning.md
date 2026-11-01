@@ -56,6 +56,13 @@ hand (`barredInGrandOrder`). **An Extra slot seats a Servant under its own Class
 for a core slot and the Servant's authored `classContainer` for an Extra one, so a Beast reads "Beast" with the Beast
 icon rather than "Extra", for which no image exists.
 
+**The Chaldea Faction** (#362 readings 21, 29). The War Rule `chaldeaFaction` names one of the War's factions
+(`choicesFrom: factions`, a select of the roster), read only while `grandOrder` holds. Three sheets print *"If X is
+summoned in a Grand Order Holy Grail War on the Chaldea Faction, the multiplier of [the NP] begins at 4x instead of
+3x"* (Gray, Lanceturia, Arthur): the damage block's `multiplier.grandOrderBase` replaces its `base` there
+(`rules/count.mjs#multiplierOf`'s `chaldea`, asked of the attacker's own faction at the declaration). The cost and
+the Cooldown stay as printed.
+
 **A companion is never drawn alone** (#209 readings 1, 8, ruled 2026-10-14). `catalogueEntryOf` builds every catalogue row from the index entry `servantCatalogue` fetched (`system.servantClasses`, `system.classContainer`, `system.linkedGroup.summonTogether`), and marks a Servant summoned together with its partners whose slot is not one of its own classes as a *companion*: Castor, an Avenger who sits in his twin's Saber slot. `candidatesFor` skips a companion for every container, core and `EXTRA` alike, so the Dioscuri fill a Saber slot through Pollux and nothing else — never an Avenger slot, and not `EXTRA`, where an Avenger used to land — and drawing Pollux brings Castor in the same commit. The companion is a role of the relationship, not of a class: nothing else in the corpus changes slot. Both sheets author `classContainer: saber`, so both read "Saber" (or "Saber of" and the faction's name) to an enemy until `identityRevealed`, with the Saber class image as their token. **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): content sync does not rewrite it on a Servant already in the world, so a pair summoned before #218 keeps "avenger" until it is re-summoned or edited (`servantClasses` is pack-owned and does update); a fresh pair comes from war setup, which writes the slot to both.
 
 ### Building the board

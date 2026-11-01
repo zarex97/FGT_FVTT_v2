@@ -306,7 +306,9 @@ export async function landEffect(entry, ctx) {
     // a landed debuff, Roma Stacks on an ally are not one (#315, #320).
     polarity: def.polarity ?? null, // fgt-polarity-ok: the landed definition this landing decided
     trace: result.trace ?? [],
-    summary: { id: def.id, name: stagedName(def, intents, outcome), outcome, reason, chance: line },
+    // The name its granting sheet gives this instance: Gray's Hoodie is
+    // Presence Concealment E, and every card calls it Hoodie (#362 FK.same).
+    summary: { id: def.id, name: entry.params?.name ?? stagedName(def, intents, outcome), outcome, reason, chance: line },
   };
 }
 
@@ -537,6 +539,9 @@ function casterUnitOf(ctx, board) {
 function optionsFor(caster, target, ctx) {
   const options = rollOptionsFor({ attacker: caster, defender: target, attack: ctx.attack ?? null });
   for (const o of ctx.attackOptions ?? []) options.add(o);
+  // How the recipient stands to the caster: Rhongomyniad's debuffs reach the
+  // enemies its line hits and no ally (#362 reading 15).
+  if (caster && target) options.add(`target:relation:${relationOf(caster, target, ctx.board ?? currentBoard())}`);
   return options;
 }
 

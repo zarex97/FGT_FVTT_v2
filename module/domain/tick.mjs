@@ -8,29 +8,13 @@
  * Holy Grail War, 15 for post-True-Masters Snowfield. Content is authored once
  * as `"1◈+⅔◈"` and resolves correctly in every variant (success criterion SC-3).
  *
- * Fractions **always round down**, with one published exception (½◈ at 3
- * turns/round is 2, not 1). That exception lives in {@link TICK_OVERRIDES} as
- * data rather than in a rounding hack, so it stays visible.
+ * Fractions **always round down**, and never to nothing: a span that floors to
+ * 0 is 1 Turn. Ruled 2026-11-01 (#362): the one published exception, ½◈ at 3
+ * Turns a Round being 2, is gone, and its table with it; ½◈ at 3 is 1. A sum of
+ * spans is converted once, through the same rule ({@link roundsToTicks}).
  */
 
 import { INFINITE } from "./enums.mjs";
-
-/**
- * The source's published fraction table. Consulted before the floor rule.
- *
- * Every cell here except `3 → "1/2"` agrees with `floor(fraction × turns)`. That
- * one does not: floor gives 1, the source says 2. A half-round of one turn out
- * of three is degenerate — it would make "half a round" shorter than "a third of
- * a round" — so the exception is almost certainly deliberate.
- *
- * @see docs/04-time-model.md
- * @type {Readonly<Record<number, Readonly<Record<string, number>>>>}
- */
-export const TICK_OVERRIDES = Object.freeze({
-  3: Object.freeze({ "1/3": 1, "2/3": 2, "1/2": 2 }),
-  8: Object.freeze({ "1/3": 2, "2/3": 5, "1/2": 4 }),
-  15: Object.freeze({ "1/3": 5, "2/3": 10, "1/2": 7 }),
-});
 
 /** Unicode vulgar fractions the authoring format accepts. */
 const VULGAR = Object.freeze({
@@ -63,15 +47,28 @@ const VULGAR = Object.freeze({
  * @returns {number}
  */
 export function fractionTicks(num, den, turnsPerRound) {
-  const override = TICK_OVERRIDES[turnsPerRound]?.[`${num}/${den}`];
-  if (override !== undefined) return override;
-  const floored = Math.floor((num / den) * turnsPerRound);
-  // A stated fraction must never round away to nothing (#21). The override
-  // table above exists because a rounding rule can be WRONG, not because zero
-  // is ever an acceptable answer to "how long": `1/3◈` at `turnsPerRound: 2`
-  // is outside the table and floors to zero, which is not a shorter duration,
-  // it is the duration failing to apply at all.
-  return num > 0 ? Math.max(1, floored) : floored;
+  return roundsToTicks(num / den, turnsPerRound);
+}
+
+/**
+ * A span of Rounds, whole or fractional or a sum of several, as whole Turns.
+ *
+ * Rounded DOWN, once, and never to nothing (#21): `1/3◈` at `turnsPerRound: 2`
+ * floors to zero, which is not a shorter duration, it is the duration failing
+ * to apply at all, so it is 1. Ruled 2026-11-01 (#362): a sum of spans (five
+ * criteria's ½◈ each, four Warriors' ⅔◈ each) is added up first and converted
+ * here once, the sign kept apart so a cut rounds the way a growth does.
+ *
+ * @param {number} rounds a signed number of Rounds
+ * @param {number} turnsPerRound
+ * @returns {number} whole Turns, signed
+ */
+export function roundsToTicks(rounds, turnsPerRound) {
+  if (!Number.isFinite(rounds) || rounds === 0) return 0;
+  const sign = rounds < 0 ? -1 : 1;
+  // A hair over, so `3 × ⅓ × 3` lands on 3 and not on 2.999….
+  const floored = Math.floor(Math.abs(rounds) * turnsPerRound + 1e-9);
+  return sign * Math.max(1, floored);
 }
 
 /**

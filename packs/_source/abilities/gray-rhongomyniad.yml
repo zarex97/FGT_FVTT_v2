@@ -1,0 +1,117 @@
+# Rhongomyniad: The Spear That Shines To The Ends Of The World, Rank A+ (#362 RH.*).
+#
+# > "Can only be used while Gray has the 'Logos' effect. Applies Pierce for ⅓◈
+# > Turns to herself. Base Attack (MAG) is used. Hits a 1x6 or 6x1 panel area in
+# > any direction next to Gray (if diagonal, 1x5 or 5x1). ... If none of the
+# > criteria are met, Rhongomyniad deals 3x damage plus 100. For every criteria
+# > that is met, damage dealt is increased by 0.2x ... When Rhongomyniad is used
+# > and none of the criteria are met, Gray's Master loses 30 Health as the cost
+# > for this NP. For every criteria that is met, his Master loses an additional
+# > 10 Health. Then, all affected enemy Units are inflicted with NP Def Dwn for
+# > 1◈ Turns, all NP damage received is increased by 30%; and inflicted with Def
+# > Dwn (C) for 1◈ Turns, all damage received is increased by 20%, and Agility is
+# > reduced by 1 whenever damage is received from an Attack. Then, NP Cooldown is
+# > reduced by 1 Turn for each Criteria that is met and gain 2 Mythos Counters for
+# > every Unit hit by this NP. Cooldown: 5◈ Turns if no criteria are met,
+# > increases by ½◈ Turns for every criteria that is met."
+#
+# Lanceturia's six criteria word for word (#283, #319, #336), on Danzō's line
+# next to her (reading 14). The line names no relation: allies in it are hit and
+# are DUs (reading 15), and only enemies take the two debuffs
+# (`target:relation:enemy`). Logos is its gate and stays (reading 12). Pierce on
+# her before the hit, and the NP pierces (reading 13). The Master's cost replaces
+# the Rank table (reading 17). Her clock starts at 5◈ + ½◈ per criterion, then
+# every NP clock falls 1 Turn per criterion, this one included (reading 18). 2
+# Mythos per Unit it successfully Attacked, allies too, an Evade not (reading
+# 16). The Grand Order note: on the Chaldea Faction the multiplier starts at 4x
+# (`grandOrderBase`, readings 21, 29).
+schema: 1
+id: gray-rhongomyniad
+name: "Rhongomyniad: The Spear That Shines To The Ends Of The World"
+rank: "A+"
+kind: noblePhantasm
+slug: rhongomyniad
+isNP: true
+npTags: [antiFortress]
+copyable: { allowed: false, reason: named }
+cooldown:
+  max: "5◈"
+  countBonus:
+    - { ticks: "½◈", direction: up, count: { of: criteria } }
+timing: { window: ownTurn }
+requirements:
+  - { kind: predicate, predicate: ["self:effect:logos"] }
+description: |
+  Can only be used while Gray has the '@effect[logos]{Logos}' effect. Applies @effect[pierce]{Pierce} for ⅓◈ Turns
+  to herself. Base Attack (MAG) is used. Hits a 1x6 or 6x1 panel area in any direction next to Gray (if diagonal,
+  1x5 or 5x1). Damage dealt depends on how many of the following criteria are met-
+  1. At least two DUs have at least 3 Parameters respectively that are equal to or higher than Gray's.
+  2. There is only one DU in the NP area.
+  3. At least two DUs have the 'Evil' Alignment.
+  4. Gray's Health is less than at least two of the DUs.
+  5. None of the DUs have at least 3 Parameters respectively that are two Ranks below Gray's.
+  6. None of the DUs have the 'Elemental' Attribute.
+  If none of the criteria are met, Rhongomyniad deals 3x damage plus 100. For every criteria that is met, damage
+  dealt is increased by 0.2x (e.g. 4 criteria met, damage=3.8x).
+  Note: Criteria 1, 3, 4, and 5 are also accounted for when Criteria 2 is fulfilled, in this case the single DU needs
+  to meet the conditions of the Criteria for them to be fulfilled.
+  When Rhongomyniad is used and none of the criteria are met, Gray's Master loses 30 Health as the cost for this NP.
+  For every criteria that is met, his Master loses an additional 10 Health.
+  Then, all affected enemy Units are inflicted with @effect[npDefDwn]{NP Def Dwn} for 1◈ Turns, all NP damage
+  received is increased by 30%; and inflicted with @effect[defDwnC]{Def Dwn (C)} for 1◈ Turns, all damage received is
+  increased by 20%, and Agility is reduced by 1 whenever damage is received from an Attack. Then, NP Cooldown is
+  reduced by 1 Turn for each Criteria that is met and gain 2 Mythos Counters for every Unit hit by this NP.
+  Cooldown: 5◈ Turns if no criteria are met, increases by ½◈ Turns for every criteria that is met.
+  Note: If Gray is summoned in a Grand Order Holy Grail War on the Chaldea Faction, the multiplier of Rhongomyniad
+  begins at 4x instead of 3x.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: line, length: 6, diagonalLength: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+criteria:
+  - { targets: ["target:paramsVsSelf:gte:3"], atLeast: 2 }
+  - { targets: [], exactly: 1 }
+  - { targets: ["target:morality:evil"], atLeast: 2 }
+  - { targets: ["target:healthVsSelf:gt"], atLeast: 2 }
+  - { targets: ["target:paramsVsSelf:belowBy2:3"], none: true }
+  - { targets: ["target:attribute:elemental"], none: true }
+damage:
+  component: mag
+  multiplier: { base: 3, per: 0.2, count: { of: criteria }, grandOrderBase: 4 }
+  flatBonus: 100
+  pierce: true
+additionalCosts:
+  - id: rhongomyniad
+    kind: masterHealth
+    amount: { base: 30, per: 10, count: { of: criteria } }
+    supersedes: [npCost]
+passiveRules:
+  # "Then, NP Cooldown is reduced by 1 Turn for each Criteria that is met": once
+  # per declaration, after its clock is settled, on every NP she holds.
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    ofContentId: [gray-rhongomyniad]
+    then:
+      - { key: CooldownDelta, scope: np, ticks: "1 turns", times: "@criteriaMet" }
+  # "...and gain 2 Mythos Counters for every Unit hit by this NP."
+  - key: OnEvent
+    event: attackLanded
+    automatic: true
+    predicate: ["attack:madeWith:gray-rhongomyniad"]
+    then:
+      - { key: ResourceDelta, resource: mythos, delta: 2, count: { of: targets } }
+phases:
+  # Before the hit, so the NP pierces too (reading 13).
+  - kind: applyEffects
+    when: beforeDamage
+    target: self
+    effects:
+      - { id: pierce, duration: "⅓◈" }
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDefDwn, magnitude: 30, duration: "1◈", predicate: ["target:relation:enemy"] }
+      - { id: defDwnC, magnitude: 20, duration: "1◈", predicate: ["target:relation:enemy"] }

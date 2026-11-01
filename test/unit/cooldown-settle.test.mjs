@@ -36,8 +36,9 @@ describe("a clock sized by what the use did", () => {
       noteLanding(r, { defId: "poison", polarity: "debuff", outcome: "resisted" });
       noteLanding(r, { defId: "atkUp", polarity: "buff", outcome: "applied" });
     });
-    // 1◈ = 3 Turns; ½◈ × n rounded up once over the whole: 2, 3.
-    expect([0, 1, 2].map((n) => ticksOf(cd, debuffs(n)))).toEqual([3, 5, 6]);
+    // 1◈ = 3 Turns; ½◈ × n summed and rounded down once, never to nothing
+    // (ruled 2026-11-01, #362): 1, 3.
+    expect([0, 1, 2].map((n) => ticksOf(cd, debuffs(n)))).toEqual([3, 4, 6]);
   });
 
   it("Kurohime-shape: 3◈ on use:missed, 6◈ otherwise", () => {

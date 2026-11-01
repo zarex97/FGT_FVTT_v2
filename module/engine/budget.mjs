@@ -46,7 +46,7 @@ export function budgetFor(combat, factionId) {
  * @param {string} action
  * @returns {{ok: boolean, reason: string|null}}
  */
-export function affordable(combat, unit, action) {
+export function affordable(combat, unit, action, { ignoring = [] } = {}) {
   warnUnknownAction(action, "affordable");
   // The first Round forbids every Attack (Ch. 29 step 12), Counters included,
   // so it is asked before the own-Turn exemption below. Here, where the bar
@@ -67,7 +67,7 @@ export function affordable(combat, unit, action) {
   // reaction because of how aggressive they were a Turn ago. Rho Aias is a
   // shield (Ch. 46 §46.4-AZ).
   if (attackOutsideOwnTurn(combat, unit, action)) return { ok: true, reason: null };
-  const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action);
+  const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action, { ignoring });
   return { ok: verdict.ok, reason: verdict.reason };
 }
 
@@ -186,6 +186,8 @@ export async function spend({ combat, unit, action, ability = null, board = null
     // Phantasm, not of being a twin, and their other attacks charge one each.
     alsoCountsAsAttackFor: ability?.system?.alsoCountsAsAttackFor || null,
     board,
+    // The effects its sheet says do not reach it (Face of the King, #362).
+    ignoring: [...(ability?.system?.unaffectedBy ?? [])],
   });
   if (!result.ok) return { ok: false, reason: result.reason };
 

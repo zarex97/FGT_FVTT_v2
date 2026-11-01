@@ -79,18 +79,23 @@ const pending = new Map();
  *
  * @param {string} unitId
  * @param {string} [reason]
- * @param {{granted?: boolean}} [opts] `granted`: the instance carried its own Rank (Dongyū)
+ * @param {{granted?: boolean, skill?: string|null}} [opts] `granted`: the instance carried its own Rank
+ *   (Dongyū); `skill`: the slug of the Skill that gave it and whose clock its end starts (Hoodie)
  * @returns {Promise<void>}
  */
-export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS.expired, { granted = false } = {}) {
+export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS.expired, { granted = false, skill: from = null } = {}) {
   const actor = unitActor(unitId);
   if (!actor) return;
 
   // A GRANTED concealment (Dongyū's, with its own Rank on the instance) was not
   // the Unit's Skill used, so its end starts no clock on that Skill (#249
   // reading 4). The disclosure and the announcement below still run.
-  const skill = concealmentSkill(actor);
-  const ticks = granted ? 0 : cooldownTicks(skill);
+  // ...unless the instance names the Skill that gave it: Gray's Hoodie is
+  // Presence Concealment E from Face of the King, *"Cooldown: 1◈ Turns after the
+  // 'Hoodie' effect is removed from Gray"* (#362 FK.cd), that Skill's own clock.
+  const named = from ? [...(actor.items ?? [])].find((i) => i.system?.slug === from) ?? null : null;
+  const skill = named ?? concealmentSkill(actor);
+  const ticks = granted && !named ? 0 : cooldownTicks(skill);
   if (skill && ticks > 0) {
     await applyWorldIntents(
       [
@@ -128,7 +133,10 @@ export function attachConcealment() {
     pending.delete(unitId);
     // Not awaited: this reacts to a document change and blocking the hook would
     // block the write that fired it, exactly as `attachForcedModes` does.
-    onConcealmentRemoved(unitId, reason, { granted: Boolean(effect.system?.params?.rank) })
+    onConcealmentRemoved(unitId, reason, {
+      granted: Boolean(effect.system?.params?.rank),
+      skill: effect.system?.params?.skill ?? null,
+    })
       .catch((err) => console.error("FGT | Concealment aftermath:", err));
   });
 

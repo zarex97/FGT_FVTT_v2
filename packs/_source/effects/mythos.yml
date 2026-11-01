@@ -1,0 +1,42 @@
+# Mythos: Gray's Rhongomyniad Mythos (#362 MY.*).
+#
+# > "the DU is inflicted with the 'Mythos' debuff; this debuff ignores Debuff
+# > Resist & Immune effects. Its effects are as follows-
+# > 1. Attacks which use Base Attack (MAG) or deal MAG damage cannot be used. If
+# >    an Attack were to use Base Attack (STR) & Base Attack (MAG) combined,
+# >    damage calculation is performed only with Base Attack (STR).
+# > 2. Spells & NP cannot be used and their Passive effects are negated. The
+# >    exceptions to this effect are [Anti-Unit Mystic Sword] & [Anti-Unit Secret
+# >    Technique] NPs.
+# > 3. The effects of Divinity are negated.
+# > 4. This debuff is Unremovable except by an effect from a Rank EX Skill or NP."
+#
+# 1 is `Suppress scope: magAttack`: a MAG Attack refused, a Normal Attack's MAG
+#   band among them (reading 23), and a combined Base Attack read as STR alone.
+# 2 and 3 are `negatesAbilities`: a negated ability is refused and its rules are
+#   collected from nothing (`rules/snapshot.mjs#negated`). Spells by kind, a
+#   Master's too (reading 24); NPs but the two tagged exceptions (reading 28);
+#   Divinity whole, a Skill categorized as Divinity included (reading 25).
+# 4 is `removableOnlyBy`: a removal from a Rank EX Skill or NP takes it, any
+#   other leaves it with a line. No duration (reading 22).
+schema: 1
+id: mythos
+name: "Mythos"
+description: |
+  Attacks using Base Attack (MAG) or dealing MAG damage cannot be used; a combined Base Attack uses STR alone. Spells
+  and NPs cannot be used and their Passives are negated, except [Anti-Unit Mystic Sword] and [Anti-Unit Secret
+  Technique] NPs. Divinity is negated. Unremovable except by a Rank EX Skill or NP. Ignores Debuff Resist and Immune.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+bypassesImmunity: true
+bypassesResistance: true
+removableOnlyBy: { rank: EX }
+negatesAbilities:
+  - { spells: true }
+  - { nps: true, exceptTags: [[antiUnit, mysticSword], [antiUnit, secretTechnique]] }
+  - { categories: [divinity] }
+rules:
+  - { key: Suppress, scope: magAttack }

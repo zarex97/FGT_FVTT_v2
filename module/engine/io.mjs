@@ -487,7 +487,9 @@ export function worldIO() {
       const actor = resolve(unitId);
       if (!actor || effects.length === 0) return;
       const data = effects.map((e) => ({
-        name: e.name ?? e.defId,
+        // The name its granting sheet gives this instance (Hoodie, #362), then
+        // its definition's.
+        name: e.params?.name ?? e.name ?? e.defId,
         type: "fgtEffect",
         img: e.img ?? "icons/svg/aura.svg",
         origin: e.sourceUnitId ? `Actor.${e.sourceUnitId}` : undefined,

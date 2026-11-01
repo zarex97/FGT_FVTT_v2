@@ -252,6 +252,11 @@ export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {})
       detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
       return { ok: false, label: "FGT.Ability.NegatedBy", detail };
 
+    // A MAG seal, by the effect's name (Mythos, #362).
+    case "magSealed":
+      detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
+      return { ok: false, label: "FGT.Ability.Refused.magSealed", detail };
+
     case "round":
       // How far away, not just which Round: "Round 6" makes a player count.
       detail.away = Math.max(0, (detail.requiresRound ?? 0) - (detail.round ?? 0));
