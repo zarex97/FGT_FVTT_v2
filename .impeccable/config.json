@@ -1,0 +1,7 @@
+{
+  "detector": {
+    "extensions": [
+      { "ext": ".hbs", "engine": "html" }
+    ]
+  }
+}

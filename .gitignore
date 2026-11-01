@@ -16,3 +16,8 @@ graphify-out/
 # Staging for the ability editor's export. A `.export.json` here is one
 # `npm run stage:yaml` away from being content; it is never content itself.
 packs/_staged/
+
+# Impeccable's per-developer settings and live session state; .impeccable/config.json is shared.
+.impeccable/config.local.json
+.impeccable/live/
+.impeccable/hook.cache.json
