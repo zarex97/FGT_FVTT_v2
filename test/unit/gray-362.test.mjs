@@ -108,7 +108,8 @@ describe("the Mythos debuff (MY.*)", () => {
     expect(negatingEffectOf(item({ npTags: ["antiUnit", "mysticSword"] }, "noblePhantasm"), actor)).toBeNull();
     expect(negatingEffectOf(item({ npTags: ["antiArmy", "secretTechnique"] }, "noblePhantasm"), actor)).toBe("mythos");
     expect(negatingEffectOf(item({ slug: "divinity" }), actor)).toBe("mythos");
-    expect(negatingEffectOf(item({ slug: "goddessesDivineCore", categorizedAs: ["divinity"] }), actor)).toBe("mythos");
+    // A SetField on the document, as Foundry hands it (#362, live: `.includes` threw).
+    expect(negatingEffectOf(item({ slug: "goddessesDivineCore", categorizedAs: new Set(["divinity"]) }), actor)).toBe("mythos");
     expect(negatingEffectOf(item({ slug: "faceOfTheKing" }), actor)).toBeNull();
     expect(negatingEffectOf(item({ isSpell: true }), { effects: [] })).toBeNull();
   });

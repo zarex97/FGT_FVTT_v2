@@ -32,7 +32,9 @@ export function endingsBefore(intents) {
     const actor = unitActor(i.unitId);
     const defId = actor?.effects?.get?.(i.effectId)?.system?.defId ?? i.defId ?? i.effectId;
     const def = EffectRegistry.get(defId);
-    if (!def || !((def.onRemove ?? []).length > 0 || def.extension)) continue;
+    // ...or an `onExpire`: Logos running out places its lockout, and the card
+    // named the lockout and not the Logos that ended (#362, live).
+    if (!def || !((def.onRemove ?? []).length > 0 || (def.onExpire ?? []).length > 0 || def.extension)) continue;
     const h = actor?.system?.health;
     const pools = Object.fromEntries(Object.entries(actor?.system?.resources ?? {})
       .map(([k, v]) => [k, Number(v?.value)]).filter(([, v]) => Number.isFinite(v)));
