@@ -133,11 +133,11 @@ export function skillEffectsFor(rows, viewer) {
   const all = rows ?? [];
   const isCaster = (viewer?.casterControllers ?? []).includes(viewer?.id);
   if (viewer?.isGM || viewer?.openTable || isCaster) {
-    return { names: all.map((r) => r.name), hidden: 0 };
+    return { names: all.map((r) => r.name), rows: all, hidden: 0 };
   }
 
   const mine = all.filter((r) => (r.controllers ?? []).includes(viewer?.id));
-  return { names: mine.map((r) => r.name), hidden: all.length - mine.length };
+  return { names: mine.map((r) => r.name), rows: mine, hidden: all.length - mine.length };
 }
 
 /**

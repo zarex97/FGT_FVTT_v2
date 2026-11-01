@@ -6,7 +6,7 @@
  * the same split `apps/actor-sheet/present.mjs` already uses.
  */
 import { describe, it, expect } from "vitest";
-import { portraitBlock, slotFor, rowsFor, modeSlotVerdict, GROUP_GLYPH } from "../../module/apps/hud/present.mjs";
+import { portraitBlock, slotFor, rowsFor, modeSlotVerdict, GROUP_GLYPH, cooldownPct, isBlankPortrait } from "../../module/apps/hud/present.mjs";
 
 const ability = (over = {}) => ({
   id: "a1", name: "Mystic Eyes", img: "art.webp", isNP: false,
@@ -59,7 +59,7 @@ describe("slotFor", () => {
 
   it("shows the remaining ticks while cooling", () => {
     const s = slotFor(ability({ cooldownRemaining: 3 }), { verdict: { ok: true }, turnsPerRound: 3 });
-    expect(s.cooldown).toEqual({ remaining: 3, label: "1◈" });
+    expect(s.cooldown).toEqual({ remaining: 3, label: "1◈", pct: 100 });
     expect(s.disabled).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("slotFor", () => {
     // 20 of the Master's Health, and the slot greyed "Cooldown 1◈ (3 turns)".
     const overCooldown = { kind: "masterHealth", amount: 20, unitId: "m", id: "overCooldown" };
     const s = slotFor(ability({ cooldownRemaining: 3 }), { verdict: { ok: true, overCooldown }, turnsPerRound: 3 });
-    expect(s.cooldown).toEqual({ remaining: 3, label: "1◈" });
+    expect(s.cooldown).toEqual({ remaining: 3, label: "1◈", pct: 100 });
     expect(s).toMatchObject({ disabled: false, reason: null, overCooldown });
   });
 
@@ -223,5 +223,38 @@ describe("slotFor in counter mode", () => {
     const slot = slotFor(np, { verdict: ok });
     expect(slot.counter).toBe(false);
     expect(slot.disabled).toBe(false);
+  });
+});
+
+// #364. The slot's closing wipe reads the authored Cooldown, a ◈ expression
+// ("4◈", read live off Gray's Skills), against the turns still to run.
+describe("cooldownPct", () => {
+  it("is the share of the authored Cooldown still to run", () => {
+    expect(cooldownPct(6, "4◈", 3)).toBe(50);
+    expect(cooldownPct(3, "1◈", 3)).toBe(100);
+    expect(cooldownPct(1, "1◈", 3)).toBe(33);
+  });
+
+  it("reads full when the maximum is unknown, or was exceeded", () => {
+    expect(cooldownPct(3, null, 3)).toBe(100);
+    expect(cooldownPct(9, "1◈", 3)).toBe(100);
+    expect(cooldownPct(2, "not a tick", 3)).toBe(100);
+  });
+
+  it("is what a cooling slot carries", () => {
+    const s = slotFor(ability({ cooldownRemaining: 6, cooldownMax: "4◈" }), { verdict: { ok: true }, turnsPerRound: 3 });
+    expect(s.cooldown.pct).toBe(50);
+  });
+});
+
+// #364. Gray carries Foundry's silhouette and an authored class image (live).
+describe("the medal's face", () => {
+  it("shows the authored class image for an owner whose Unit has no face", () => {
+    const out = portraitBlock({ kind: "servant", identityRevealed: false }, {
+      img: "icons/svg/mystery-man.svg", defaultImage: "systems/fgt/assets/classes/assassin.webp",
+      publicName: "Assassin", trueName: "Gray", isOwner: true,
+    });
+    expect(out).toMatchObject({ img: "systems/fgt/assets/classes/assassin.webp", name: "Gray" });
+    expect(isBlankPortrait("art.webp")).toBe(false);
   });
 });

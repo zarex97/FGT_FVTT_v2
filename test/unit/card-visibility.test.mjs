@@ -160,8 +160,8 @@ describe("a Skill card's effect list (Ch. 38)", () => {
   });
 
   it("survives an empty list", () => {
-    expect(skillEffectsFor([], { id: "x" })).toEqual({ names: [], hidden: 0 });
-    expect(skillEffectsFor(undefined, { id: "x" })).toEqual({ names: [], hidden: 0 });
+    expect(skillEffectsFor([], { id: "x" })).toEqual({ names: [], rows: [], hidden: 0 });
+    expect(skillEffectsFor(undefined, { id: "x" })).toEqual({ names: [], rows: [], hidden: 0 });
   });
 });
 
@@ -378,9 +378,11 @@ describe("an open table", () => {
 
   it("names every effect on a Skill card", () => {
     const rows = [{ name: "Burn", controllers: ["u-a"] }, { name: "Atk Up", controllers: ["u-b"] }];
+    // The rows themselves ride beside the names: the card draws each one's
+    // picture from its `effectId` (#364).
     expect(skillEffectsFor(rows, { id: "u-c", openTable: true })).toEqual({
-      names: ["Burn", "Atk Up"], hidden: 0,
+      names: ["Burn", "Atk Up"], rows, hidden: 0,
     });
-    expect(skillEffectsFor(rows, { id: "u-c" })).toEqual({ names: [], hidden: 2 });
+    expect(skillEffectsFor(rows, { id: "u-c" })).toEqual({ names: [], rows: [], hidden: 2 });
   });
 });

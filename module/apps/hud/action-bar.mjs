@@ -25,8 +25,10 @@ import { heldNow } from "../../rules/form.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
-import { abilityCost, abilityState, abilityNamesOf } from "../actor-sheet/present.mjs";
-import { currentBoard, unitFrom, unitOf, luckOf, gateContext } from "../../engine/board.mjs";
+import { abilityCost, abilityState, abilityNamesOf, resourceBar, groupEffects, remainingTurns } from "../actor-sheet/present.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
+import { paintCircles } from "../ornament.mjs";
+import { currentBoard, currentTick, unitFrom, unitOf, luckOf, gateContext, faction } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
 import { isQueued } from "../../engine/queued-ends.mjs";
@@ -65,10 +67,37 @@ export const BAR_REFRESH_HOOKS = Object.freeze([
   "updateCombat", "fgtBudgetChanged", "fgtFieldChanged",
 ]);
 
+/**
+ * The Unit's effects for the bar's strip (#364): each with its picture, its
+ * polarity for the corner diamond, and the time it has left.
+ *
+ * The sheet's own grouping (`groupEffects`), so the strip and the Effects tab
+ * cannot disagree on which is a buff.
+ *
+ * @param {object} snapshot
+ * @param {number} turnsPerRound
+ * @returns {Array<{name: string, img: string|null, polarity: string, left: string}>}
+ */
+function barEffects(snapshot, turnsPerRound) {
+  const tick = currentTick();
+  const groups = groupEffects(snapshot.effectInstances ?? [], (id) => EffectRegistry.get(id), snapshot, { tick, turnsPerRound });
+  return [...groups.buffs, ...groups.debuffs, ...groups.statuses].map((row) => {
+    const turns = remainingTurns(row.expiry, tick);
+    return {
+      name: row.name,
+      // Foundry's stock icons are no one's art: the glyph stands in for them.
+      img: row.img && !row.img.startsWith("icons/svg/") ? row.img : null,
+      polarity: row.polarity,
+      left: turns ? ticksLabel(turns, turnsPerRound) : "∞",
+    };
+  });
+}
+
 export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "fgt-action-bar",
-    classes: ["fgt", "action-bar"],
+    // Night on every theme (#364): core's own controls inside follow suit.
+    classes: ["fgt", "action-bar", "themed", "theme-dark"],
     position: { width: "auto", height: "auto" },
     window: { frame: false, positioned: false },
     // The turn panel's three controls sit beside the bar's own, because the
@@ -406,25 +435,35 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const pins = (game.user.getFlag("fgt", "pins") ?? {})[actor.id] ?? [];
 
     return {
-      portrait: portraitBlock(snapshot, {
-        img: actor.img,
-        defaultImage: actor.system?.defaultImage ?? null,
-        publicName: publicNameOf(unit, board, { id: game.user.id }),
-        // fgt-name-ok: the bar of the player's own Unit
-        trueName: actor.name,
-        isOwner: actor.isOwner,
-      }),
+      portrait: {
+        ...portraitBlock(snapshot, {
+          img: actor.img,
+          defaultImage: actor.system?.defaultImage ?? null,
+          publicName: publicNameOf(unit, board, { id: game.user.id }),
+          // fgt-name-ok: the bar of the player's own Unit
+          trueName: actor.name,
+          isOwner: actor.isOwner,
+        }),
+        // The medal's ring, in the faction's own colour (#364).
+        factionColor: faction(actor.system?.factionId)?.color ?? null,
+      },
+      // What is on the Unit right now, each with its picture and its polarity,
+      // where the buttons are (#364).
+      effects: barEffects(snapshot, turnsPerRound),
       // `FGT.Resource.*`, which already exist. `FGT.Sheet.Health` is not a key
       // this system has.
+      //
+      // Each as a gauge (#364). `resourceBar` brings a `label` of its own (the
+      // reading), so the localization key is spread over it, not under it.
       resources: [
-        { label: "FGT.Resource.health", value: snapshot.health, max: actor.system?.health?.max ?? null },
-        { label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
-        { label: "FGT.Resource.luck", ...luckOf(board, actor) },
-      ],
+        { key: "health", label: "FGT.Resource.health", value: snapshot.health, max: actor.system?.health?.max ?? null },
+        { key: "agility", label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
+        { key: "luck", label: "FGT.Resource.luck", ...luckOf(board, actor) },
+      ].map((r) => ({ ...resourceBar(r), key: r.key, label: r.label })),
       // Ch. 06's pools — EMIYA's Aria, Semiramis's Construction, Scáthach's PRS
       // Tokens. They gate abilities, so a player choosing what to press needs
       // them where the buttons are and not one tab away on the sheet.
-      pools: poolsFor(snapshot.resources),
+      pools: poolsFor(snapshot.resources).map((p) => ({ ...resourceBar(p), label: p.label })),
       // Ch. 21. The banner, and what makes every slot below read as a Counter
       // choice rather than an ordinary one.
       counter: this.counter ? { armed: true } : null,
@@ -682,9 +721,21 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     else bottom.append(element);
   }
 
+  /**
+   * The gauges' last readings, per Unit, so a loss can be SHOWN: the fill
+   * drops at once and a pale ghost of what was lost drains after it (#364).
+   * A re-render draws the bar fresh; without this, a hit would simply be a
+   * shorter bar with nothing to say it had just changed.
+   *
+   * @type {Map<string, Record<string, number>>}
+   */
+  #lastGauges = new Map();
+
   /** @inheritdoc */
   _onRender(context, options) {
     super._onRender(context, options);
+    paintCircles(this.element);
+    this.#animateGauges();
 
     for (const el of this.element.querySelectorAll("[data-slot]")) {
       el.addEventListener("contextmenu", (event) => {
@@ -708,6 +759,31 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     if (dial && FACINGS.includes(facing)) {
       dial.style.transform = `rotate(${FACINGS.indexOf(facing) * 45 - 45}deg)`;
     }
+  }
+
+  /**
+   * Drain the ghost of a resource that just fell, and remember every reading.
+   * Nothing moves on a render that changed nothing, and nothing moves under
+   * reduced motion: the bar is simply drawn at its new value.
+   */
+  #animateGauges() {
+    const id = this.token?.actor?.id;
+    if (!id) return;
+    const before = this.#lastGauges.get(id) ?? {};
+    const now = {};
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const gauge of this.element.querySelectorAll("[data-gauge]")) {
+      const key = gauge.dataset.gauge;
+      const pct = Number(gauge.dataset.pct);
+      now[key] = pct;
+      const was = before[key];
+      const ghost = gauge.querySelector(".fgt-gauge__ghost");
+      if (calm || !ghost || !(was > pct)) continue;
+      ghost.style.width = `${was}%`;
+      gauge.classList.add("fgt-gauge--hit");
+      requestAnimationFrame(() => requestAnimationFrame(() => { ghost.style.width = `${pct}%`; }));
+    }
+    this.#lastGauges.set(id, now);
   }
 
   /**

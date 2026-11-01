@@ -1,25 +1,46 @@
 /**
- * @file The surface a chat card sits on.
+ * @file The surface a chat card sits on, and whose card it is to the reader.
  * @see docs/37-chat-and-log.md, DESIGN.md
  *
- * Pure: it reads and writes only the element it is handed.
+ * Pure: it reads and writes only what it is handed.
  */
 
 /**
  * Mark a message that holds one of this system's cards (#364).
  *
- * Core draws every message on its parchment with near-black ink, which sat
- * against the system's night-and-gold everywhere else. `fgt` carries the
- * `--fgt-*` tokens, so the card takes the interface's theme (`.theme-light
- * .fgt` on a light sidebar, the forced light chat popout too); `fgt-message`
- * is what the stylesheet keys the message's own frame on. A message with no
- * card (a player's chat line) is left on core's parchment.
+ * Core draws every message on its parchment with near-black ink, and forces
+ * the chat log light. `fgt` carries the `--fgt-*` tokens; `themed theme-dark`
+ * turns core's own variables dark inside the card, so its buttons and links
+ * agree with the plate; `fgt-message` is what the stylesheet keys the
+ * message's frame on. A message with no card (a player's chat line) is left
+ * on core's parchment.
  *
  * @param {HTMLElement} html the `li.chat-message` from `renderChatMessageHTML`
  * @returns {boolean} whether it was marked
  */
 export function markSystemCard(html) {
   if (!html?.querySelector?.(".fgt-card")) return false;
-  html.classList.add("fgt", "fgt-message");
+  html.classList.add("fgt", "fgt-message", "themed", "theme-dark");
   return true;
+}
+
+/**
+ * Whose card this is, to the one reading it (#364): the banner across its top,
+ * the frame's hue, and which side of the duel is marked YOU.
+ *
+ * A GM runs every side, so a GM reads `gm` whatever they own. A player who
+ * holds both sides (one table, two factions) reads `both`.
+ *
+ * @param {object} viewer
+ * @param {boolean} viewer.isGM
+ * @param {boolean} viewer.ownsActor the attacker, or a Skill's caster
+ * @param {boolean} viewer.ownsTarget the defender, or one a Skill landed on
+ * @returns {"gm"|"both"|"attacker"|"defender"|"observer"}
+ */
+export function viewerRole({ isGM = false, ownsActor = false, ownsTarget = false } = {}) {
+  if (isGM) return "gm";
+  if (ownsActor && ownsTarget) return "both";
+  if (ownsActor) return "attacker";
+  if (ownsTarget) return "defender";
+  return "observer";
 }
