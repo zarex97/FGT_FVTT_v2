@@ -661,6 +661,27 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     await performAction("facing", { actor, context: { facing: next } });
   }
 
+  /**
+   * Mount in Foundry's bottom band, above the hotbar (#364).
+   *
+   * Core appends a frameless application to `<body>`, so the bar was laid over
+   * the page by `position: fixed` at 1500px wide: it covered the players list
+   * on the left, the hotbar, and the chat input under the sidebar. Inside
+   * `#ui-bottom` core's own layout keeps it in the middle column, and it takes
+   * `#interface`'s theme, light or dark, with the rest of the interface.
+   *
+   * @inheritdoc
+   */
+  async _insertElement(element, options) {
+    const bottom = document.getElementById("ui-bottom");
+    if (!bottom) return super._insertElement(element, options);
+    const existing = document.getElementById(element.id);
+    if (existing) return existing.replaceWith(element);
+    const hotbar = document.getElementById("hotbar");
+    if (hotbar?.parentElement === bottom) hotbar.before(element);
+    else bottom.append(element);
+  }
+
   /** @inheritdoc */
   _onRender(context, options) {
     super._onRender(context, options);
