@@ -24,6 +24,12 @@
       {{#each parameters as |p|}}
         <label class="fgt-param{{#if p.granted}} fgt-param--granted{{/if}}">
           <span class="fgt-param__key">{{localize (concat "FGT.Param." p.key)}}</span>
+          {{!-- FGO's bar beside the letter (#364), filled to the Rank in force.
+                The letter beside it stays the word, so the bar is never the
+                only signal. --}}
+          <span class="fgt-param__bar" aria-hidden="true">
+            {{#each p.segments as |on|}}<span class="fgt-param__seg{{#if on}} fgt-param__seg--on{{/if}}"></span>{{/each}}
+          </span>
           <input class="fgt-param__rank" type="text" name="system.parameters.{{p.key}}"
                  value="{{p.rank}}" placeholder="—">
           {{#if p.shifted}}

@@ -8,24 +8,14 @@
  * `apps/actor-sheet/present.mjs`.
  */
 
-import { ticksLabel } from "../actor-sheet/present.mjs";
+import { ticksLabel, isBlankPortrait } from "../actor-sheet/present.mjs";
 import { ticks } from "../../domain/tick.mjs";
+
+// One reader of "no face", the sheet's; re-exported for the bar's callers.
+export { isBlankPortrait };
 
 /** The rows, in the order they are shown. */
 const ROW_ORDER = Object.freeze(["pinned", "actions", "skills", "np", "modes", "fields", "effects"]);
-
-/** Foundry's placeholder face, which an actor with no portrait carries. */
-const BLANK_PORTRAIT = "icons/svg/mystery-man.svg";
-
-/**
- * Whether a face is no face: none at all, or Foundry's placeholder silhouette.
- *
- * @param {string|null|undefined} img
- * @returns {boolean}
- */
-export function isBlankPortrait(img) {
-  return !img || img === BLANK_PORTRAIT;
-}
 
 /** Which row an ability's group lands in. */
 const GROUP_ROW = Object.freeze({ skill: "skills", np: "np", mode: "modes" });
