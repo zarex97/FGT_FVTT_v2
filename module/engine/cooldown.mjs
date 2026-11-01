@@ -15,7 +15,7 @@
  * the reference set, a per-unit rate resolved against what the use produced.
  */
 
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { parseTick, resolveTicks, roundsToTicks } from "../domain/tick.mjs";
 import { canSpend, resourcePath } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
@@ -91,7 +91,8 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}
   // ⅔◈)". Resolved first, because such an ability has no tick expression in
   // `max` and would otherwise fall through to "no cooldown at all".
   if (cd.perUnit) {
-    const ticks = Math.ceil(fractionOfRound(cd.perUnit) * turnsPerRound() * count);
+    // Summed, then rounded down once and never to nothing (ruled 2026-11-01, #362).
+    const ticks = roundsToTicks(fractionOfRound(cd.perUnit) * count, turnsPerRound());
     return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   }
 
@@ -260,9 +261,10 @@ function turnsPerRound() {
  * A cooldown's length ADDED per something counted (`countBonus`, #283).
  *
  * *"Cooldown: 5◈ Turns if no criteria are met, increases by ½◈ Turns for every
- * criteria that is met"* (Excalibur Proto). The fraction of a Round times the
- * count, rounded up once over the whole -- `perUnit`'s arithmetic -- so four
- * ½◈ are 2◈, not four roundings of 1.5 Turns.
+ * criteria that is met"* (Excalibur Proto, Gray's Rhongomyniad). The fractions
+ * of a Round summed over the count and converted ONCE, rounded down and never
+ * to nothing, as every ◈ span is (ruled 2026-11-01, #362: five ½◈ at 3 Turns a
+ * Round are 2½◈, 7 Turns; it had rounded up to 8).
  *
  * @param {object} cd the ability's cooldown block
  * @param {{unit?: object|null, use?: object}} ctx
@@ -278,7 +280,7 @@ function countBonusTicks(cd, { unit = null, use = {} } = {}) {
     const sign = bonus.direction === "down" ? -1 : 1;
     rounds += sign * fractionOfRound(bonus.ticks) * countOf(bonus.count, { use, self: unit });
   }
-  return Math.ceil(rounds * turnsPerRound());
+  return roundsToTicks(rounds, turnsPerRound());
 }
 
 /**

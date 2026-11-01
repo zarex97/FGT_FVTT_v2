@@ -394,6 +394,10 @@ describe("a non-damaging Noble Phantasm", () => {
       // Tamamo (#353): Yata no Kagami *"(Non-damaging)"* opens the Amaterasu
       // Area and restores who stands in it.
       "tamamo-yata-no-kagami",
+      // Gray's three test NPs for MY.2.except (#362): a self buff each, tagged.
+      "test-mythos-army-secret-technique",
+      "test-mythos-mystic-sword",
+      "test-mythos-secret-technique",
       // Vlad III (#330): Kazıklı Bey opens a field over Wallachia whose ticks
       // are no Attack; its Active 2 strikes with no Combat Process; Legend of
       // Dracula changes him for good and kills a Master in Wallachia.

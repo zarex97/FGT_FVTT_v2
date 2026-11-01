@@ -54,8 +54,8 @@ export const WAR_RULES = Object.freeze([
     name: "FGT.Settings.Ruleset", hint: "FGT.Settings.RulesetHint",
   },
   {
-    // `TICK_OVERRIDES` (domain/tick.mjs) only has rows for the three published
-    // rulesets, so the choice is closed to them (#21).
+    // The three published rulesets, and no other (#21): every ◈ span rounds
+    // down at each of them (`domain/tick.mjs#roundsToTicks`).
     key: "turnsPerRound", type: "number", initial: 3, locked: true,
     choices: { 3: "FGT.TurnsPerRound.GreatHolyGrailWar", 8: "FGT.TurnsPerRound.HolyGrailWar", 15: "FGT.TurnsPerRound.Snowfield" },
     name: "FGT.Settings.TurnsPerRound", hint: "FGT.Settings.TurnsPerRoundHint",

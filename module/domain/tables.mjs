@@ -489,8 +489,8 @@ export function lookup(id, rank) {
     case "scaled": {
       // A published exception, consulted before the arithmetic and matched on
       // the EXACT rank. Data rather than a special case in the lookup, the same
-      // way `TICK_OVERRIDES` carries the source's own fraction table
-      // (`domain/tick.mjs`): a ladder that is right at six ranks and wrong at a
+      // way a published fraction table once was (`domain/tick.mjs`): a ladder
+      // that is right at six ranks and wrong at a
       // seventh is still the ladder, and hiding the seventh inside a rounding
       // rule is how it stops being checkable.
       const override = table.overrides?.[rank.toString()];
