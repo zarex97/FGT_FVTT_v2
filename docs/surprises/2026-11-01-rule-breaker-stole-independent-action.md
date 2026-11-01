@@ -3,7 +3,8 @@ id: 2026-11-01-rule-breaker-stole-independent-action
 found: live press
 kind: rule-word-read-one-way
 status: wontfix
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Gray's Independent Action A+, *"Cannot be contracted by enemy Casters and Masters"*, would keep Medea's Rule Breaker from taking her: the table's top band is *"absolute … Rule Breaker's bypassesContractRoll does not defeat it (Q48)"*.
 **Actual:** Rule Breaker on Gray: Gray's `masterId` became Medea, her faction Faction 2 and her owner Player2; her Master's Command Spells were stripped.
