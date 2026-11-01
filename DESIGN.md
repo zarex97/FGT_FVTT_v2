@@ -205,6 +205,10 @@ Every effect shows its own picture in a metal frame (crimson for a debuff), with
 corner: teal with an up-arrow for a buff, red with a down-arrow for a debuff. Foundry's stock icons
 are no one's art, so a sparkle glyph stands in for them until the effect has its own.
 
+Every ability's and effect's picture follows the icon grammar in
+`docs/design/fgo-icon-visual-identity.md`: its family sets the hue and motif, and each row's concept is in
+the Codex (`docs/design/codex/`, built by `tools/codex/build-rows.mjs`).
+
 ### Cards (chat)
 A plate whose edge is the reader's role: crimson for the attacker, blue for the defender, split for
 the GM, gold for an observer. A banner says it in words with an icon. The duel row shows each side's

@@ -1,0 +1,2351 @@
+[
+ {
+  "id": "acNextNp",
+  "name": "Activated Circuits: Next NP",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Trace, On",
+  "share": "Unique",
+  "system": "The next time EMIYA uses an NP that deals damage, 2 Luck is restored and the Overdrive begins."
+ },
+ {
+  "id": "acOverdrive",
+  "name": "Activated Circuits: Overdrive",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Whenever EMIYA performs an Attack, his NP Cooldown is reduced by 2 Turns at the end of its Combat Process, hit or miss."
+ },
+ {
+  "id": "accel",
+  "name": "Accel",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Opponents cannot React to this Unit's Attacks."
+ },
+ {
+  "id": "activatedCircuits",
+  "name": "Activated Circuits (AC)",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Trace, On",
+  "share": "Unique",
+  "system": "While Unlimited Blade Works is Active, a Normal Attack restores 1 Luck and reduces EMIYA's NP Cooldown by 1 Turn at the end of the Combat Process, hit or miss. The next time EMIYA uses an NP that deals damage, restore 2 Luck; and for the rest of the Round, each Attack he performs reduces his NP Cooldown by 2 Turns at the end of its Combat Process, from the next Attack on (see the second clause and its Overdrive)."
+ },
+ {
+  "id": "agilityLoss",
+  "name": "Agility Loss",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · neutral",
+  "appliedBy": "Planet Olga Marie: The Already Passed End of the Human Order",
+  "share": "Unique",
+  "system": "Agility Checks, Evades included, always use the unfavourable table, regardless of whose Agility is higher."
+ },
+ {
+  "id": "aglDwn",
+  "name": "AGL Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Agility Check rolls, Evade included, are increased by X."
+ },
+ {
+  "id": "aglUp",
+  "name": "AGL Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Expert of Many Specializations, Invisible Air: Bounded Field of the Wind King",
+  "share": "Shared",
+  "system": "Agility Check rolls are reduced by X."
+ },
+ {
+  "id": "agni",
+  "name": "Agni",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Roar of the Flame God",
+  "share": "Unique",
+  "system": "Normal Attacks deal Fire damage with a 30% chance of inflicting Burn for 1◈ Turns. Three uses. Does not apply to, and is not consumed by, Attacks made with Mana Burst (Flames)."
+ },
+ {
+  "id": "aim",
+  "name": "Aim",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Full Acceleration: Spirit Eyes, Great Ram Nautilus: I Conquer, with Nautilus' Great Naval Ram, Gáe Bolg: Barbed Spear that Pierces with Death, Ice Block Launcher・Absolute Killer Baseball: Underthrow Freeze Sinker",
+  "share": "Shared",
+  "system": "Attacks ignore Dodge and the Evade action. Beaten by Substitution."
+ },
+ {
+  "id": "alpi",
+  "name": "Alpi",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "God Slayer",
+  "share": "Unique",
+  "system": "At the end of the Damage Step of a successful Attack, Noble Phantasm cooldown is reduced by ½◈ Turns — or by 1◈ Turns if the Defending Unit has the Undead or Divine Attribute. Three uses."
+ },
+ {
+  "id": "amaterasu",
+  "name": "Amaterasu",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Suiten Nikkou Amaterasu Yanoshisu Ishi・Yata no Kagami",
+  "share": "Unique",
+  "system": "Range +X while Yata no Kagami stands; Divinity in effect."
+ },
+ {
+  "id": "antiPurge",
+  "name": "Anti-Purge",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Akhilleus Kosmos: The Miniature World Enclosed by the Azure Sky, Avalon: The Everdistant Utopia, Gáe Bolg: Barbed Spear that Pierces with Death, Kazıklı Bey: The Lord of Execution",
+  "share": "Shared",
+  "system": "No damage from anything, including NP and Fixed damage, even against Pierce. Beats Invuln."
+ },
+ {
+  "id": "aphotic",
+  "name": "Aphotic",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Jusō・Kokutendō",
+  "share": "Unique",
+  "system": "Decoy. Cannot Evade; Dodge and Substitution have no effect. Automatically Blocks every Attack. All damage taken −30% (NP 15%). When Attacked, at the end of the Damage Step: Spell Cooldowns −⅓◈; if none is on Cooldown, NP Cooldowns −⅓◈; if none, gain Dmg Up (Aphotic) 15%."
+ },
+ {
+  "id": "areaCritUpAwarded",
+  "name": "Area CritUp (Awarded)",
+  "polarity": "buff",
+  "nature": "nonVolatile · supportive",
+  "appliedBy": "The Awarded Hero",
+  "share": "Unique",
+  "system": "Crit Chance is increased by 10% for this Unit, and by 5% for other allied Units within a 2 panel area of it."
+ },
+ {
+  "id": "areaCritUp",
+  "name": "Area CritUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · supportive",
+  "appliedBy": "De Sterrennacht: The Starry Night, Triumphal Return of the Holy Maiden",
+  "share": "Shared",
+  "system": "Crit Chance of all allied Units within a 2 panel area of this Unit is increased by X%."
+ },
+ {
+  "id": "atkDwn",
+  "name": "Atk Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Chaos Labyrinthos: Eternally Unchanging Labyrinth, Genji-clan Martial Arts Discipline, Prelati's Spellbook: Textbook of the Sunken Spiral Castle, Primordial Rune, Subversive Activities",
+  "share": "Shared",
+  "system": "All damage dealt is reduced by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "atkUpCharismaUnit",
+  "name": "Atk Up (Charisma)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Knight of Utopia, Wild Hunt",
+  "share": "Shared",
+  "system": "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms. A Charisma Skill's Atk Up."
+ },
+ {
+  "id": "atkUpCharisma",
+  "name": "Atk Up (Charisma)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Charisma",
+  "share": "Unique",
+  "system": "Allied Units within 2 panels deal X% more damage; a reduced magnitude applies to NP."
+ },
+ {
+  "id": "atkUpDemonic",
+  "name": "Atk Up (Demonic)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Mystery Slayer",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the Demonic Attribute is increased by X% including NP. No effect on Demi-Servants or Pseudo-Servants except Sitonai."
+ },
+ {
+  "id": "atkUpGreekMale",
+  "name": "Atk Up (GreekMale)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Howl of the War God",
+  "share": "Unique",
+  "system": "Damage dealt to Male Units from the Greece region is increased by X%, including NP."
+ },
+ {
+  "id": "atkUpMagus",
+  "name": "Atk Up (Magus)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Sealing Designation Enforcer",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Magus' Attribute is increased by X%, including NP."
+ },
+ {
+  "id": "atkUpMs",
+  "name": "Atk Up (MS)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Mystery Slayer",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the [Earth] or [Sky] Attribute is increased by X% including NP. No effect on Demi-Servants or Pseudo-Servants except Sitonai."
+ },
+ {
+  "id": "atkUpRedbranch",
+  "name": "Atk Up (Redbranch)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Shoal of Four Branches",
+  "share": "Unique",
+  "system": "All damage dealt is increased by X%; halved against Noble Phantasms."
+ },
+ {
+  "id": "atkUpShapeshift",
+  "name": "Atk Up (Shapeshift)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Legend of Dracula: The Succession of Blood, Shapeshift",
+  "share": "Shared",
+  "system": "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms. Doubled while Dracula."
+ },
+ {
+  "id": "atkUpStr",
+  "name": "Atk Up (STR)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bravery, Howl of the War God, Monstrous Snake Metamorphosis",
+  "share": "Shared",
+  "system": "Damage dealt which uses Base Attack (STR) is increased by X%; a reduced magnitude applies to NP."
+ },
+ {
+  "id": "atkUpTrace",
+  "name": "Atk Up (Trace)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Trace, On",
+  "share": "Unique",
+  "system": "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "atkUp",
+  "name": "Atk Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Affections of the Goddess, Airavata King Size: Colossal Silhouette Emerging From The Ocean of Life, Alice Eater, Anti-Spirit Combat, Avaricious Gold, Beyond the Uncharted, Blazing Golden Rule, Charisma, Charisma of the Sun, Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Danse Macabre, De Sterrennacht: The Starry Night, Doomsday Come: Come to Me, Realm of the Dead, Come to Me, Doppelganger, Dragon Slayer, Dragon's Reactor Core, Expert of Many Specializations, Eye of the Mind (True) EX, Flash of the Sun God, Flawlessness, Fox's Wedding, Fragarach Enbarr: Wildly Running Sword of the War God, Good God's Wisdom, Great Decisive Battle at the Southern Sea, Great Emperor Privilege, Guardians of Navigation, Guidance of the Netherworld, Gyakkou, Imperial Privilege, Indomitable, Journey's Guidance, Karakuri Genpō: Dongyū (Storm), Lethal Gunfire Suppression, Murderer of the Misty Night, Ocean Stirring Lion's Roar, Pharaoh of the Hot Sands, Planet Olga Marie: The Already Passed End of the Human Order, Prelati's Encouragement, Primordial Rune, Ramesseum Tentyris: Dendera Electric Bulb, Ramesseum Tentyris: Dendera Electric Bulb (Area), Roar of the Flame God, Rune Magic, Saint War Order: Rally Upon the Holy Banner and Roar, Sealing Designation Enforcer, Sealing Mystic Code Release, Shadow of Longing Falls Upon the Water in the Urn, Shvibzik (Summer), Straße/gehen: Schwert, Synthetic Limbs (Doll), Thunder God's Embodiment, Tommy Thumb's Secret Picture Book, Torrent of Light, Trace, On, Troias Tragōidia: Tempestuous Immortal Chariot, Voyager of the Storm, Ár",
+  "share": "Shared",
+  "system": "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "autoEvade",
+  "name": "Automatic Evasion",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Tροψα (Trofa)",
+  "share": "Unique",
+  "system": "The next Attack is Evaded automatically; against a Noble Phantasm, with a 50% chance."
+ },
+ {
+  "id": "avalonVeil",
+  "name": "Avalon",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Avalon: The Everdistant Utopia",
+  "share": "Unique",
+  "system": "All damage taken is reduced by X%, NP included."
+ },
+ {
+  "id": "balDwn",
+  "name": "Bal Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Attacks against this Unit have Crit Chance increased by X%. Not NP."
+ },
+ {
+  "id": "bcNextNp",
+  "name": "Blazing Circuits: Next NP",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Trace, On",
+  "share": "Unique",
+  "system": "The next time EMIYA uses an NP that deals damage, all damage he deals is increased by 20% for the rest of the Round."
+ },
+ {
+  "id": "bcOverdrive",
+  "name": "Blazing Circuits: Overdrive",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "All damage dealt is increased by X% including NP, from the next Attack on."
+ },
+ {
+  "id": "blazingCircuits",
+  "name": "Blazing Circuits (BC)",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Trace, On",
+  "share": "Unique",
+  "system": "While Unlimited Blade Works is Active, Normal Attack damage dealt is increased by 50. The next time EMIYA uses an NP that deals damage, all damage dealt by EMIYA is increased by 20% including NP for the rest of the Round, from the next Attack on (see the second clause)."
+ },
+ {
+  "id": "bleedAtk",
+  "name": "Bleed Atk",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Avyssos of Labrys",
+  "share": "Unique",
+  "system": "Normal Attacks have an X% chance of inflicting Bleed for 1◈ Turns."
+ },
+ {
+  "id": "bleed",
+  "name": "Bleed",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Avyssos of Labrys, Rock Snowball, Synthetic Limbs (Doll), Vishnu Bhuja: Sudarshana, Αερο (Aero)",
+  "share": "Shared",
+  "system": "Takes 50 Fixed damage at the end of its Turn and at the end of any Turn it Acts."
+ },
+ {
+  "id": "blind",
+  "name": "Blind",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Excalibur: Sword of Promised Victory, Mana Burst (Light/Ancient), Watermelon Splitting Master, Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "(1) 80% chance of Missing on attacks and enemy-affecting abilities. (2) Evade rolls are increased by 3. (3) 'Mystic Eye' and 'Glam Sight' Skills cannot be used. (4) With 'Clairvoyance': 40% Miss chance, and Evade rolls are increased by 2 instead. (5) Effects 1, 2 and 4 do not apply to a Unit with 'Eye of the Mind' active."
+ },
+ {
+  "id": "blockUp",
+  "name": "Block Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit's Block roll is increased by X."
+ },
+ {
+  "id": "buffChDwn",
+  "name": "Buff ChDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · supportive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "The chance of buffs this Unit applies landing is reduced by X%."
+ },
+ {
+  "id": "buffChUp",
+  "name": "Buff ChUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · supportive",
+  "appliedBy": "Librarian of Stored Knowledge, Protection from Ra",
+  "share": "Shared",
+  "system": "The chance of buffs this Unit applies landing is increased by X%."
+ },
+ {
+  "id": "buffRemovalResUp",
+  "name": "BuffRemoval ResUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Freezing Summertime",
+  "share": "Unique",
+  "system": "The chance of having buffs removed from this Unit is reduced by X%."
+ },
+ {
+  "id": "burnImmune",
+  "name": "Burn Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Pilgrimage in Agni Pariksha",
+  "share": "Unique",
+  "system": "Cannot be inflicted with Burn."
+ },
+ {
+  "id": "burn",
+  "name": "Burn",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Agni Gandiva: Flame God's Yell, Barrel Bombing, Brahmastra Kundala: O' Brahma, Curse Me, Four Elements・The Great Enemy: The Yet Existing Four Gods, Great Tropical Fireball, Jusō・Enten, Karakuri Ninpou: Fuuma Funshindan, Mana Burst (Flames), Piedra Del Sol: The Sun Stone, Roar of the Flame God, Rune Magic: ᚨ (Ansuz), Vasavi Shakti — Activate, Vasavi Shakti: O' Sun, Abide to Death, Vishnu Bhuja: Pinaka, Xiuhcoatl: O Flame, Burn the Gods Themselves, Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "Reduces both Base Attacks by 30 and deals 50 Burn damage at the end of every Round."
+ },
+ {
+  "id": "cannotAct",
+  "name": "Cannot Act",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Enki: Sword of the End",
+  "share": "Unique",
+  "system": "Cannot Move, Attack, use Skills or Noble Phantasms, Evade, Block or Counter."
+ },
+ {
+  "id": "castorBuff",
+  "name": "Castor",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Stars of the Chief God",
+  "share": "Unique",
+  "system": "When the affected Unit performs a Normal Attack that is a Crit, reduce that Unit's NP Cooldown by 1 Turn."
+ },
+ {
+  "id": "ceremonialReformation",
+  "name": "Ceremonial Reformation",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Ceremonial Reformation",
+  "share": "Unique",
+  "system": "All damage dealt +10% and taken −10%, NP included; Max Health +100, Max Agility +1, Max Luck +1; Health restored by 5% of its maximum at the end of every Turn it Acts. Damage and the heal doubled in its Home Base."
+ },
+ {
+  "id": "charity",
+  "name": "Charity",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "End of Charity",
+  "share": "Unique",
+  "system": "While Karna has this buff, both effects of 'Uncrowned Arms Mastership' are Active."
+ },
+ {
+  "id": "charm",
+  "name": "Charm",
+  "polarity": "debuff",
+  "nature": "mental · normal · offensive",
+  "appliedBy": "Contagion",
+  "share": "Unique",
+  "system": "The Unit is controlled by the inflicter's Faction for the duration: its owner does not choose its Moves or Attacks."
+ },
+ {
+  "id": "circuitsPending",
+  "name": "Circuits: Pending",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "The Noble Phantasm that opened the Circuits' second clause is still resolving; its Combat Processes do not feel the Overdrive."
+ },
+ {
+  "id": "construction",
+  "name": "Construction",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Double Summon, Hanging Gardens of Babylon: Aerial Garden of Vanity",
+  "share": "Shared",
+  "system": "HGoB Construction is increased by 1d6 at the end of every Turn."
+ },
+ {
+  "id": "contagionExpanded",
+  "name": "Contagion (Expanded)",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Contagion",
+  "share": "Unique",
+  "system": "Pale Rider's Contagion area covers a 9×9 panel area instead of 5×5."
+ },
+ {
+  "id": "critDmDwn",
+  "name": "Crit DmDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Cursed Poison Dragonfire, Primordial Rune",
+  "share": "Shared",
+  "system": "Crit Damage is reduced by X%."
+ },
+ {
+  "id": "critDmUpHawkeye",
+  "name": "Crit DmUp (Hawkeye)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Hawkeye",
+  "share": "Unique",
+  "system": "Crit Damage is increased by X% at a Range of 3 or higher."
+ },
+ {
+  "id": "critDmUpMartial",
+  "name": "Crit DmUp (Martial)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Genji-clan Martial Arts Discipline",
+  "share": "Unique",
+  "system": "Crit Damage is increased by X%. Three uses, or 1◈ Turns, whichever ends first."
+ },
+ {
+  "id": "critDmUp",
+  "name": "Crit DmUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Affection of the Holy Grail, Consecration of Eternal Life, De Sterrennacht: The Starry Night, Doppelganger, Eye of the Mind (False), Flawlessness, Full Acceleration: Spirit Eyes, God's Holder: Tradition Carrier, Librarian of Stored Knowledge, Lucha Libre, Martial Blessing, Monstrous Snake Metamorphosis, Pharaoh of the Hot Sands, Primordial Rune, Runner Comet, Sea God's Rune, Sealing Designation Enforcer, Shí Miàn Mái Fú: Xíng Rú Wú Yǐng, Triumphal Return of the Holy Maiden, Troias Tragōidia: Tempestuous Immortal Chariot, Wisdom of Dún Scáith: Clairvoyance",
+  "share": "Shared",
+  "system": "Crit Damage is increased by X%."
+ },
+ {
+  "id": "critDwn",
+  "name": "Crit Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Antares Snipe: Heavenly Scorpion Single-Shot, Bab-ilu: Key of the King's Law To Enshrine, Chronos Rose: Pick Ye Rosebuds While Ye May, Goō Shōriki・Dohatsu Tenshou, Information Erasure, Invisible Air: Bounded Field of the Wind King, Primordial Rune, Shapeshift (Infiltration Specialization), Shí Miàn Mái Fú: Xíng Rú Wú Yǐng, Skillful Star, Zabaniya: Delusional Illusion",
+  "share": "Shared",
+  "system": "Crit Chance is reduced by X%."
+ },
+ {
+  "id": "critResDwn",
+  "name": "Crit ResDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Crit Damage taken by this Unit is increased by X%."
+ },
+ {
+  "id": "critResUp",
+  "name": "Crit ResUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Crit Damage taken by this Unit is reduced by X%."
+ },
+ {
+  "id": "critUpFamiliar",
+  "name": "Crit Up (Familiar)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Thaumaturgy: Familiars",
+  "share": "Unique",
+  "system": "Crit Chance is increased by X% for Attacks at a Range of 3 or higher."
+ },
+ {
+  "id": "critUpHawkeye",
+  "name": "Crit Up (Hawkeye)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Hawkeye",
+  "share": "Unique",
+  "system": "Crit Chance is increased by X% at a Range of 3 or higher."
+ },
+ {
+  "id": "critUpMartial",
+  "name": "Crit Up (Martial)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Genji-clan Martial Arts Discipline",
+  "share": "Unique",
+  "system": "Crit Chance is increased by X%."
+ },
+ {
+  "id": "critUpViy",
+  "name": "Crit Up (Viy)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Full Acceleration: Spirit Eyes",
+  "share": "Unique",
+  "system": "Crit Chance of Attacks which use Base Attack (MAG) is increased by X%; if NP, a lower figure."
+ },
+ {
+  "id": "critUp",
+  "name": "Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Avyssos of Labrys, Bellerophon: Bridle of Chivalry - Pegasus, Clairvoyance, Clairvoyance (Bowman), Doppelganger, Espionage, God's Holder: Tradition Carrier, Karakuri Genpō: Fubatsu, Librarian of Stored Knowledge, Lucha Libre, Martial Blessing, Ninjutsu: Tobikatō, Pharaoh of the Hot Sands, Primordial Rune, Rune Magic, Sea God's Rune, Self-Modification, Shadow of Longing Falls Upon the Water in the Urn, Treasury of Babylon, Wisdom of Dún Scáith: Clairvoyance, Yan Qing Fist",
+  "share": "Shared",
+  "system": "Crit Chance is increased by X%."
+ },
+ {
+  "id": "crystalfreeze",
+  "name": "Crystalfreeze",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot Act. Attacks dealing less than 150 damage do nothing at all; 150 or more removes Crystalfreeze and passes the excess through. Fire does not remove it. 100 Fixed damage at the end of each Round."
+ },
+ {
+  "id": "cursHeal",
+  "name": "CursHeal",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Curse damage is restored as Health instead of being taken."
+ },
+ {
+  "id": "curseBolg",
+  "name": "Curse (Bolg)",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Gáe Bolg: Barbed Spear that Pierces with Death",
+  "share": "Unique",
+  "system": "Deals 25 Curse damage at the end of the Turn, every ⅓◈ Turns from the Turn it lands. Does not stack. Unremovable. Removed from every Unit when the Unit that inflicted it stays down."
+ },
+ {
+  "id": "curse",
+  "name": "Curse",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Channel Marker Soul, Evil Gaze of the Abyss, Het Gele Huis, Het Gele Huis: The Yellow House, Imaginary Numbers Arts, Kazıklı Bey (Execution), Kazıklı Bey: Bloodstained King Demon, Kazıklı Bey: The Lord of Execution, Ramesseum Tentyris: The Shining Great Temple Complex, Shadow of Longing Falls Upon the Water in the Urn, Sunflower's Curse, Tokoyo Sakisaku Daisakkai・Higanbana Sesshoseki, Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "Deals 25 x stage Curse damage at the end of the Turn, every ⅓◈ Turns from the Turn it lands."
+ },
+ {
+  "id": "deadlyPoison",
+  "name": "Deadly Poison",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Projectile (Poisoned Daggers), Zabaniya: Delusional Poison Body",
+  "share": "Shared",
+  "system": "Poison Damage received is doubled."
+ },
+ {
+  "id": "deafen",
+  "name": "Deafen",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "Triton's Conch",
+  "share": "Unique",
+  "system": "All Evade rolls are increased by 2, MOV is reduced by 1, and Detect is reduced by 1 panel."
+ },
+ {
+  "id": "deathChUp",
+  "name": "Death ChUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Danse Macabre",
+  "share": "Unique",
+  "system": "Chance of inflicting Instakill and Death is increased by X%."
+ },
+ {
+  "id": "death",
+  "name": "Death",
+  "polarity": "debuff",
+  "nature": "terminal · death · offensive",
+  "appliedBy": "Danse Macabre, Existence Outside The Domain, Fae Contract, Gate of Skye: Gate to the Magical Realm Brimming with Death, Golden Rule (Beauty), Guardians of Navigation, Item Construction, Magic Resistance, Pashupata: Raised Arm of the Destruction God, Silent Dance",
+  "share": "Shared",
+  "system": "The Unit is defeated. Revival effects do not apply."
+ },
+ {
+  "id": "debuffChDwn",
+  "name": "Debuff ChDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Primordial Rune",
+  "share": "Shared",
+  "system": "Chance of inflicting debuffs is reduced by X%."
+ },
+ {
+  "id": "debuffChUp",
+  "name": "Debuff ChUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Danse Macabre, Primordial Rune",
+  "share": "Shared",
+  "system": "Chance of inflicting debuffs is increased by X%."
+ },
+ {
+  "id": "debuffImmune",
+  "name": "Debuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Clairvoyance (Bowman), Golden Rule (Beauty), Guardians of Navigation, Jewel of the Earth, Successor of the Red Branch",
+  "share": "Shared",
+  "system": "Cannot be inflicted with debuffs. Does not affect Instakill, Death or Erase."
+ },
+ {
+  "id": "debuffResDwn",
+  "name": "Debuff ResDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Affection of the Holy Grail, Bab-ilu: Key of the King's Law To Enshrine, Discernment of the Poor, Familiar: Doves, Primordial Rune, Yanamun Reversal",
+  "share": "Shared",
+  "system": "Chance of being inflicted by debuffs is increased by X%."
+ },
+ {
+  "id": "debuffResUp",
+  "name": "Debuff ResUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Affections of the Goddess, Blessings from the End of the World, Primordial Rune, Tommy Thumb's Secret Picture Book",
+  "share": "Shared",
+  "system": "Chance of being inflicted by debuffs is reduced by X%."
+ },
+ {
+  "id": "debuffWard",
+  "name": "Debuff Ward",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Avalon: The Everdistant Utopia",
+  "share": "Unique",
+  "system": "Negates up to X debuffs, the holder's pick."
+ },
+ {
+  "id": "decoyScapegoat",
+  "name": "Decoy (Scapegoat)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Lethal Gunfire Suppression: Return Fire, Scapegoat",
+  "share": "Shared",
+  "system": "Enemy Units within 3 panels (or their own Range, whichever is greater) cannot Move away from this Unit, may only Attack and target this Unit, and must Attack it if able. While a Unit with this effect is Attacked, Kiritsugu may answer with a Normal Attack."
+ },
+ {
+  "id": "decoy",
+  "name": "Decoy",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Fragarach Enbarr: Wildly Running Sword of the War God, Jusō・Kokutendō, Pilgrimage in Agni Pariksha, Sacred Guardian Beast",
+  "share": "Shared",
+  "system": "Enemy Units within 3 panels (or their own Range, whichever is greater) cannot Move away from this Unit, may only Attack and target this Unit, and must Attack it if able."
+ },
+ {
+  "id": "defCrk",
+  "name": "Def Crk",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Damage taken is increased by X, including from Noble Phantasms. The additional damage does not count towards the amount required for an Injury Roll."
+ },
+ {
+  "id": "defDebuffImmune",
+  "name": "Def.Debuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Immune to Defensive debuffs."
+ },
+ {
+  "id": "defDwnA",
+  "name": "Def Dwn (A)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Blasphemy Aesthetic, Dioscures Tyndaridae: Hymn of the Divine Twins, Kazıklı Bey: Bloodstained King Demon, Snegleta・Snegurochka: Summer Snow, Beautiful Drops of Hoarfrost, Zabaniya: Delusional Illusion",
+  "share": "Shared",
+  "system": "All damage taken is increased by X%; Luck is reduced by 1 whenever this Unit is successfully Attacked."
+ },
+ {
+  "id": "defDwnB",
+  "name": "Def Dwn (B)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Arrogant King's Poison, Blasphemy Aesthetic, Brahmastra Kundala: O' Brahma, Curse Me, Brahmastra: Rakshasa-Piercing Immortal, Planet Olga Marie: The Already Passed End of the Human Order",
+  "share": "Shared",
+  "system": "All damage taken is increased by X%; a greater magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "defDwnC",
+  "name": "Def Dwn (C)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Dioscures Tyndaridae: Hymn of the Divine Twins, Fragarach Counter, Het Gele Huis, Het Gele Huis: The Yellow House, Rhongomyniad: The Spear That Shines To The Ends Of The World, Shí Miàn Mái Fú: Xíng Rú Wú Yǐng",
+  "share": "Shared",
+  "system": "All damage taken is increased by X%; Agility is reduced by 1 whenever this Unit is successfully Attacked."
+ },
+ {
+  "id": "defDwnKnacken",
+  "name": "Def Dwn (Knacken)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Straße/gehen: Knacken",
+  "share": "Unique",
+  "system": "All damage taken is increased by 50%, Noble Phantasms included, on the Turn it lands; 25% from that Turn's end."
+ },
+ {
+  "id": "defDwnMag",
+  "name": "Def Dwn (MAG)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "White Queen's Enigma",
+  "share": "Unique",
+  "system": "All MAG damage taken is increased by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "defDwnTotal",
+  "name": "Def Dwn (Total)",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Shiisaa Beam",
+  "share": "Unique",
+  "system": "Total damage taken is increased by X%. Does not stack."
+ },
+ {
+  "id": "defDwn",
+  "name": "Def Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Akafiloga Argrise: Incandescent Dragon's Breath・Earth Liquefaction, Bab-ilu: Key of the King's Law To Enshrine, Chaos Labyrinthos: Eternally Unchanging Labyrinth, Evil Gaze of the Abyss, Het Gele Huis, Het Gele Huis: The Yellow House, Nine Lives: Shooting the Hundred Heads, Ninjutsu: Harisenbon, Nursery Rhyme: A Tale for Somebody's Sake, Outrage Amazon: A Hero to Die on My Rage, Pashupata: Raised Arm of the Destruction God, Prelati's Spellbook: Textbook of the Sunken Spiral Castle, Primordial Rune, Ramesseum Tentyris: Pyramid Drop, Saint War Order: Rally Upon the Holy Banner and Roar, Vishnu Bhuja: Shuuravara",
+  "share": "Shared",
+  "system": "All damage taken is increased by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "defUpShapeshift",
+  "name": "Def Up (Shapeshift)",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Legend of Dracula: The Succession of Blood, Shapeshift",
+  "share": "Shared",
+  "system": "All damage taken is reduced by X%; a reduced magnitude applies to Noble Phantasms. Doubled while Dracula."
+ },
+ {
+  "id": "defUp",
+  "name": "Def Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Affections of the Goddess, Armor of Fafnir: Blood Armor of the Evil Dragon, Eye of the Mind (True), Eye of the Mind (True) EX, Great Emperor Privilege, Imperial Privilege, Jewel of the Earth, Natural Monster, Primordial Rune, Rune Magic, Shapeshift, Tommy Thumb's Secret Picture Book, Μαρδοξ (Argos)",
+  "share": "Shared",
+  "system": "All damage taken is reduced by X%; a reduced magnitude applies to Noble Phantasms."
+ },
+ {
+  "id": "disable",
+  "name": "Disable",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "Jusō・Hyōten, Ninjutsu: Harisenbon, Plains of Winter, Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "Can only use the Move action."
+ },
+ {
+  "id": "disguise",
+  "name": "Disguise",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit looks like another to everyone but its owner and the GM. Only the appearance changes."
+ },
+ {
+  "id": "dmgBoostGilles",
+  "name": "Dmg Boost (Gilles)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "By The Holy Maiden's Side",
+  "share": "Unique",
+  "system": "All damage dealt by this Unit and the Units it summoned is increased by X, flat."
+ },
+ {
+  "id": "dmgBoostUtopia",
+  "name": "Dmg Boost (Utopia)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Knight of Utopia",
+  "share": "Unique",
+  "system": "After this Unit performs 3 Attacks, its next Normal Attack deals 200% extra damage; then this buff is removed."
+ },
+ {
+  "id": "dmgBoost",
+  "name": "Dmg Boost",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Thaumaturgy: Tracing",
+  "share": "Unique",
+  "system": "All damage dealt is increased by X, flat."
+ },
+ {
+  "id": "dmgCut",
+  "name": "Dmg Cut",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Armor of Fafnir: Blood Armor of the Evil Dragon, Doomsday Come: Come to Me, Realm of the Dead, Come to Me, Guidance of the Netherworld, Tommy Thumb's Secret Picture Book",
+  "share": "Shared",
+  "system": "All damage taken is reduced by X, a limited number of times."
+ },
+ {
+  "id": "dmgUpAphotic",
+  "name": "Dmg Up (Aphotic)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Jusō・Kokutendō",
+  "share": "Unique",
+  "system": "Damage dealt by the next Attack that deals MAG damage is increased by X%, including NP. Stacks; Unremovable."
+ },
+ {
+  "id": "dmgUpBind",
+  "name": "Dmg Up (Bind)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Monstrous Snake Metamorphosis",
+  "share": "Unique",
+  "system": "All damage dealt to Units inflicted with Bind effects is increased by X%."
+ },
+ {
+  "id": "dmgUpChaotic",
+  "name": "Dmg Up (Chaotic)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Torrent of Light",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Chaotic' Alignment is increased by X%."
+ },
+ {
+  "id": "dmgUpCurse",
+  "name": "Dmg Up (Curse)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Evil Gaze of the Abyss",
+  "share": "Unique",
+  "system": "All damage dealt to Units inflicted with Curse is increased by X%."
+ },
+ {
+  "id": "dmgUpDemonic",
+  "name": "Dmg Up (Demonic)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Yanamun Reversal",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Demonic' Attribute is increased by X%."
+ },
+ {
+  "id": "dmgUpDragon",
+  "name": "Dmg Up (Dragon)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Dead Count Shapeshifter: Dragon Revelation, Dragon Slayer",
+  "share": "Shared",
+  "system": "Damage dealt to Units with the Dragon Attribute is increased by X%; Noble Phantasms by the same, or by a reduced figure the application states."
+ },
+ {
+  "id": "dmgUpEvil",
+  "name": "Dmg Up (Evil)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Torrent of Light, Yan Qing Fist",
+  "share": "Shared",
+  "system": "All damage dealt to Units with the 'Evil' Alignment is increased by X%."
+ },
+ {
+  "id": "dmgUpGods",
+  "name": "Dmg Up (Gods)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "God Slayer",
+  "share": "Unique",
+  "system": "Damage dealt to Units with the Undead or Divine Attribute is increased by X%."
+ },
+ {
+  "id": "dmgUpGrave",
+  "name": "Dmg Up (Grave)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Anti-Spirit Combat",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Spirit' or 'Undead' Attribute is increased by X%."
+ },
+ {
+  "id": "dmgUpHolyTaken",
+  "name": "Dmg Up (Holy)",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Holy King",
+  "share": "Unique",
+  "system": "Damage taken from Demonic Units, or Divine Units without the Christian Attribute, is reduced by X%."
+ },
+ {
+  "id": "dmgUpHoly",
+  "name": "Dmg Up (Holy)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Holy King",
+  "share": "Unique",
+  "system": "Damage dealt to Demonic Units, or Divine Units without the Christian Attribute, is increased by X%."
+ },
+ {
+  "id": "dmgUpKaiju",
+  "name": "Dmg Up (Kaiju)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Divine Beast's Rage",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Large' Attribute is increased by X%; X% more if the DU is also 'Giant'."
+ },
+ {
+  "id": "dmgUpLarge",
+  "name": "Dmg Up (Large)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Ocean Stirring Lion's Roar",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Large' Attribute is increased by X%."
+ },
+ {
+  "id": "dmgUpLawful",
+  "name": "Dmg Up (Lawful)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Yan Qing Fist",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Lawful' Alignment is increased by X%."
+ },
+ {
+  "id": "dmgUpStandard",
+  "name": "Dmg Up (Standard)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Flawlessness",
+  "share": "Unique",
+  "system": "All damage dealt to Standard-class Servants is increased by X%."
+ },
+ {
+  "id": "dmgUpUndead",
+  "name": "Dmg Up (Undead)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Yanamun Reversal",
+  "share": "Unique",
+  "system": "All damage dealt to Units with the 'Undead' Attribute is increased by X%."
+ },
+ {
+  "id": "dmgUp",
+  "name": "Dmg Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Ruffian",
+  "share": "Unique",
+  "system": "All damage dealt is increased by X%."
+ },
+ {
+  "id": "dmgedNpRegen",
+  "name": "Dmged NP Regen",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Sacred Guardian Beast",
+  "share": "Unique",
+  "system": "Each time this Unit is successfully hit by an Attack, its NP Cooldown is reduced by 1◈ Turns."
+ },
+ {
+  "id": "dodge",
+  "name": "Dodge",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Expert of Many Specializations, Eye of the Mind (False), Eye of the Mind (True), Eye of the Mind (True) EX, Fragarach Counter, Mana Burst (Lightning), Murderer of the Misty Night, Ninjutsu: Tobikatō, Thunder God's Embodiment, Wisdom of Dún Scáith: Clairvoyance",
+  "share": "Shared",
+  "system": "Automatically evades the next attack. Cannot be used together with the Evade action; Aim ignores it."
+ },
+ {
+  "id": "dove",
+  "name": "Dove",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Familiar: Doves",
+  "share": "Unique",
+  "system": "A marker. Semiramis can see this Unit's position regardless of Fog of War."
+ },
+ {
+  "id": "dracula",
+  "name": "Dracula",
+  "polarity": "status",
+  "nature": "none",
+  "appliedBy": "Legend of Dracula: The Succession of Blood",
+  "share": "Unique",
+  "system": "Doubles Shapeshift's Passive, Def Up (Shapeshift) and Atk Up (Shapeshift). Neither a buff nor a debuff, and Unremovable; removed when the Round changes from Night to Day."
+ },
+ {
+  "id": "dragonblight",
+  "name": "Dragonblight",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "All Elemental damage this Unit deals is reduced to 0, and it cannot inflict volatile debuffs."
+ },
+ {
+  "id": "drcPending",
+  "name": "DRC (at Turn's end)",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Dragon's Reactor Core",
+  "share": "Unique",
+  "system": "At the end of this Turn, this Unit gains the DRC buff for the rest of the Round."
+ },
+ {
+  "id": "drc",
+  "name": "DRC",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Dragon's Reactor Core",
+  "share": "Unique",
+  "system": "All damage dealt by Normal Attacks is increased by 25%, except Normal Attacks performed with Mana Burst."
+ },
+ {
+  "id": "drowning",
+  "name": "Drowning",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Enki: Sword of the End",
+  "share": "Unique",
+  "system": "Health cannot be restored. Loses 50 Health at the end of its Turn and at the end of any Turn it Acts. 80% chance of its Attacks and enemy-affecting abilities failing; a failure spends no Cooldown. MOV −1."
+ },
+ {
+  "id": "dscBuff",
+  "name": "DSC",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Double Summon",
+  "share": "Unique",
+  "system": "Grants the 'Double Summon: Caster' Skill's Range, Normal Attack, Sustainability, and Territory Creation Rank C for her Faction's Home Base."
+ },
+ {
+  "id": "dualWieldGuard",
+  "name": "Kanshou & Bakuya",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Projection - Kanshou & Bakuya, Projection - Kanshou & Bakuya: Overedge",
+  "share": "Shared",
+  "system": "Magic Resistance Rank is increased by one Rank."
+ },
+ {
+  "id": "eAtkUp",
+  "name": "E.Atk Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Divine Beast's Rage, Flawlessness",
+  "share": "Shared",
+  "system": "All non-NP area damage dealt is increased by X%."
+ },
+ {
+  "id": "endlessProliferation",
+  "name": "Endless Proliferation",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Huge Scale, Infantile Regression",
+  "share": "Shared",
+  "system": "At the end of the Turn after every ⅓◈ Turns, Kingprotea gains 1 Proliferation stock."
+ },
+ {
+  "id": "endure",
+  "name": "Endure",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Lethal damage leaves this Unit at 1 Health, provided it had more than 1 Health when the damage landed."
+ },
+ {
+  "id": "enigma",
+  "name": "Enigma",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "White Queen's Enigma",
+  "share": "Unique",
+  "system": "Whenever the affected Unit performs a Normal Attack which deals STR damage, it inflicts Def Dwn (MAG) for 1◈ Turns on the DU."
+ },
+ {
+  "id": "erase",
+  "name": "Erase",
+  "polarity": "debuff",
+  "nature": "terminal · erase · offensive",
+  "appliedBy": "Existence Outside The Domain, Fae Contract, Golden Rule (Beauty), Guardians of Navigation, Magic Resistance, Storm Border: Zero Sail",
+  "share": "Shared",
+  "system": "The Unit is removed from the game. Revival effects do not apply, and it does not count towards the Grail."
+ },
+ {
+  "id": "espionage",
+  "name": "Espionage",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Espionage",
+  "share": "Unique",
+  "system": "This Unit's Presence Concealment Rank is increased from C to A."
+ },
+ {
+  "id": "evadeShift",
+  "name": "Evade Roll Shift",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Mana Burst",
+  "share": "Unique",
+  "system": "This Unit's Evade rolls are changed by X."
+ },
+ {
+  "id": "evade",
+  "name": "Evade",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Achilles' Heel, Dromeus Komētēs: Comet Form, Hallowed Sea God's Sword, Het Gele Huis, Het Gele Huis: The Yellow House, Mana Burst (Light/Ancient), Quickfire, Successor of the Red Branch, Toole Fragarach: Gouging Greatsword of the War God, Triton's Conch, Watermelon Splitting Master",
+  "share": "Shared",
+  "system": "Automatically evades attacks for the duration."
+ },
+ {
+  "id": "feignedDefeat",
+  "name": "Feigned Defeat",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Karakuri Genpō: Kirihanasu",
+  "share": "Unique",
+  "system": "Every other player was shown this Unit's defeat. It lives on, hidden from all but its owner and the GM: nothing but its own abilities targets, catches or affects it; it may share panels, Terrain and Bounded Fields do not affect it, nothing it does spends its side's budget, and it may use only Skills that touch itself. Its next Attack reveals it. Neither a buff nor a debuff, and Unremovable."
+ },
+ {
+  "id": "flamHeal",
+  "name": "FlamHeal",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Burn damage is restored as Health instead of being taken."
+ },
+ {
+  "id": "foxSpouse",
+  "name": "Fox Spouse",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Fox's Wedding",
+  "share": "Unique",
+  "system": "This Master cannot be Overpowered or Underpowered by Servants. Unremovable."
+ },
+ {
+  "id": "fragarach",
+  "name": "Fragarach",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Fragarach Counter, Fragarach Enbarr: Wildly Running Sword of the War God",
+  "share": "Shared",
+  "system": "Mannanán cannot perform a normal Counter. When she is Attacked or inflicted with a debuff by an enemy, she automatically performs a Fragarach Counter on that Unit at the end of the Combat Process. Neither a buff nor a debuff, and Unremovable."
+ },
+ {
+  "id": "freeze",
+  "name": "Freeze",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot Act. Attacks dealing less than 150 damage do nothing at all; 150 or more removes Freeze and passes the excess through. Any Fire damage removes Freeze with no damage or effects. 100 Ice damage at the end of each Round."
+ },
+ {
+  "id": "gCrit",
+  "name": "G.Crit",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit's Attacks always Crit."
+ },
+ {
+  "id": "gazing",
+  "name": "Gazing",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Evil Gaze of the Abyss",
+  "share": "Unique",
+  "system": "Normal Attacks inflict Curse; Normal Attacks from this Unit's Horrors within a 2 panel area of it have a 50% chance of inflicting Curse."
+ },
+ {
+  "id": "gogh",
+  "name": "Gogh",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Channel Marker Soul, Shadow of Longing Falls Upon the Water in the Urn",
+  "share": "Shared",
+  "system": "Whenever Gogh performs a successful Attack, remove one stage of Curse from her and apply Atk Up for 1◈ Turns if a stage was removed, all damage dealt is increased by 10%; if NP, 5%. If the Attack was a Crit, remove 2 stages and apply the buff twice."
+ },
+ {
+  "id": "gotn",
+  "name": "GotN",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Doomsday Come: Come to Me, Realm of the Dead, Come to Me, Guidance of the Netherworld",
+  "share": "Shared",
+  "system": "On entering the area of 'Doomsday Come', the Unit receives Guidance of the Netherworld's Atk Up, Regen and Dmg Cut; the GotN effect is then removed."
+ },
+ {
+  "id": "gutsFearsome",
+  "name": "Guts (Fearsome)",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Fearsome Immortal",
+  "share": "Unique",
+  "system": "Revive on defeat with X% of maximum Health. Consumed on use. Stacks with Guts, and is consumed before it."
+ },
+ {
+  "id": "gutsHealth",
+  "name": "Guts",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Curse of Separation, Dream of Reunion",
+  "share": "Shared",
+  "system": "Revive on defeat with X Health. Consumed on use."
+ },
+ {
+  "id": "guts",
+  "name": "Guts",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Fearsome Immortal, Good God's Wisdom, Imaginary Numbers Arts, Indomitable, Sacred Guardian Beast, Shoal of Four Branches",
+  "share": "Shared",
+  "system": "Revive on defeat with X Health. Consumed on use."
+ },
+ {
+  "id": "healDwn",
+  "name": "Heal Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Unparalleled",
+  "share": "Shared",
+  "system": "Healing received is reduced by X%. Does not affect Home Base or Command Spell healing."
+ },
+ {
+  "id": "healUp",
+  "name": "Heal Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "By The Holy Maiden's Side, Haradhanu Janaka: Peerless Bow of Reminiscence",
+  "share": "Shared",
+  "system": "Healing received is increased by X%. Does not affect Home Base or Command Spell healing."
+ },
+ {
+  "id": "heelWounded",
+  "name": "Heel Wounded",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Achilles' Heel has been damaged. Andreias Amarantos is lost, and the passives of Dromeus Komētēs are lost and penalized: MOV −1 when Unmounted, Evade rolls +1 when Unmounted, and Runner Comet's buffs reduced to 10%."
+ },
+ {
+  "id": "hgob-owner-buff",
+  "name": "Aboard the Hanging Gardens",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "While Semiramis is on her HGoB, all of her Parameters are increased by one Rank, and her Sustainability is increased by 2◈ Turns."
+ },
+ {
+  "id": "ignoreDef",
+  "name": "Ignore Def",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Blazing Golden Rule, Dioscures Tyndaridae: Hymn of the Divine Twins, Kazıklı Bey (Execution), Kazıklı Bey: The Lord of Execution, Watermelon Splitting Master, Youjutsu Zanhou・Yuugao",
+  "share": "Shared",
+  "system": "Attacks by this Unit ignore the target's Def Up."
+ },
+ {
+  "id": "immobilize",
+  "name": "Immobilize",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "Vishnu Bhuja: Modhaki and Shikhari, Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "Cannot Move. All Agility Checks are increased by 4."
+ },
+ {
+  "id": "indomitable",
+  "name": "Indomitable",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Indomitable",
+  "share": "Unique",
+  "system": "Whenever this Unit is defeated and revived through any effect, Atk Up is applied to it."
+ },
+ {
+  "id": "indomited",
+  "name": "Indomited",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Indomitable",
+  "share": "Unique",
+  "system": "When this Unit is revived due to Guts, its Noble Phantasm's Cooldown is reduced by 1◈+⅔◈ Turns."
+ },
+ {
+  "id": "instakill",
+  "name": "Instakill",
+  "polarity": "debuff",
+  "nature": "terminal · instakill · offensive",
+  "appliedBy": "Danse Macabre, Existence Outside The Domain, Fae Contract, Fragarach: Gouging Sword of the War God, Golden Rule (Beauty), Guardians of Navigation, Gáe Bolg Alternative: Soaring Spear of Piercing Death, Gáe Bolg: Barbed Spear that Pierces with Death, Ice Block Launcher・Absolute Killer Baseball: Underthrow Freeze Sinker, Item Construction, Magic Resistance, Maria the Ripper: The Holy Mother of Dismemberment (Method 2), Phantasm Punishment: Mystery Bisection, Silent Dance, Youjutsu Zanhou・Yuugao, Zabaniya: Delusional Poison Body",
+  "share": "Shared",
+  "system": "The Unit's Health is reduced to 0."
+ },
+ {
+  "id": "invulnGyakkou",
+  "name": "Invuln (Gyakkou)",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Gyakkou",
+  "share": "Unique",
+  "system": "An Invuln held separately from Invuln, and spent before it when Attacked. No damage is taken; against a Noble Phantasm, damage is reduced by 50% instead. The Unit cannot Block. Pierce ignores it."
+ },
+ {
+  "id": "invuln",
+  "name": "Invuln",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Armor of Fafnir: Blood Armor of the Evil Dragon, Freezing Summertime, Gyakkou, Gáe Bolg: Barbed Spear that Pierces with Death, Karakuri Genpō: Fubatsu, Kazıklı Bey: The Lord of Execution, Pilgrimage in Agni Pariksha, Sealing Mystic Code Release",
+  "share": "Shared",
+  "system": "No damage is taken. Against a Noble Phantasm, damage is reduced by 50% instead. An effect that would reduce Health to 0 instead halves current Health. The Unit cannot Block. Pierce ignores it. Does not prevent rider debuffs. A Master with Invuln cannot be Overpowered."
+ },
+ {
+  "id": "itemRite",
+  "name": "Item Rite",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit cannot Attack or Move for the rest of this Turn."
+ },
+ {
+  "id": "janaka",
+  "name": "Janaka",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Goddess's Divine Core",
+  "share": "Unique",
+  "system": "Normal Attacks use Base Attack (STR) and 20% of Base Attack (MAG) combined, a further 20% of Base Attack (MAG) for each Janaka held; the effect of Magic Resistance against them is reduced to that share. A new Janaka resets the duration of every Janaka held."
+ },
+ {
+  "id": "kazikli",
+  "name": "Kazıklı",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Kazıklı Bey (Execution), Kazıklı Bey: The Lord of Execution",
+  "share": "Shared",
+  "system": "Kazıklı stacks, applied by Vlad III's Normal Attacks. Kazıklı Bey's Active 2 deals damage for each stack, then removes them. The chance of a Kazıklı stack being removed is reduced by 50%."
+ },
+ {
+  "id": "killHumans",
+  "name": "Kill Humans",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Servant will kill Civilians. If it ever becomes Unbound, it abandons its Master, becomes Free, and refuses a new Contract with that Master."
+ },
+ {
+  "id": "kiritsuguMark",
+  "name": "Kiritsugu",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Phantasm Punishment: Mystery Bisection",
+  "share": "Unique",
+  "system": "This Unit's Base Attack (STR and MAG) are reduced by half of their original value. Ignores Debuff Resist and Debuff Immune. Unremovable, and does not stack."
+ },
+ {
+  "id": "legendOfDraculaActivated",
+  "name": "Legend of Dracula (Activated)",
+  "polarity": "status",
+  "nature": "none",
+  "appliedBy": "Legend of Dracula: The Succession of Blood",
+  "share": "Unique",
+  "system": "Vlad III is Dracula, for good. Dark (Vampire). Heals 100 Health and 1 Agility at the end of his Turn, of any Turn he Acts and of the Round in a Night Round; 100 Health and 1 Agility for each Unit he damages; 25% of his maximum Health and Agility for each Unit he defeats (a Civilian: 100 and 1). Shapeshift doubled; Kazıklı Bey and Magic Resistance gone. Always Attacks and Moves towards the closest Unit, allies included. Range +1 panel, targets +1, Moves through obstacles, Base Attack (STR) +75. Evade rolls -4. Total Fire damage taken +25%."
+ },
+ {
+  "id": "logosLockout",
+  "name": "Logos Lockout",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "'Logos' cannot be applied to this Unit while this lasts."
+ },
+ {
+  "id": "logos",
+  "name": "Logos",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Rhongomyniad: The Spear That Shines To The Ends Of The World, Sealing Mystic Code Release",
+  "share": "Shared",
+  "system": "Neither a buff nor a debuff, and Unremovable. After it naturally expires, it cannot be re-applied to its bearer for the next 2◈ Turns."
+ },
+ {
+  "id": "lucDwn",
+  "name": "LUC Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Luck Check rolls are increased by X."
+ },
+ {
+  "id": "lucUp",
+  "name": "LUC Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Expert of Many Specializations",
+  "share": "Unique",
+  "system": "Luck Check rolls are reduced by X."
+ },
+ {
+  "id": "luckBoost",
+  "name": "Luck Boost",
+  "polarity": "buff",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Luck Checks always use the favourable table (`1d20` rather than `1d20+4`), regardless of whose Luck is higher."
+ },
+ {
+  "id": "luckLoss",
+  "name": "Luck Loss",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · neutral",
+  "appliedBy": "Planet Olga Marie: The Already Passed End of the Human Order",
+  "share": "Unique",
+  "system": "Luck Checks always use the unfavourable table (`1d20+4`), regardless of whose Luck is higher."
+ },
+ {
+  "id": "macabre",
+  "name": "Macabre",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Danse Macabre",
+  "share": "Unique",
+  "system": "Normal Attack Crits inflict an additional Stage of Poison on the Defending Unit."
+ },
+ {
+  "id": "maxHpUp",
+  "name": "Max HpUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Man-made Hero (False), Yanamun Reversal",
+  "share": "Shared",
+  "system": "Max Health is increased by X, and current Health restored by the same as it lands."
+ },
+ {
+  "id": "menDebuffImmune",
+  "name": "Men.Debuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Immune to Mental debuffs."
+ },
+ {
+  "id": "movDwn",
+  "name": "MOV Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "MOV is reduced by X, to no less than 1."
+ },
+ {
+  "id": "movUp",
+  "name": "MOV Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Invisible Air: Bounded Field of the Wind King, Riding, Κεραινο (Keraino)",
+  "share": "Shared",
+  "system": "MOV is increased by X."
+ },
+ {
+  "id": "mythos",
+  "name": "Mythos",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Rhongomyniad Mythos: Tower of Dreams Founding the Ends of the World",
+  "share": "Unique",
+  "system": "Attacks using Base Attack (MAG) or dealing MAG damage cannot be used; a combined Base Attack uses STR alone. Spells and NPs cannot be used and their Passives are negated, except [Anti-Unit Mystic Sword] and [Anti-Unit Secret Technique] NPs. Divinity is negated. Unremovable except by a Rank EX Skill or NP. Ignores Debuff Resist and Immune."
+ },
+ {
+  "id": "nAtkUp",
+  "name": "N.Atk Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Avyssos of Labrys, Runner Comet, Thaumaturgy: Reinforcement",
+  "share": "Shared",
+  "system": "Normal Attack damage dealt is increased by X%."
+ },
+ {
+  "id": "namelessForestResistance",
+  "name": "Nameless Forest Resistance",
+  "polarity": "status",
+  "nature": "nonVolatile",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "The chance of gaining a Nameless Forest Token is reduced by 10% per stack."
+ },
+ {
+  "id": "namelessForest",
+  "name": "Nameless Forest",
+  "polarity": "status",
+  "nature": "nonVolatile",
+  "appliedBy": "Nursery Rhyme: Nameless Forest",
+  "share": "Unique",
+  "system": "For every Nameless Forest Token on this Unit, its Max Health is reduced by 25, both Base Attacks by 10, and its Max Luck by 1 — permanently. Once per Turn during its own Turn it may attempt a Luck Check to remove every Token; Health and Luck already lost are not restored. At the end of its Turn, a Unit with at least 3 Tokens rolls a twelve-sided die and disappears on a roll at or below the count — unless it is within its Home Base."
+ },
+ {
+  "id": "noBuff",
+  "name": "No Buff",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Cannot receive buffs. An effect which applies several buffs at once fails entirely."
+ },
+ {
+  "id": "noCrit",
+  "name": "No Crit",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit's Attacks cannot Crit."
+ },
+ {
+  "id": "normalPresenceConcealment",
+  "name": "Presence Concealment",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit cannot be targeted directly, its Attacks cannot be Blocked or Countered, an Evade against it is rolled at +4, and its damage against Servants is doubled including NP. Neither a buff nor a debuff, and Unremovable."
+ },
+ {
+  "id": "npCooldownRegen",
+  "name": "NP Cooldown Regen",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Teachings of Circe",
+  "share": "Unique",
+  "system": "The Unit's Noble Phantasm cooldown is reduced by 1 Turn at the end of every Turn."
+ },
+ {
+  "id": "npDefDwn",
+  "name": "NP Def Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Rhongomyniad: The Spear That Shines To The Ends Of The World",
+  "share": "Unique",
+  "system": "All NP damage received is increased by X%."
+ },
+ {
+  "id": "npDegen",
+  "name": "NP Degen",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Noble Phantasm cooldown is increased by 1 per interval, and natural cooldown reduction stops."
+ },
+ {
+  "id": "npDmDwn",
+  "name": "NP DmDwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, Blasphemy Aesthetic, Primordial Rune, True Name Discernment",
+  "share": "Shared",
+  "system": "Noble Phantasm damage dealt is reduced by X%."
+ },
+ {
+  "id": "npDmUpGao",
+  "name": "NP DmUp (GAO)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Giant Monster of the Great River",
+  "share": "Unique",
+  "system": "Noble Phantasm damage dealt is increased by 10% per stack. One stack is removed at the end of this Unit's Turn and at the end of any Turn it Acts."
+ },
+ {
+  "id": "npDmUpNonAA",
+  "name": "NP DmUp (nonAA)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Military Tactics",
+  "share": "Unique",
+  "system": "Damage dealt by Noble Phantasms below [Anti-Army] is increased by X%."
+ },
+ {
+  "id": "npDmUpOnce",
+  "name": "NP DmUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Divine Beast's Rage",
+  "share": "Unique",
+  "system": "The next Noble Phantasm's damage dealt is increased by X%. Spent by that Noble Phantasm."
+ },
+ {
+  "id": "npDmUpRound",
+  "name": "NP DmUp (Round)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Wild Hunt",
+  "share": "Unique",
+  "system": "Noble Phantasm damage dealt is increased by X%, for this Unit's next damaging Noble Phantasm."
+ },
+ {
+  "id": "npDmUp",
+  "name": "NP DmUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Airavata King Size: Colossal Silhouette Emerging From The Ocean of Life, Beyond the Uncharted, Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Dragon's Reactor Core, Flash of the Sun God, Full Acceleration: Spirit Eyes, Great Decisive Battle at the Southern Sea, Great Ram Nautilus: I Conquer, with Nautilus' Great Naval Ram, Guardians of Navigation, Jusō・Kōnisshō, Primordial Rune, Roar of the Flame God, Tommy Thumb's Secret Picture Book, Triumphal Return of the Holy Maiden, Unparalleled, Voyager of the Storm, Wild Hunt",
+  "share": "Shared",
+  "system": "Noble Phantasm damage dealt is increased by X%."
+ },
+ {
+  "id": "npLag",
+  "name": "NP Lag",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Natural Noble Phantasm cooldown reduction happens only every other Turn."
+ },
+ {
+  "id": "npLock",
+  "name": "NP Lock",
+  "polarity": "debuff",
+  "nature": "nonVolatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Natural Noble Phantasm cooldown reduction stops. Noble Phantasms already off cooldown remain usable."
+ },
+ {
+  "id": "npRegenBalmung",
+  "name": "NP Regen (Balmung)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Balmung: Phantasmal Greatsword, Felling of the Sky Demon",
+  "share": "Unique",
+  "system": "Noble Phantasm Cooldown is reduced by an extra X per Turn."
+ },
+ {
+  "id": "npRegen",
+  "name": "NP Regen",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Avaricious Gold, Beyond the Uncharted, Blazing Golden Rule, Blood Temple, By The Holy Maiden's Side, Double Summon, Fearsome Immortal, Flawlessness, Golden Rule, Golden Rule (Beauty), Librarian of Stored Knowledge, Man-made Hero (False), The Awarded Hero, Zabaniya: Delusional Illusion",
+  "share": "Shared",
+  "system": "Noble Phantasm Cooldown is reduced by an extra X per Turn."
+ },
+ {
+  "id": "npSeal",
+  "name": "NP Seal",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Armor of Fafnir: Blood Armor of the Evil Dragon, Bab-ilu: Key of the King's Law To Enshrine, Bridal Chest: A Maiden's Chastity, Discernment of the Poor, Four Elements・The Great Enemy: The Yet Existing Four Gods, Galvanism, Golden Hind: Wild Hunt, Innocent World, Levitation, Nursery Rhyme: Nameless Forest, Ramesseum Tentyris: Pyramid Drop, Runner Comet, Unparalleled, Xiuhcoatl: O Flame, Burn the Gods Themselves, Zabaniya: Delusional Poison Body",
+  "share": "Shared",
+  "system": "Cannot use Noble Phantasms. Does not affect passive NPs unless stated, and does not stop NPs that fire on a timer."
+ },
+ {
+  "id": "nvDebuffImmune",
+  "name": "nvDebuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Immune to non-volatile debuffs."
+ },
+ {
+  "id": "nvDebuffResUp",
+  "name": "nvDebuff ResUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Self-Suggestion",
+  "share": "Unique",
+  "system": "Chance of being inflicted by non-volatile debuffs is reduced by X%."
+ },
+ {
+  "id": "offDebuffImmune",
+  "name": "Off.Debuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Immune to Offensive debuffs."
+ },
+ {
+  "id": "offDebuffResUp",
+  "name": "Off.Debuff ResUp",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Natural Monster",
+  "share": "Unique",
+  "system": "Chance of being inflicted by Offensive Debuffs is reduced by X%."
+ },
+ {
+  "id": "overCrit",
+  "name": "Over Crit",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "While this Unit's Crit Chance exceeds 100%, its Crit Damage is increased by the excess."
+ },
+ {
+  "id": "overcharge",
+  "name": "Overcharge",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Earth-Shattering, Triumphal Return of the Holy Maiden",
+  "share": "Shared",
+  "system": "The magnitude of all non-damage effects of this Unit's next Noble Phantasm is increased by X%."
+ },
+ {
+  "id": "penetration",
+  "name": "Penetration",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Thaumaturgy: Penetration",
+  "share": "Unique",
+  "system": "When this Unit deals damage with an Attack, it has the Ignore Def effect and halves the effect of Invuln."
+ },
+ {
+  "id": "petrify",
+  "name": "Petrify",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "Mystic Eyes of Petrification: Cybele",
+  "share": "Unique",
+  "system": "Cannot Act. Buffs, debuffs and other effects have no effect while Petrified. More than 200 damage from a single attack defeats the Unit outright."
+ },
+ {
+  "id": "pierce",
+  "name": "Pierce",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Affection of the Holy Grail, Dioscures Tyndaridae: Hymn of the Divine Twins, Flawlessness, Jusō・Mitten, Kavacha and Kundala: O' Sun, Become Armor, Kazıklı Bey (Execution), Pioneer of the Stars, Projection - Caladbolg II: The Fake Spiral Sword, Rhongomyniad: The Lance That Shines To The Ends Of The Earth, Rhongomyniad: The Spear That Shines To The Ends Of The World, Watermelon Splitting Master, Youjutsu Zanhou・Yuugao",
+  "share": "Shared",
+  "system": "This Unit's Attacks ignore Invuln and Block. Does not bypass Dmg Cut."
+ },
+ {
+  "id": "poisHeal",
+  "name": "PoisHeal",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Poison damage is restored as Health instead of being taken."
+ },
+ {
+  "id": "poisonSusceptible",
+  "name": "Poison Susceptibility",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "The chance of this Unit being inflicted with Poison is increased by 25%."
+ },
+ {
+  "id": "poison",
+  "name": "Poison",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Arrogant King's Poison, Contagion, Cursed Poison Dragonfire, Danse Macabre, Projectile (Poisoned Daggers), Sikera Ušum: Arrogant King's Alcohol, Summoning: Bašmu, The Mist: Darkened Misty Metropolis, Tokoyo Sakisaku Daisakkai・Higanbana Sesshoseki, Yata no Kagami: Hakkon Jourai・Dainisshō, Zabaniya: Delusional Poison Body, [Semiramis' Poison]",
+  "share": "Shared",
+  "system": "Stage N deals 20 × 2^(N−1) Poison damage at the end of every Round. The stage increases at the start of a Round if the Unit is still Poisoned; reapplication adds a stage."
+ },
+ {
+  "id": "polluxBuff",
+  "name": "Pollux",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Stars of the Chief God",
+  "share": "Unique",
+  "system": "When the affected Unit performs a Normal Attack that does not Crit, applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of itself (and its linked partner wherever it stands), Crit Chance is increased by 10%."
+ },
+ {
+  "id": "presenceConcealment",
+  "name": "Presence Concealment",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Face of the King, Karakuri Genpō: Dongyū (Concealment), Karakuri Genpō: Kirihanasu, Presence Concealment",
+  "share": "Shared",
+  "system": "This Unit cannot be targeted directly, its Attacks cannot be Blocked or Countered by a Unit of lower AGI Rank, and its damage dealt is increased by 100% (50% for a Noble Phantasm) against anything that is not a Master. Neither a buff nor a debuff, and Unremovable."
+ },
+ {
+  "id": "pretenderArcher",
+  "name": "Pretender (>Archer)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Archer Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderAssassin",
+  "name": "Pretender (>Assassin)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Assassin Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderBerserker",
+  "name": "Pretender (>Berserker)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Berserker Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderCaster",
+  "name": "Pretender (>Caster)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Caster Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderLancer",
+  "name": "Pretender (>Lancer)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Lancer Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderRider",
+  "name": "Pretender (>Rider)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Rider Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "pretenderSaber",
+  "name": "Pretender (>Saber)",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Pretender: The One who Wears a Role, Shisarot Form",
+  "share": "Shared",
+  "system": "All damage dealt to Saber Servants is increased by 50%, and all damage taken from them is reduced by 50%; NP included."
+ },
+ {
+  "id": "proliferationStock",
+  "name": "Proliferation",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Huge Scale, Infantile Regression",
+  "share": "Shared",
+  "system": "A Proliferation stock. Each is worth +20% of Kingprotea's original Max Health, −10% NP damage taken (to a maximum of 80%) and +5% buff-removal resistance; every third also grows her by one panel, which is +1 Range and −1 MOV."
+ },
+ {
+  "id": "queensPoison",
+  "name": "Queen's Poison",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "[Semiramis' Poison]",
+  "share": "Unique",
+  "system": "1. The chance of inflicting volatile debuffs is increased by 30%. 2. The chance of being inflicted by volatile debuffs is reduced by 15%. 3. When a Unit with this effect performs a Normal Attack which uses Base Attack (STR), Poison is inflicted on the DU at the end of the Damage Step, with a 50% chance of inflicting an additional Stage of Poison (this 50% is a flat chance, not affected by debuff chance increasing/reducing effects); then remove this effect from the AU."
+ },
+ {
+  "id": "radiant",
+  "name": "Radiant",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Radiant Road",
+  "share": "Unique",
+  "system": "All other allied Units within 2 panels of this Unit gain the effects of its Instinct Skill."
+ },
+ {
+  "id": "raikouBuff",
+  "name": "Raikou",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Thunder God's Embodiment",
+  "share": "Unique",
+  "system": "Normal Attacks deal 40 bonus Lightning damage, have a 40% chance of inflicting Shock for ⅔◈ Turns, and reduce Noble Phantasm cooldowns by ⅓◈ Turns. Three uses."
+ },
+ {
+  "id": "rangeUpClairvoyance",
+  "name": "Range Up (Clairvoyance)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Clairvoyance, Clairvoyance (Bowman)",
+  "share": "Shared",
+  "system": "Range is increased by X panels. Does not stack with itself; reapplying it refreshes its duration."
+ },
+ {
+  "id": "rangeUpHawkeye",
+  "name": "Range Up (Hawkeye)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Magecraft",
+  "share": "Unique",
+  "system": "Range is increased by X panels. Does not stack with itself; reapplying it extends its duration."
+ },
+ {
+  "id": "rangeUp",
+  "name": "Range Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Thaumaturgy: Familiars",
+  "share": "Unique",
+  "system": "Range is increased by X panels."
+ },
+ {
+  "id": "regen",
+  "name": "Regen",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Curse of Separation, Doomsday Come: Come to Me, Realm of the Dead, Come to Me, Guidance of the Netherworld, Het Gele Huis, Het Gele Huis: The Yellow House, The Awarded Hero",
+  "share": "Shared",
+  "system": "Health is restored by X% (10% unless stated) of its maximum value at the end of the Unit's Turn, the end of any Turn the Unit Acts, and at the end of the Round."
+ },
+ {
+  "id": "rheingold",
+  "name": "Rheingold",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Avaricious Gold",
+  "share": "Unique",
+  "system": "A successful Golden Rule reduces NP Cooldown by 1◈ Turns instead of 1 Turn."
+ },
+ {
+  "id": "rhoAias",
+  "name": "Rho Aias",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Projection - Rho Aias: The Seven Rings that Cover the Fiery Heavens",
+  "share": "Unique",
+  "system": "Noble Phantasm damage aimed at this Unit is absorbed by Rho Aias until its Health runs out."
+ },
+ {
+  "id": "ridingActive",
+  "name": "Riding (Active)",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "Riding",
+  "share": "Unique",
+  "system": "Riding Attack and Passenger Seat may be used this Turn."
+ },
+ {
+  "id": "sCritUpOthers",
+  "name": "S.Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Skillful Star",
+  "share": "Unique",
+  "system": "Crit Chance of all allied Units within a 2 panel area of this Unit, but not this Unit, is increased by X%. Removed only from this Unit, which ends it for all of them."
+ },
+ {
+  "id": "sCritUpPollux",
+  "name": "S.Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Crit Chance of all allied Units within a 2 panel area of this Unit, and of its linked partner wherever it stands, is increased by X%. Removed only from this Unit, which ends it for all of them."
+ },
+ {
+  "id": "sCritUpSelf",
+  "name": "S.Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Sacred Guardian Beast, Yanamun Reversal",
+  "share": "Shared",
+  "system": "Crit Chance of this Unit is increased by X%. Unremovable, and its application cannot be prevented."
+ },
+ {
+  "id": "sCritUpShiisa",
+  "name": "S.Crit Up (Shiisa)",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Ocean Stirring Lion's Roar",
+  "share": "Unique",
+  "system": "Crit Chance is increased by 5% for each charge left. Each Attack this Unit makes spends one charge."
+ },
+ {
+  "id": "sCritUpStormBorder",
+  "name": "S.Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Journey's Guidance",
+  "share": "Unique",
+  "system": "Crit Chance of all allied Units on the Storm Border is increased by X%. Removed only from this Unit, which ends it for all of them."
+ },
+ {
+  "id": "sCritUp",
+  "name": "S.Crit Up",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Charisma of the Sun, Consecration of Eternal Life, Dream of Reunion, End of Charity, Eye of the Mind (True) EX, Fragarach Counter, Freezing Summertime, Journey's Guidance, Kazıklı Bey: Bloodstained King Demon, Pioneer of the Stars, Radiant Road, Sacred Guardian Beast, Saint War Order: Rally Upon the Holy Banner and Roar, Scapegoat, Stars of the Chief God, Successor of the Red Branch, Triumphal Return of the Holy Maiden, Unparalleled, Yanamun Reversal",
+  "share": "Shared",
+  "system": "Crit Chance of all allied Units within a 2 panel area of this Unit is increased by X%. Removed only from this Unit, which ends it for all of them."
+ },
+ {
+  "id": "sap",
+  "name": "Sap",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Ehecatle, Frenzied March Hare, Synthetic Limbs (Doll), Yata no Kagami: Hakkon Jourai・Dainisshō",
+  "share": "Shared",
+  "system": "Takes 50 Fixed damage at the end of its Turn and at the end of any Turn it Acts."
+ },
+ {
+  "id": "scalesShield",
+  "name": "Shield",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Scales of the Sacred Fish",
+  "share": "Unique",
+  "system": "Damage aimed at this Unit is absorbed by the Shield until its Health runs out."
+ },
+ {
+  "id": "seal",
+  "name": "Seal",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot perform Normal Attacks, use Skills or Attack Skills, or use Noble Phantasms. Spells remain usable."
+ },
+ {
+  "id": "shisarotCharge",
+  "name": "Shisarot's Charge",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "The next Attack deals 100% extra damage; if NP, 50%. Spent by that Attack."
+ },
+ {
+  "id": "shisarotForm",
+  "name": "Shisarot Form",
+  "polarity": "status",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Chibirā Sanu・Habetrot: The Lion's Gallant Figure that Stirs the Seas, Great Tropical Fireball, Shiisaa Beam, Shisarot Form",
+  "share": "Shared",
+  "system": "2 panels in size, Large. Max and current Health +100% of their original values. Active Skills that reach allies in an area reach Habetrot only. Injury Roll threshold doubled (200). Cannot Block; Agility Checks doubled. Moves to any panel, knocking its occupants back. Normal Attacks: BA(STR) at Range 1, BA(MAG) at 2 or more, a 2x2 area, the DUs knocked back 1 panel."
+ },
+ {
+  "id": "shock",
+  "name": "Shock",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "Blasted Tree: The Lightning Tree of Crucifixion, Bridal Chest: A Maiden's Chastity, Four Elements・The Great Enemy: The Yet Existing Four Gods, Goō Shōrai・Tenmōkaikai, Goō Shōriki・Dohatsu Tenshou, Jusō・Raitei, Mana Burst (Lightning), Thunder God's Embodiment, Tlahuitequiliztli, Vishnu Bhuja: Trishula, Yata no Kagami: Hakkon Jourai・Dainisshō, Þurs",
+  "share": "Shared",
+  "system": "Maximum and current Agility are reduced by 3. At the start of every Turn, roll a d6; on a 3 or a 4 the Unit cannot act. On removal, current Agility is restored by 1 alongside the maximum."
+ },
+ {
+  "id": "silence",
+  "name": "Silence",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "High-Speed Divine Words, Thaumaturgy: Projection Magic, Unlimited Blade Works: Infinite Creation of Swords, Witchcraft",
+  "share": "Shared",
+  "system": "Cannot use Spells. Does not affect Skills or Noble Phantasms unless stated."
+ },
+ {
+  "id": "skillSeal",
+  "name": "Skill Seal",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Affection of the Holy Grail, Bab-ilu: Key of the King's Law To Enshrine, Charisma, Gravity Manipulation, Instinct, Protection from Arrows, Runner Comet, Snegleta・Snegurochka: Summer Snow, Beautiful Drops of Hoarfrost, Uncrowned Arms Mastership, Witchcraft, Yanamun Reversal, Zabaniya: Delusional Poison Body",
+  "share": "Shared",
+  "system": "Cannot use Skills or Spells. Does not affect passive Skills unless stated."
+ },
+ {
+  "id": "slow",
+  "name": "Slow",
+  "polarity": "debuff",
+  "nature": "volatile · normal · defensive",
+  "appliedBy": "Ice Bucket Challenge for You, Ninjutsu: Harisenbon, Quickfire, Tlaelquiyahuitl, Vishnu Bhuja: Shuuravara, Yata no Kagami: Hakkon Jourai・Dainisshō, Úr",
+  "share": "Shared",
+  "system": "MOV is halved, rounding down, and Evade rolls are increased by 2."
+ },
+ {
+  "id": "soaked",
+  "name": "Soaked",
+  "polarity": "status",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Four Elements・The Great Enemy: The Yet Existing Four Gods, Ice Bucket Challenge for You",
+  "share": "Shared",
+  "system": "(a) When this Unit receives Ice damage, it has a 25% chance of being inflicted with Freeze; this is additive to any Freeze chance the Attack might have. (b) When this Unit receives Fire damage, Total Fire Damage taken is reduced by 50%, then 'Soaked' is removed from the Unit. (c) At the end of a Day Round, 'Soaked' is removed from all affected Units. (d) This effect is neither a buff nor a debuff and is Unremovable."
+ },
+ {
+  "id": "sol",
+  "name": "Sol",
+  "polarity": "buff",
+  "nature": "volatile · neutral",
+  "appliedBy": "Charisma of the Sun",
+  "share": "Unique",
+  "system": "The 5x5 panel area around the bearer is 'Day', even during a Night Round."
+ },
+ {
+  "id": "spellbookDestroyed",
+  "name": "Prelati's Spellbook Destroyed",
+  "polarity": "status",
+  "nature": "none",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Prelati's Spellbook is destroyed: its Active and both Summoning Spells can no longer be used."
+ },
+ {
+  "id": "stop",
+  "name": "Stop",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot Act. All durations on this Unit freeze, including newly applied ones, and cooldowns freeze in both directions."
+ },
+ {
+  "id": "stunBalls",
+  "name": "Stun (Balls)",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "Polygamist Castration Fist",
+  "share": "Unique",
+  "system": "Cannot Move, Attack or use Skills. A Stun."
+ },
+ {
+  "id": "stun",
+  "name": "Stun",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "De Sterrennacht: The Starry Night, Enkidu: Chains of Heaven, God's Resolution, Gáe Bolg Alternative: Soaring Spear of Piercing Death, Jusō・Kūretsu Daimitten, Mystic Eyes of Petrification: Cybele, Quickfire, Ατλας (Atlas)",
+  "share": "Shared",
+  "system": "Cannot Move, Attack or use Skills."
+ },
+ {
+  "id": "substitution",
+  "name": "Substitution",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot be hit by anything, including Noble Phantasms and Fixed damage, even against Aim. Beats Dodge."
+ },
+ {
+  "id": "suppression",
+  "name": "Suppression",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Lethal Gunfire Suppression, Magecraft",
+  "share": "Shared",
+  "system": "Successful Normal Attacks remove 1 buff from the Defending Unit at the start of the Damage Step; if a buff was successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu, all damage dealt is increased by 15%; if NP, 5%."
+ },
+ {
+  "id": "tecDwn",
+  "name": "TEC Dwn",
+  "polarity": "debuff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine",
+  "share": "Unique",
+  "system": "Enemies Evading this Unit's Attacks roll X lower."
+ },
+ {
+  "id": "terror",
+  "name": "Terror",
+  "polarity": "debuff",
+  "nature": "volatile · offensive",
+  "appliedBy": "Bab-ilu: Key of the King's Law To Enshrine, De Sterrennacht: The Starry Night, Evil Gaze of the Abyss",
+  "share": "Shared",
+  "system": "At the end of every Turn, X% chance of Stun for 1◈ Turns, then Terror is removed. The chance is not modified by debuff chance or resist effects."
+ },
+ {
+  "id": "testStunResist",
+  "name": "Test: Stun Resist",
+  "polarity": "buff",
+  "nature": "volatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "TEST EFFECT. The chance of being inflicted with Stun is reduced by 50%."
+ },
+ {
+  "id": "tiwaz",
+  "name": "Tiwaz",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Rune Magic",
+  "share": "Unique",
+  "system": "Magic Resistance Rank is increased by one Rank."
+ },
+ {
+  "id": "uncharted",
+  "name": "Uncharted",
+  "polarity": "buff",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Beyond the Uncharted",
+  "share": "Unique",
+  "system": "Detect is increased by 3 panels."
+ },
+ {
+  "id": "undying",
+  "name": "Undying",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Indomitable",
+  "share": "Unique",
+  "system": "When defeated, revive with 25% of maximum Health. Consumed on use."
+ },
+ {
+  "id": "unparalleled",
+  "name": "Unparalleled",
+  "polarity": "status",
+  "nature": "nonVolatile · neutral",
+  "appliedBy": "Unparalleled",
+  "share": "Unique",
+  "system": "Neither a buff nor a debuff, and Unremovable. This Turn, no other allied Servant can Attack, and its holder can Attack up to three times."
+ },
+ {
+  "id": "utopiaCount",
+  "name": "Utopia (Attack counted)",
+  "polarity": "status",
+  "nature": "nonVolatile · neither",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "One Attack counted towards Dmg Boost (Utopia)."
+ },
+ {
+  "id": "utopia",
+  "name": "Utopia",
+  "polarity": "buff",
+  "nature": "nonVolatile · offensive",
+  "appliedBy": "Knight of Utopia",
+  "share": "Unique",
+  "system": "Whenever this Unit performs a successful Attack, its NP Cooldown is reduced by ⅓◈ Turns for every Unit hit by that Attack."
+ },
+ {
+  "id": "vDebuffImmune",
+  "name": "vDebuff Immune",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Yanamun Reversal",
+  "share": "Unique",
+  "system": "Immune to volatile debuffs."
+ },
+ {
+  "id": "vasaviActivated",
+  "name": "Vasavi Shakti (Activated)",
+  "polarity": "status",
+  "nature": "none",
+  "appliedBy": "Vasavi Shakti — Activate",
+  "share": "Unique",
+  "system": "Kavacha and Kundala is permanently lost. Base Attack (STR) +25 and STR Rank B → A. Normal Attacks deal extra damage to Units with Divinity. Normal Attacks inflict Burn at 50% instead of 25%. Karna's Master loses 20 Health at the end of every Combat Process Karna is involved in."
+ },
+ {
+  "id": "wardDragon",
+  "name": "Ward (Dragon)",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "Dragon Slayer",
+  "share": "Unique",
+  "system": "Damage taken from Units with the Dragon Attribute is reduced by X%, Noble Phantasms included."
+ },
+ {
+  "id": "ward",
+  "name": "Ward",
+  "polarity": "buff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Damage taken from a matching category is reduced by X%, including from Noble Phantasms."
+ },
+ {
+  "id": "weakToPoison",
+  "name": "Poison Weakness",
+  "polarity": "debuff",
+  "nature": "nonVolatile · defensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "This Unit is weak to Poison: Poison Damage it receives is increased by 50%."
+ },
+ {
+  "id": "webbed",
+  "name": "Webbed",
+  "polarity": "debuff",
+  "nature": "volatile · normal · offensive",
+  "appliedBy": "—",
+  "share": "Unique",
+  "system": "Cannot Act. At the end of each of its Turns the Unit may Struggle to escape; the chance rises with each failure. Damage from an Attack removes it."
+ }
+]
