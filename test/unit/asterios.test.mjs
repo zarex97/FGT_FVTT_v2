@@ -332,6 +332,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // The Yellow House. "(Non-damaging)" despite covering a 7x7 of enemies:
       // everything it does is Def Dwn on one side and buffs on the other.
       "gogh-the-yellow-house",
+      // Rhongomyniad Mythos (#362): "(Non-damaging)", its one phase the Mythos
+      // debuff on a DU that did not Evade; its own Combat Process deals nothing.
+      "gray-rhongomyniad-mythos",
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",

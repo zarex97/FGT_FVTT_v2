@@ -1,0 +1,19 @@
+# Logos's lockout (#362 SM.4.lock).
+#
+# > "After the 'Logos' effect naturally expires, it cannot be re-applied to Gray
+# > for the next 2◈ Turns."
+#
+# Placed by Logos's own `onExpire`, and read by its `blockedBy`. A status, so
+# no Dispel or Cure shortens the 2◈ the sheet prints, and the bar shows it.
+schema: 1
+id: logosLockout
+name: "Logos Lockout"
+description: "'Logos' cannot be applied to this Unit while this lasts."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "2◈"
+rules: []

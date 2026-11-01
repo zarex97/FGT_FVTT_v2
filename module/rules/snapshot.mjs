@@ -410,6 +410,9 @@ export function snapshotUnit(actor, {
     // A named cut made longer while held (Rheingold, #341), read by
     // `engine/scheduler.mjs`'s `CooldownDelta` through its `overriddenBy`.
     cooldownCutOverrides: contributions.cooldownCutOverrides ?? [],
+    // A Cooldown's own Turn tick replaced on some Turns (King's Reflection,
+    // #362), read by `engine/scheduler.mjs#cooldownRate`.
+    naturalTicks: contributions.naturalTicks ?? [],
     // Attacks that go through every reduction on this Unit (Armor of Fafnir from
     // behind, #341 ruling 6), read by `rules/damage/pipeline.mjs#bypassesDefence`.
     defenceless: contributions.defenceless ?? [],
@@ -2375,6 +2378,9 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
       // Switched off whole by its own `negatedBy`/`negatedWhile`: no predicate
       // finds it held (Tamamo's Divinity outside Yata no Kagami, #353 reading 1).
       negated: negated(i, actor),
+      // ...and the effect that negated it, when one names what it negates
+      // (Mythos, #362): the use gate's refusal names it.
+      negatedByEffect: negatingEffectOf(i, actor),
       rank: Rank.parseOrNull(i.system?.rank),
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
       // Its full length, for a Passive whose handler starts its own clock
@@ -2487,6 +2493,44 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
  * @param {object} actor
  * @returns {boolean}
  */
+/**
+ * The effect the bearer carries whose `negatesAbilities` reaches this ability,
+ * or `null` (Mythos, #362 MY.2, MY.3).
+ *
+ * > *"Spells & NP cannot be used and their Passive effects are negated. The
+ * > exceptions to this effect are [Anti-Unit Mystic Sword] & [Anti-Unit Secret
+ * > Technique] NPs. ... The effects of Divinity are negated."*
+ *
+ * `{spells}` reaches a Spell by kind (a Master's too, reading 24); `{nps,
+ * exceptTags}` every NP but one holding all of a listed tag group (reading 28);
+ * `{categories}` an ability of that slug or categorized as it (Divinity whole,
+ * a Skill that counts as Divinity included, reading 25).
+ *
+ * @param {object} item
+ * @param {object} actor
+ * @returns {string|null} the negating effect's id
+ */
+export function negatingEffectOf(item, actor) {
+  const sys = item?.system ?? {};
+  const tags = sys.npTags ?? [];
+  const reaches = (spec) => {
+    if (spec.spells && sys.isSpell === true) return true;
+    if (spec.nps && (item.type === "noblePhantasm" || sys.isNP === true)) {
+      return !(spec.exceptTags ?? []).some((group) => group.every((t) => tags.includes(t)));
+    }
+    if (Array.isArray(spec.categories)) {
+      return spec.categories.some((c) => sys.slug === c || (sys.categorizedAs ?? []).includes(c));
+    }
+    return false;
+  };
+  for (const e of actor?.effects ?? []) {
+    if (e.disabled || e.isSuppressed) continue;
+    const def = EffectRegistry.get(e.system?.defId);
+    if ((def?.negatesAbilities ?? []).some(reaches)) return def.id;
+  }
+  return null;
+}
+
 function negated(item, actor) {
   // Negated by an EFFECT the bearer is carrying. `negatedBy` was read only by
   // `rules/ability-use.mjs#isNegated`, which sits on the **use** path -- so it
@@ -2508,6 +2552,9 @@ function negated(item, actor) {
   );
   const byEffect = item.system?.negatedBy ?? [];
   if (byEffect.length > 0 && byEffect.some((id) => carried().has(id))) return true;
+  // ...or by an effect that says which abilities it negates: Mythos's Spells,
+  // NPs but two tags, and Divinity (#362 MY.2, MY.3).
+  if (negatingEffectOf(item, actor)) return true;
 
   const spec = item.system?.negatedWhile ?? null;
   if (!spec) return false;

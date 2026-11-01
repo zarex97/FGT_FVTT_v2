@@ -1,0 +1,23 @@
+# Dmg Up (Grave): Gray's Anti-Spirit Combat, Active 2 (#362 reading 26).
+#
+# > "Applies Dmg Up (Grave) for 1◈ Turns, all damage dealt to Units with the
+# > 'Spirit' or 'Undead' Attribute is (further) increased by 60%."
+#
+# An ordinary Dmg Up, Dmg Up (Gods)'s shape on two Attributes: "(further)"
+# adds it to the passive's 40, never a multiplier. No `npValue`, as every Dmg Up.
+schema: 1
+id: dmgUpGrave
+name: "Dmg Up (Grave)"
+description: "All damage dealt to Units with the 'Spirit' or 'Undead' Attribute is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate:
+      - { anyOf: ["target:attribute:spirit", "target:attribute:undead"] }

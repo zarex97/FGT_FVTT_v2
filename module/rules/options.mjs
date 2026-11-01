@@ -707,6 +707,8 @@ function add(options, side, unit, withoutModeHeld = false) {
   for (const [name, pool] of Object.entries(unit.resources ?? {})) {
     const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
     if (held <= 0) options.add(`${side}:resourceEmpty:${name}`);
+    // ...and every count it clears, as the rank ladder is (Logos's 30, #362).
+    for (let n = 1; n <= held; n += 1) options.add(`${side}:resource:${name}:gte:${n}`);
   }
 
   // Rank COMPARISONS, emitted as one option per grade the unit clears.

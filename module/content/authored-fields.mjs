@@ -84,6 +84,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Classic and Revised (#260 reading 3): the text a bearer prints, its own
   // exemption from Skill Seal, and the Revised description.
   "printedRevision", "unsealable", "descriptionRevised",
+  // ...and what never reaches it: Face of the King's Skill Seal (#362).
+  "unaffectedBy", "combatProcess",
   "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride", "endsAfter",
   // What a mode's end pays, by how it ended (#253, Doppelganger).
   "onDeactivate",
@@ -103,7 +105,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "aftermath", "schedule", "element", "rules", "passiveRules", "activeRules", "cost",
   "costByMasterRank", "requirements", "timing", "blockedWhen", "effect",
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",
-  "severity", "preventsAction", "terminal", "onRemove", "volatility",
+  "severity", "preventsAction", "terminal", "onRemove", "onExpire", "removableOnlyBy", "negatesAbilities", "volatility",
   "families", "spentFirst", "suppressesOtherEffects", "valence", "stacking", "baseChance",
   "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "resetsSiblings", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",

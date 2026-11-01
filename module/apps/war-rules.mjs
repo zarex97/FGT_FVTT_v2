@@ -19,6 +19,7 @@
 
 import { WAR_RULES, warRuleEditable } from "../domain/war-rules.mjs";
 import { currentWar, warRule, worldDefault, setWarRules, setWorldDefaults, sceneIdOfWar } from "../engine/war.mjs";
+import { factions } from "../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -46,8 +47,8 @@ export function warRuleRows(valueOf, { war = null, keys = null, prefix = "rules.
       hint: spec.hint ? i18n?.localize(spec.hint) : null,
       isBoolean: spec.type === "boolean",
       isNumber: spec.type === "number" && !spec.choices,
-      isSelect: Boolean(spec.choices),
-      isText: spec.type === "string" && !spec.choices,
+      isSelect: Boolean(spec.choices || spec.choicesFrom),
+      isText: spec.type === "string" && !spec.choices && !spec.choicesFrom,
       value: value ?? "",
       checked: value === true,
       min: spec.range?.min ?? null,
@@ -56,7 +57,11 @@ export function warRuleRows(valueOf, { war = null, keys = null, prefix = "rules.
         ? Object.entries(spec.choices).map(([v, label]) => ({
           value: v, label: i18n?.localize(label) ?? label, selected: String(v) === String(value),
         }))
-        : [],
+        // The War's own factions, and none: the Chaldea Faction (#362 reading 21).
+        : spec.choicesFrom === "factions"
+          ? [{ value: "", label: i18n?.localize("FGT.WarRules.NoFaction") ?? "—", selected: !value },
+            ...factions(war ?? undefined).map((f) => ({ value: f.id, label: f.name ?? f.id, selected: f.id === value }))]
+          : [],
       disabled: !editable,
       lockedReason: editable ? null : i18n?.localize("FGT.WarRules.LockedReason") ?? null,
     };

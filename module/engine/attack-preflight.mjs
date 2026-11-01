@@ -22,6 +22,9 @@ import { actionSourceFor } from "../rules/platforms.mjs";
 import { unitFrom, unitActor } from "./board.mjs";
 import { pressGate, abilityKind } from "./press-gate.mjs";
 import { warRule } from "./war.mjs";
+import { magSealOf, usesMagOnly } from "../rules/mag-seal.mjs";
+import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { chebyshevBetween, occupiedPanels } from "../domain/geometry.mjs";
 
 /**
  * @typedef {object} Preflight
@@ -138,6 +141,19 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // reason rather than as a blanket "skip validation".
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
   if (!usage.ok && !overridden) return refuse(`Cannot use this ability: ${usageRefusal(usage, attacker)}`);
+
+  // A Normal Attack whose band at this distance is MAG alone, under a MAG seal:
+  // Mythos 1 refuses it, and its STR band can still be used (#362 reading 23).
+  // Asked here, where the aimed Unit is known; an ability is the use gate's.
+  const seal = !ability && aimed ? magSealOf(self) : null;
+  if (seal) {
+    const from = occupiedPanels(self);
+    const to = occupiedPanels(aimed);
+    const range = from.length && to.length ? chebyshevBetween(from, to) : null;
+    if (usesMagOnly(normalAttackAt(self, range))) {
+      return refuse(game.i18n.format("FGT.Ability.Refused.magSealedNormal", { by: seal.source ?? "", range: range ?? "?" }));
+    }
+  }
 
   // Ch. 32: at 25 Health or less a Master cannot order more than one of its
   // Servants to Act. Enforced here, where it composes with the ordinary budget.

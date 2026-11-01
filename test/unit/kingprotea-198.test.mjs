@@ -191,7 +191,8 @@ describe("an Unremovable instance survives a cleanse (SS.unrem)", () => {
     for (const file of ["module/engine/skill-use.mjs", "module/engine/attack.mjs"]) {
       const src = readFileSync(file, "utf8");
       expect(src, file).not.toMatch(/def\??\.unremovable \?\? e\.system/);
-      expect(src, file).toMatch(/isUnremovable\(def, e\)/);
+      // ...with the remover beside it, where one is known (Mythos, #362 MY.4).
+      expect(src, file).toMatch(/isUnremovable\(def, e(, \{ by \})?\)/);
     }
   });
 });

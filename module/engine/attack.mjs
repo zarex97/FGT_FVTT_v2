@@ -47,6 +47,7 @@ import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
+import { strPartUnderSeal } from "../rules/mag-seal.mjs";
 import {
   actionSourceFor, turnPartnersOf, attackSourceOf, platformFactorsOf, platformTierModifiers,
 } from "../rules/platforms.mjs";
@@ -1118,10 +1119,13 @@ export function buildAttackSpec({
       // of the ATTACK, so they travel with it -- `unblockable` removes Block
       // from the rung at declaration and `evadableOnlyBy` makes the Evade roll
       // fail automatically unless the defender holds one of the named effects.
-      unblockable: Boolean(block?.unblockable),
+      // ...and a non-damaging ability's own Process, which names the reactions
+      // it leaves: Rhongomyniad Mythos *"If this NP is not successfully
+      // Evaded"*, an Evade and nothing else (#362 reading 20).
+      unblockable: Boolean(block?.unblockable) || onlyReactions(ability)?.includes("block") === false,
       // *"These DUs can Evade/Block, but cannot Counter"*: Blasted Tree's
       // splash (#345). The rung closes for the hit, as Block does above.
-      uncounterable: Boolean(block?.uncounterable),
+      uncounterable: Boolean(block?.uncounterable) || onlyReactions(ability)?.includes("counter") === false,
       // The attack's own *"damage dealt is reduced by 30%"* or *"deals 20% extra
       // damage"*, an ordinary damage-dealt figure summed with Atk Up at stage 4,
       // never a Total cut: Rama's Vishnu Bhuja Normal Attacks (#347 ruling 2e).
@@ -4281,7 +4285,10 @@ async function fireAttackPerformed(siblings) {
       turnsPerRound: warRule("turnsPerRound"),
       board,
       options,
-      event: { unitsHit: hit.size },
+      // ...and how many of its criteria held, for a cut paid per criterion:
+      // Rhongomyniad's *"NP Cooldown is reduced by 1 Turn for each Criteria
+      // that is met"* (#362 RH.cdcut).
+      event: { unitsHit: hit.size, criteriaMet: first.attack?.criteriaMet?.met ?? 0 },
       subject: { contentId: first.attack?.sourceContentId ?? null, isNP: first.attack?.kind === "np" },
       rolls,
     });
@@ -4425,14 +4432,27 @@ async function fireAttackLanded(siblings) {
     if (!doc) return [];
     return [...rollOptionsFor({ attacker: null, defender: unitOf(doc, board) })].filter((o) => o.startsWith("target:"));
   }));
+  // ...and the Attack's own facts, its kind and what made it: King's
+  // Reflection pays *"upon performing a successful Normal Attack"*, and
+  // Rhongomyniad *"for every Unit hit by this NP"* (#362).
+  const attackerUnit = unitOf(attackerDoc, board);
+  for (const o of rollOptionsFor({ attacker: attackerUnit, defender: null, attack: landed[0].attack ?? null })) {
+    if (o.startsWith("attack:")) options.add(o);
+  }
+  // The Units it landed on, for a handler that pays per Unit: Anti-Spirit
+  // Combat's *"1 additional Mythos Counter for every Unit with those
+  // Attributes hit by a successful Attack"* (#362 reading 4).
+  const targets = [...new Set(landed.map((s) => s.defenderId))]
+    .map((id) => unitActor(id)).filter(Boolean).map((doc) => unitOf(doc, board));
   // A Crit when any Unit it landed on was critted (#239 reading 2): the 'Gogh'
   // buff takes two stages *"if the Attack was a Crit"*, once per Attack.
   if (landedOn.some(({ message }) => message.getFlag("fgt", "result")?.flags?.isCrit)) options.add("attack:crit");
-  const intents = fireEvent("attackLanded", [unitOf(attackerDoc, board)], {
+  const intents = fireEvent("attackLanded", [attackerUnit], {
     tick: currentMoment().tick ?? 0,
     turnsPerRound: warRule("turnsPerRound"),
     board,
     options,
+    targets,
     rolls: {},
   });
   if (intents.length === 0) return;
@@ -6422,7 +6442,7 @@ async function applyDamage(state, message) {
     // Same reason as `base` above: the block is the splash's own, or the
     // ability's when this is the ordinary resolution. Sized by the criteria the
     // declaration met, when it states them (#283).
-    multiplier: multiplierOf(block, { use: { criteriaMet: state.attack?.criteriaMet?.met ?? 0 } }),
+    multiplier: multiplierOf(block, { use: { criteriaMet: state.attack?.criteriaMet?.met ?? 0 }, chaldea: onChaldeaFaction(attacker) }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: [...(block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? []), ...breakMultipliers(block)],
     // The die and what moved the chance, so the card says how the Crit was
@@ -7197,7 +7217,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       if (phase.pick) {
         console.error(`FGT | ${ability.name}: a removeEffect \`pick\` is read on the Skill path only; this Attack strips without it.`);
       }
-      const removal = await removalIntents(phase, defenderDoc, defender);
+      const removal = await removalIntents(phase, defenderDoc, defender, ability);
       await applyBatch(removal.intents, "np:removeEffect");
       applied.push(...removal.rows);
       continue;
@@ -8127,7 +8147,43 @@ function declaredBase(ability, options = null, block = undefined) {
  * @param {object|null} ability
  * @returns {object}
  */
+/**
+ * The reactions a non-damaging ability's own Combat Process leaves its DU, or
+ * `null` for an ability that states none (`combatProcess.reactions`, #362).
+ *
+ * @param {object|null} ability
+ * @returns {string[]|null}
+ */
+/**
+ * Does this Unit fight on the Chaldea Faction of a Grand Order War?
+ *
+ * *"If Gray is summoned in a Grand Order Holy Grail War on the Chaldea
+ * Faction"* (#362 readings 21, 29): her own faction, read when the NP is
+ * declared, against the War's `chaldeaFaction`, and only while the War is a
+ * Grand Order one (`grandOrder`, its deriver).
+ *
+ * @param {object|null} unit
+ * @returns {boolean}
+ */
+function onChaldeaFaction(unit) {
+  const chaldea = warRule("chaldeaFaction");
+  return Boolean(warRule("grandOrder") && chaldea && unit?.faction === chaldea);
+}
+
+function onlyReactions(ability) {
+  const list = ability?.system?.combatProcess?.reactions;
+  return Array.isArray(list) ? list : null;
+}
+
 function baseSpecFor(attacker, ability, range = null, options = null, block = undefined, rider = null) {
+  // Under a MAG seal, a combined Base Attack is its STR part alone: Mythos 1,
+  // *"damage calculation is performed only with Base Attack (STR)"* (#362
+  // reading 23). One wrap, so every base below it is read the same way.
+  return strPartUnderSeal(unsealedBaseSpec(attacker, ability, range, options, block, rider),
+    unitOf(attacker, boardSnapshot()));
+}
+
+function unsealedBaseSpec(attacker, ability, range = null, options = null, block = undefined, rider = null) {
   const stated = declaredBase(ability, options, block);
   if (stated) return stated;
   // A Normal Attack whose rider names its Base Attack: Four Elements' face 5,
@@ -8624,7 +8680,7 @@ export function previewContext({ caster: given, defender, ability, board, isNP, 
     // is handed no set. Counted per row before, so two DUs previewed the x5 each
     // would earn alone and resolved at x3.5 (found live).
     multiplier: multiplierOf(block, { use: { criteriaMet: criteriaMet(ability?.system?.criteria,
-      { targets: targets ?? (defender ? [defender] : []), self: caster, board }).met } }),
+      { targets: targets ?? (defender ? [defender] : []), self: caster, board }).met }, chaldea: onChaldeaFaction(caster) }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: [...(block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? []), ...breakMultipliers(block)],
     crit: { isCrit: false, chanceUsed: 0 },
@@ -8812,14 +8868,14 @@ function resolveAbilitySource(contentId) {
  * @returns {Promise<{intents: object[], rows: object[]}>} the removals, and a
  *   card line for each effect removed or held
  */
-async function removalIntents(phase, doc, bearer) {
+async function removalIntents(phase, doc, bearer, by = null) {
   const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
   const selector = phase.selector ?? null;
 
   const ids = named.length > 0
     ? named
     : doc.effects
-      .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId)))
+      .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId), { by }))
       .map((e) => e.system.defId);
 
   // Buff removal has a resistance on the receiving end (`rules/removal.mjs`),
@@ -8834,7 +8890,7 @@ async function removalIntents(phase, doc, bearer) {
       return {
         defId: e.system.defId,
         polarity: polarityOf(e.system, def),
-        unremovable: isUnremovable(def, e),
+        unremovable: isUnremovable(def, e, { by }),
         ownResist: ownRemovalResist(def),
       };
     });
@@ -10143,7 +10199,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     attack,
     base: baseSpecFor(attackerDoc, ability, attack.range, description.options, block, attack.rider ?? null),
     // A counterfactual meets no criteria: none was counted, since none was declared.
-    multiplier: multiplierOf(block),
+    multiplier: multiplierOf(block, { chaldea: onChaldeaFaction(attackerUnit) }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: [...(block?.conditionalMultipliers ?? []), ...breakMultipliers(block)],
     // No crit. The coin was never flipped — the resolution did not happen — and

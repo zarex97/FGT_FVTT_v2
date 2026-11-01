@@ -1,0 +1,39 @@
+# Blessings from the End of the World, Rank B (#362 BL.*).
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Reduce Gray's NP Cooldown by ½◈ Turns.
+# > 2. Applies Debuff ResUp for 1◈ Turns, chance of being inflicted by debuffs is
+# >    reduced by 30%.
+# > 3. Gain 4 Mythos Counters.
+# > Cooldown: 4◈ Turns."
+#
+# Lanceturia's Blessings from the Ends of the World's `cooldown` phase: "NP
+# Cooldown" naming no NP is every NP's (#197 reading 6).
+schema: 1
+id: gray-blessings
+name: "Blessings from the End of the World"
+rank: B
+kind: skill
+slug: blessingsFromTheEndOfTheWorld
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Reduce Gray's NP Cooldown by ½◈ Turns.
+  2. Applies @effect[debuffResUp]{Debuff ResUp} for 1◈ Turns, chance of being inflicted by debuffs is reduced by 30%.
+  3. Gain 4 Mythos Counters.
+  Cooldown: 4◈ Turns.
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "½◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: debuffResUp, magnitude: 30, duration: "1◈" }
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.mythos.value, delta: 4 }

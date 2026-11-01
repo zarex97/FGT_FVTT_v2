@@ -1,0 +1,53 @@
+# Sealing Mystic Code Release, Rank C (#362 SM.*).
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Restores 4 Agility.
+# > 2. Applies Atk Up for ⅓◈ Turns, all damage dealt is increased by 50%; if NP, 30%.
+# > 3. Applies Invuln for ⅓◈ Turns, 1 time.
+# > 4. Applies the 'Logos' effect for 2◈ Turns. ... If Gray had 30 Mythos
+# >    Counters or more when the 'Logos' effect is applied, it no longer has a
+# >    duration.
+# > 5. Gain 1d6 Mythos Counters.
+# > Cooldown: 2◈ Turns"
+#
+# In the printed order, so effect 4 reads her Counters before effect 5's die
+# (reading 10). Logos is two entries, one per side of the 30: timed, or
+# `permanent`. A timed Logos refreshes; a permanent one stays, as `noneRefresh`
+# never shortens a held instance with no expiry (reading 11). During the lockout
+# Logos's own `blockedBy` refuses it with a line and the other four land.
+# The 1d6 is rolled on the card (`roll`).
+schema: 1
+id: gray-sealing-mystic-code-release
+name: "Sealing Mystic Code Release"
+rank: C
+kind: skill
+slug: sealingMysticCodeRelease
+cooldown: "2◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 4 Agility.
+  2. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 50%; if NP, 30%.
+  3. Applies @effect[invuln]{Invuln} for ⅓◈ Turns, 1 time.
+  4. Applies the '@effect[logos]{Logos}' effect for 2◈ Turns. This effect is neither a buff or debuff and is
+     Unremovable. After the 'Logos' effect naturally expires, it cannot be re-applied to Gray for the next 2◈ Turns.
+     If Gray had 30 Mythos Counters or more when the 'Logos' effect is applied, it no longer has a duration.
+  5. Gain 1d6 Mythos Counters.
+  Cooldown: 2◈ Turns
+phases:
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 4, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 50, npMagnitude: 30, duration: "⅓◈" }
+      - { id: invuln, duration: "⅓◈", uses: 1, stacking: count }
+      - { id: logos, duration: "2◈", predicate: [{ not: "self:resource:mythos:gte:30" }] }
+      - { id: logos, permanent: true, predicate: ["self:resource:mythos:gte:30"] }
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.mythos.value, roll: "1d6" }

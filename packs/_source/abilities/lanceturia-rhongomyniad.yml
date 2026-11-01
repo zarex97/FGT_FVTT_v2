@@ -17,10 +17,11 @@
 # panel within Range 5 (#234). Its stated cost replaces the Rank table. The
 # Cooldown falls ⅓◈ per criterion met (`countBonus` with `direction: down`).
 #
-# Not built (#336 ruling 6): *"If Lanceturia is summoned in a Grand Order Holy
-# Grail War on the Chaldea Faction, the multiplier of Rhongomyniad begins at 4x
-# instead of 3x."* The engine has no Chaldea Faction; Gray and Arthur print the
-# same note. When it is built, only the multiplier starts at 4x (ruling 7).
+# *"If Lanceturia is summoned in a Grand Order Holy Grail War on the Chaldea
+# Faction, the multiplier of Rhongomyniad begins at 4x instead of 3x."* Recorded
+# only by #336 ruling 6; built by Gray's #362 reading 21 for every sheet that
+# prints it: the War's `chaldeaFaction`, in a Grand Order War, starts the
+# multiplier at `grandOrderBase`. Only the multiplier moves (ruling 7).
 schema: 1
 id: lanceturia-rhongomyniad
 name: "Rhongomyniad: The Lance That Shines To The Ends Of The Earth"
@@ -51,7 +52,7 @@ description: |
   When Rhongomyniad is used and none of the criteria are met, Arturia's Master loses 30 Health as the cost for
   this NP. For every criteria that is met, her Master loses an additional 10 Health. Then, Rhongomyniad's
   Cooldown is reduced by ⅓◈ Turns for each criteria that is met. Cooldown: 7◈+⅔◈ Turns.
-  Note: in a Grand Order Holy Grail War on the Chaldea Faction the multiplier begins at 4x (not built).
+  Note: in a Grand Order Holy Grail War on the Chaldea Faction the multiplier begins at 4x.
 targeting:
   anchor: { kind: withinRange, range: 5 }
   shape: { kind: square, size: 5 }
@@ -68,7 +69,7 @@ damage:
   # `{S}` at its head in `by-class/Lancer/Lanceturia.md`: Special (#281).
   delivery: special
   component: mag
-  multiplier: { base: 3, per: 0.5, count: { of: criteria } }
+  multiplier: { base: 3, per: 0.5, count: { of: criteria }, grandOrderBase: 4 }
   flatBonus: 200
   element: light
   pierce: true

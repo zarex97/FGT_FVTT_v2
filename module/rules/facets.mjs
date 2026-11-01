@@ -378,6 +378,29 @@ export const FACETS = Object.freeze([
     prose: "{subject} has no {resource}",
   }),
   facet({
+    // A pool at a threshold or more, one option per count it clears, as the
+    // rank ladder is. Gray's Logos: *"If Gray had 30 Mythos Counters or more
+    // when the 'Logos' effect is applied"* (#362 reading 10).
+    id: "resource",
+    segments: [
+      { name: "resource", value: open() },
+      { name: "gte", value: literal("gte") },
+      { name: "count", value: number() },
+    ],
+    english: "Holds at least a number of a named resource.",
+    prose: "{subject} has {count} {resource} or more",
+  }),
+  facet({
+    // How the recipient stands to the one asking: Rhongomyniad's *"all affected
+    // enemy Units are inflicted with"* over a line that hits allies too (#362
+    // reading 15). Asked where both are known, an effect's landing among them.
+    id: "relation",
+    subjects: ["target"],
+    segments: [{ name: "relation", value: closed("RELATIONS") }],
+    english: "Stands to the asker as an enemy, an ally, a neutral or itself.",
+    prose: "{subject} is {relation}",
+  }),
+  facet({
     id: "onPlatform",
     segments: [{ name: "platform", value: registry("contentIds") }],
     english: "Is aboard a named Platform.",

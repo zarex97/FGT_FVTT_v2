@@ -113,7 +113,7 @@ export function pressGate(actor, item, {
   const free = Boolean(item?.system?.freeAction) || (atWindow && Boolean(item?.system?.freeAtWindow));
   const kind = asAttack ? (item ? abilityKind(item) : "normal") : useBudgetKind(item);
   const afford = billsBudget && combat?.started && !free
-    ? budget.affordable(combat, self, budgetActionFor(kind))
+    ? budget.affordable(combat, self, budgetActionFor(kind), { ignoring: [...(item?.system?.unaffectedBy ?? [])] })
     : { ok: true, reason: null };
 
   const ok = usage.ok && afford.ok;

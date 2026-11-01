@@ -1,0 +1,31 @@
+# Logos: Gray's Sealing Mystic Code Release, effect 4 (#362 SM.4.*).
+#
+# > "Applies the 'Logos' effect for 2◈ Turns. This effect is neither a buff or
+# > debuff and is Unremovable. After the 'Logos' effect naturally expires, it
+# > cannot be re-applied to Gray for the next 2◈ Turns. If Gray had 30 Mythos
+# > Counters or more when the 'Logos' effect is applied, it no longer has a
+# > duration."
+#
+# A status, Unremovable. *"Naturally expires"* is the clock alone: `onExpire`
+# runs on the expiry and on no other removal, so a Logos that ends any other way
+# starts no lockout (SM.4.lock.only). The lockout is its own status, and Logos
+# refuses to land on a bearer holding it (`blockedBy`), with a line (reading 11).
+# The 30-Counter test is the Skill's, on its entry (reading 10).
+# Rhongomyniad reads it as its gate and leaves it held (reading 12).
+schema: 1
+id: logos
+name: "Logos"
+description: |
+  Neither a buff nor a debuff, and Unremovable. After it naturally expires, it cannot be re-applied to its bearer for
+  the next 2◈ Turns.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+defaultDuration: "2◈"
+blockedBy: [logosLockout]
+onExpire:
+  - { key: ApplyEffect, effect: { id: logosLockout }, duration: "2◈" }
+rules: []
