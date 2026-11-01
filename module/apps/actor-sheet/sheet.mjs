@@ -32,7 +32,9 @@ const { ActorSheetV2 } = foundry.applications.sheets;
 class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["fgt", "sheet", "actor"],
-    position: { width: 620, height: 720 },
+    // The portrait card's column beside the tabs (#364). Under 760px the card
+    // stacks on top (`_shell.scss`), so a narrow window still reads.
+    position: { width: 900, height: 720 },
     window: { resizable: true },
     form: { submitOnChange: true },
     actions: {

@@ -10,13 +10,39 @@
       really does become a nested one. Every input would then have the INNER
       form as its owner, `FormDataExtended(outerForm)` would collect nothing,
       and no edit on this sheet would ever save. --}}
-<header class="fgt-header" style="--fgt-faction: {{header.factionColor}}">
-  <img class="fgt-header__portrait" src="{{header.portraitImg}}" alt="{{document.name}}"
-       data-edit="img" data-action="editImage">
+<header class="fgt-header{{#if header.card}} fgt-header--card{{else}} fgt-header--plain{{/if}}"
+        style="--fgt-faction: {{header.factionColor}}">
+  {{#if header.card}}
+    {{!-- FGO's framed portrait (#364): the face in a frame of the faction's
+          colour, the class and the name on its foot. Both come through the
+          identity reader, so an opponent sees the class, never the name. The
+          name stays an input for whoever may rename the Unit, who sees its
+          true name anyway. --}}
+    <figure class="fgt-portrait">
+      <div class="fgt-portrait__frame{{#if header.card.isClassIcon}} fgt-portrait__frame--class{{/if}}">
+        <img class="fgt-portrait__art" src="{{header.card.img}}" alt="{{header.card.name}}"
+             data-edit="img" data-action="editImage">
+      </div>
+      <figcaption class="fgt-portrait__foot">
+        {{#if header.card.className}}<span class="fgt-portrait__class">{{header.card.className}}</span>{{/if}}
+        {{#if isEditable}}
+          <input class="fgt-header__name fgt-portrait__name" type="text" name="name" value="{{document.name}}"
+                 placeholder="{{localize 'FGT.Sheet.Name'}}">
+        {{else}}
+          <span class="fgt-portrait__name">{{header.card.name}}</span>
+        {{/if}}
+      </figcaption>
+    </figure>
+  {{else}}
+    <img class="fgt-header__portrait" src="{{header.portraitImg}}" alt="{{document.name}}"
+         data-edit="img" data-action="editImage">
+  {{/if}}
 
   <div class="fgt-header__identity">
-    <input class="fgt-header__name" type="text" name="name" value="{{document.name}}"
-           placeholder="{{localize 'FGT.Sheet.Name'}}">
+    {{#unless header.card}}
+      <input class="fgt-header__name" type="text" name="name" value="{{document.name}}"
+             placeholder="{{localize 'FGT.Sheet.Name'}}">
+    {{/unless}}
 
     {{#if header.line}}<p class="fgt-header__line">{{header.line}}</p>{{/if}}
 

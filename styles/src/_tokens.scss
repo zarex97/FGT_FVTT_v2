@@ -59,8 +59,8 @@
   // the HUD already read from `rules/factions.mjs`.
   --fgt-faction: var(--fgt-gold);
 
-  // Behind a portrait in BOTH themes: the class icons a concealed or unpainted
-  // Unit shows are white glyphs, and vanished on the light theme's parchment.
+  // Behind a portrait in BOTH themes: Foundry's placeholder face is a white
+  // silhouette, and it vanished on the light theme's parchment.
   --fgt-portrait-bg: #17161c;
 
   --fgt-radius: 4px;
