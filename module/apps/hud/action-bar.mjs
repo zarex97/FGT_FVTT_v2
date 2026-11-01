@@ -175,10 +175,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // player is told by no one. Gather is the natural way to meet it, because
     // it spends a Unit's Attack without looking like an attack (§46.4-AW).
     const combat = currentWar() ?? null;
-    const afford = (kind) => {
+    const afford = (kind, ignoring = []) => {
       if (!combat?.started || !kind) return { ok: true, reason: null };
       try {
-        return budget.affordable(combat, unit, kind);
+        return budget.affordable(combat, unit, kind, { ignoring });
       } catch {
         // A budget that cannot be computed must not withhold the control: a
         // refusal nobody can justify is worse than an ambush.
@@ -321,7 +321,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // and a mode switch bill nothing on either path.
         const free = Boolean(item.system?.freeAction) || use.toggles;
         const spent = this.counter || ending || free ? { ok: true, reason: null }
-          : afford(budgetActionFor(use.isAttack ? abilityKind(item) : useBudgetKind(item)));
+          // ...with what never reaches it: Face of the King under Skill Seal was
+          // greyed "prevented by Skill Seal" (#362 reading 9, live).
+          : afford(budgetActionFor(use.isAttack ? abilityKind(item) : useBudgetKind(item)),
+            [...(item.system?.unaffectedBy ?? [])]);
         if (!spent.ok) {
           return {
             ...slot, disabled: true,

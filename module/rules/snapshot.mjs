@@ -2512,14 +2512,17 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
  */
 export function negatingEffectOf(item, actor) {
   const sys = item?.system ?? {};
-  const tags = sys.npTags ?? [];
+  // Both are SetFields on an NP's document, a Set and never an Array: `.includes`
+  // threw mid-Process the first time Mythos landed (#362, live).
+  const tags = [...(sys.npTags ?? [])];
+  const categories = [...(sys.categorizedAs ?? [])];
   const reaches = (spec) => {
     if (spec.spells && sys.isSpell === true) return true;
     if (spec.nps && (item.type === "noblePhantasm" || sys.isNP === true)) {
       return !(spec.exceptTags ?? []).some((group) => group.every((t) => tags.includes(t)));
     }
     if (Array.isArray(spec.categories)) {
-      return spec.categories.some((c) => sys.slug === c || (sys.categorizedAs ?? []).includes(c));
+      return spec.categories.some((c) => sys.slug === c || categories.includes(c));
     }
     return false;
   };

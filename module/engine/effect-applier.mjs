@@ -18,6 +18,7 @@ import { resolveTicks, parseTick } from "../domain/tick.mjs";
 import { INFINITE } from "../domain/enums.mjs";
 import * as I from "./intents.mjs";
 import { EFFECT_INSTANCE } from "../rules/elements.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 /**
  * @typedef {object} ApplicationResult
@@ -174,7 +175,9 @@ export function applyEffect({
   const exclusion = findExclusion(def, held);
   if (exclusion.blocked) {
     trace.push({ step: "exclusivity", outcome: "blocked", detail: exclusion.by });
-    return blocked(exclusion.by, trace);
+    // By its name, as an immunity's reason is: Logos refused under its lockout
+    // read "Logos — logosLockout" (#362, live).
+    return blocked(EffectRegistry.get(exclusion.by)?.name ?? exclusion.by, trace);
   }
   trace.push({
     step: "exclusivity",

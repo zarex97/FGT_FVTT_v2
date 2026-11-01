@@ -1217,7 +1217,11 @@ function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board,
     reactionAbilities: {
       // ...nor against a hit its DU *"cannot React to"*: Four Elements' follow-up
       // after a failed Evade closes the reaction abilities too (#328, found live).
+      // ...nor against a non-damaging ability's own Process that names its
+      // reactions: Rhongomyniad Mythos is Evaded and nothing else, and Medea
+      // was offered Argos and Trofa against it (#362 reading 20, live).
       [defenderId]: declared.plainDamage || (declared.forbidReactions ?? []).includes("abilities")
+        || onlyReactions(ability)
         ? []
         : offeredReactions(defenderId, attack, isAoE, attackerId, board),
     },
@@ -6653,14 +6657,18 @@ async function applyDamage(state, message) {
     const veil = aoeOutcome(coin.total);
     const before = result.total;
     result.total = Math.max(0, Math.round(result.total * veil.factor));
-    result.flags = { ...result.flags, concealmentVeil: veil };
+    result.flags = { ...result.flags, concealmentVeil: veil, concealmentCoin: coin.total };
+    // By the name its sheet gives it, and with the coin: Gray's Hoodie read
+    // "Presence Concealment" and no card showed the die that decided (#362, live).
+    const veiled = (defender.effectInstances ?? []).find((e) => e.defId === "presenceConcealment")?.params?.name
+      ?? "Presence Concealment";
     result.breakdown = [
       ...(result.breakdown ?? []),
       {
         stage: "concealment",
         label: veil.heads
-          ? "Presence Concealment: Heads — nothing is received"
-          : "Presence Concealment: Tails — Total Damage halved",
+          ? `${veiled}: 1d2 = ${coin.total}, Heads — nothing is received`
+          : `${veiled}: 1d2 = ${coin.total}, Tails — Total Damage halved, ${veiled} ends`,
         from: before,
         to: result.total,
       },

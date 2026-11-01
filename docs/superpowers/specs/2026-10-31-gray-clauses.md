@@ -128,6 +128,33 @@ Round 2: reading 16 and the follow-ups 27–29 ruled as written. The frontier is
 | 28 | Mythos 2's exceptions are two new `npTags`, `mysticSword` and `secretTechnique`, worn beside a scale tag. Only `antiUnit` with one of them is exempt: Ushiwakamaru's *Anti-Army Secret Technique* stays sealed. | MY.2.except |
 | 29 | *"Summoned … on the Chaldea Faction"* is read at the NP's declaration, from her current faction. | RH.go |
 
+## Live presses (in progress, 2026-11-01)
+
+War "Gray Audit" (scene `50ZJJWLyVTRXGyP4`): Gray and Tamamo for Faction 1 (Player1), Medea, Arjuna, Summer Habetrot
+and Mannanán for Faction 2. Staged where the board would not produce a case: the NP gates at Round 1, Turns per Round
+8 for Turns 3 to 8 (King's Reflection), revivals of Arjuna and Medea, a Skill Seal, cooldowns and Mythos set by hand,
+Master Health refilled.
+
+**Pressed or Observed live (about 109):** ST.name, ST.class, ST.region, ST.align, ST.hp, ST.mov, ST.range, ST.ba,
+ST.na, ST.mythos · IA.zon · MR.neg, MR.red · FK.when, FK.apply, FK.dur, FK.same, FK.cd, FK.cd.held, FK.seal ·
+HD.1.target, HD.1.aoe, HD.1.heads, HD.2.react, HD.2.evade, HD.3.masters, HD.4, HD.4.np, HD.4.master, HD.5, HD.6 ·
+KR.1, KR.1.acted, KR.1.once, KR.1.other, KR.2, KR.2.crit, KR.2.miss, KR.max · AS.p.dmg, AS.p.np, AS.p.other,
+AS.p.mythos, AS.when, AS.1, AS.1.np, AS.2, AS.2.other, AS.cd · SM.when, SM.1, SM.2, SM.2.np, SM.3, SM.3.once, SM.4,
+SM.4.lock, SM.4.perm, SM.4.held, SM.5, SM.cd · BL.when, BL.1, BL.2, BL.3, BL.cd · RH.gate, RH.logos, RH.pierce,
+RH.mag, RH.area, RH.area.diag, RH.who, RH.c1 to RH.c6, RH.c.single, RH.dmg, RH.dmg.per, RH.cost, RH.cost.per,
+RH.npdef, RH.defdwn, RH.enemy, RH.cdcut, RH.mythos, RH.cd · MY.nondmg, MY.when, MY.gate, MY.spend, MY.range,
+MY.target, MY.target.ally, MY.evade, MY.hoodie, MY.ignore, MY.dur, MY.1, MY.1.na, MY.1.both, MY.2, MY.2.np, MY.3,
+MY.4.other, MY.cd.
+
+**Open:** ST.param, ST.attr, ST.sus, ST.items · IA.sus, IA.contract · MR.np, MR.debuff, MR.ik, MR.ik.str, MR.erase,
+MR.note · HD.1.tails, HD.1.tails.end, HD.3.move, HD.7, HD.7.except, HD.8, HD.8.unrem · SM.4.status, SM.4.unrem,
+SM.4.lock.only · RH.cd.per (a question: #283 rounds the sum once, so five criteria gave 23, not 25), RH.defdwn.agi,
+RH.go · MY.evaded, MY.2.passive, MY.2.except (no built NP carries the two tags), MY.4.
+
+**Fixed live:** Logos's natural end named on the Turn card; a blocked effect's reason by name; Hoodie's coin on the
+breakdown with its die; `categorizedAs` read as a Set; the bar honours `unaffectedBy`; a non-damaging Process offers
+no reaction abilities; refusals name Mythos, Logos and the Mythos pool.
+
 ## Statblock
 
 - [ ] **ST.name** · True Name: Gray
