@@ -91,7 +91,7 @@ MAG NP is reduced by Magic Resistance as any MAG Instakill is · riders land on 
 
 ## Readings
 
-To be grilled.
+Grilled 2026-11-02. Round 1: readings 1–22 ruled as written, all as recommended. The frontier is empty.
 
 | # | Reading (recommended) | Clauses |
 |---|---|---|
