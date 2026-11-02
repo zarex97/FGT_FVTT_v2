@@ -413,9 +413,12 @@
 
 /* ── Resource bars ──────────────────────────────────────────────────────── */
 
+// The figures on the bar are its fields: the shared header template moved
+// the two inputs onto the track (#364), so Classic draws them there too, in
+// its own tokens.
 .fgt-bar {
   display: grid;
-  grid-template-columns: 3.5rem 1fr 3.2rem auto 3.2rem;
+  grid-template-columns: 3.5rem 1fr;
   align-items: center;
   gap: 0.3rem;
   font-size: 0.72rem;
@@ -428,7 +431,7 @@
 
   &__track {
     position: relative;
-    height: 0.95rem;
+    height: 1.2rem;
     border: var(--fgt-border);
     border-radius: 2px;
     background: var(--fgt-bg-sunken);
@@ -445,24 +448,41 @@
   // colour is never the only signal (D29.7).
   &__value {
     position: relative;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    height: 100%;
+  }
+
+  &__num {
+    width: 4.5ch;
+    @supports (field-sizing: content) { width: auto; min-width: 1.5ch; field-sizing: content; }
+    height: 1rem;
+    padding: 0 0.15rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: none;
     text-align: center;
-    line-height: 0.95rem;
+    font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
+    color: inherit;
     text-shadow: 0 0 3px var(--fgt-bg-sunken);
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+    &:not(:disabled):hover { border-color: var(--fgt-ink-dim); }
+    &:focus { outline: none; border-color: var(--fgt-gold); background: var(--fgt-bg-sunken); text-shadow: none; }
   }
 
   &__none {
-    display: block;
-    text-align: center;
-    line-height: 0.95rem;
     font-style: italic;
     color: var(--fgt-ink-dim);
+    margin-right: 0.35rem;
   }
 
   &__sep { color: var(--fgt-ink-dim); }
-
-  input { width: 100%; text-align: center; font-size: 0.72rem; }
 
   &--agility &__fill { background: var(--fgt-agility); }
   &--luck &__fill { background: var(--fgt-luck); }
