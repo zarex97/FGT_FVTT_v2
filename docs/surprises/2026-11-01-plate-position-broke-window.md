@@ -3,7 +3,8 @@ id: 2026-11-01-plate-position-broke-window
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** The `plate` mixin, a two-pseudo-element metal edge with cut corners, would dress the actor sheet's window the way it dresses the bar and the cards. The window would stay where core put it, at `left: 16px`.
 **Actual:** The sheet opened at x=780. `#interface` shrank from 1600px to 764px, so the chat sidebar slid into the middle of the screen and the action bar into the left half.
