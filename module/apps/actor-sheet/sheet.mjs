@@ -27,6 +27,10 @@ import { processOpenIn } from "../../engine/combat-process.mjs";
 import { veiledSpec } from "../../rules/concealment.mjs";
 import { paintCircles } from "../ornament.mjs";
 import { isClassicUI } from "../ui-style.mjs";
+import { fittedPosition, overflowOf } from "./fit.mjs";
+
+/** The partials the sheet's parts render (`fgt.mjs`'s `setup`). */
+const SHEET_PARTIALS = Object.freeze(["fgt-ability-card", "fgt-effect-row"]);
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -640,6 +644,54 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     paintCircles(this.element);
+  }
+
+  /**
+   * Open large enough to show what this Unit's sheet holds (#364): the window
+   * grows by what its panes overflow, up to the screen. Measured once the
+   * faces have loaded, since a face swapped in later changes every height.
+   *
+   * @inheritdoc
+   */
+  _onFirstRender(context, options) {
+    super._onFirstRender(context, options);
+    const fonts = globalThis.document?.fonts?.ready ?? Promise.resolve();
+    fonts.then(() => requestAnimationFrame(() => {
+      if (!this.rendered || !this.element?.isConnected) return;
+      const next = fittedPosition({
+        position: this.position,
+        overflow: overflowOf(this.element),
+        viewport: { width: globalThis.innerWidth, height: globalThis.innerHeight },
+      });
+      if (next) this.setPosition(next);
+    })).catch(() => {});
+  }
+
+  /**
+   * Compile the sheet's templates before anyone opens one (#364).
+   *
+   * Handlebars compiles a template the first time it is RUN, not when Foundry
+   * loads it, so the first sheet a client opened paid for compiling all six
+   * parts and their partials: about a third of a second, live, in the click.
+   * Running each once on an empty context compiles it; what the empty context
+   * then fails to render is nothing anyone sees.
+   *
+   * @returns {Promise<number>} how many templates were compiled
+   */
+  static async warmTemplates() {
+    const { getTemplate } = foundry.applications.handlebars;
+    const parts = await Promise.all(Object.values(this.PARTS).map((p) => getTemplate(p.template)));
+    const partials = SHEET_PARTIALS.map((name) => globalThis.Handlebars?.partials?.[name]).filter((f) => typeof f === "function");
+    let compiled = 0;
+    for (const template of [...parts, ...partials]) {
+      try {
+        template({}, { allowProtoMethodsByDefault: true, allowProtoPropertiesByDefault: true });
+      } catch {
+        // Compiled before it ran: an empty context failing a helper is fine.
+      }
+      compiled++;
+    }
+    return compiled;
   }
 
   /**
