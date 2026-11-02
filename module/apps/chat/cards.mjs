@@ -23,6 +23,7 @@ import { shownName } from "../../engine/public-identity.mjs";
 import { warRule } from "../../engine/war.mjs";
 import { markSystemCard, viewerRole } from "./surface.mjs";
 import { playNoblePhantasmCutIn } from "./cut-in.mjs";
+import { isClassicUI, uiTemplate } from "../ui-style.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { polarityOf } from "../../rules/effect-instance.mjs";
 
@@ -34,7 +35,7 @@ import { polarityOf } from "../../rules/effect-instance.mjs";
 export async function renderAttackCard({ state, attacker, ability, targets }) {
   const context = await cardContext({ state, attacker, ability, targets });
   const content = await foundry.applications.handlebars.renderTemplate(
-    "systems/fgt/templates/chat/attack.hbs", context,
+    uiTemplate("systems/fgt/templates/chat/attack.hbs"), context,
   );
 
   const board = currentBoard();
@@ -70,7 +71,7 @@ export async function updateAttackCard(message, state) {
   const attacker = game.actors.get(state.attackerId);
   const ability = state.attack?.abilityId ? attacker?.items.get(state.attack.abilityId) : null;
   const content = await foundry.applications.handlebars.renderTemplate(
-    "systems/fgt/templates/chat/attack.hbs",
+    uiTemplate("systems/fgt/templates/chat/attack.hbs"),
     await cardContext({
       state, attacker, ability,
       names: message.getFlag("fgt", "names") ?? null,
@@ -299,6 +300,8 @@ const rolledUp = new Set();
  * @param {HTMLElement} html
  */
 function rollUpDamage(message, html) {
+  // Nocturne's motion; the Classic look draws the total still (#364).
+  if (isClassicUI()) return;
   const node = html.querySelector(".fgt-card__total");
   if (!node || rolledUp.has(message.id)) return;
   rolledUp.add(message.id);
@@ -429,7 +432,7 @@ function fillAttackCard(message, html) {
     message,
   })
     .then((context) => foundry.applications.handlebars.renderTemplate(
-      "systems/fgt/templates/chat/attack.hbs", context,
+      uiTemplate("systems/fgt/templates/chat/attack.hbs"), context,
     ))
     .then((content) => {
       const target = html.querySelector(".fgt-card");
@@ -620,12 +623,14 @@ export function activateChatListeners() {
   Hooks.on("createChatMessage", (message) => {
     const np = message.getFlag?.("fgt", "np");
     if (message.getFlag?.("fgt", "kind") !== "attack" || !np) return;
+    // Nocturne's alone: the Classic look has no cut-in (#364).
+    if (isClassicUI()) return;
     playNoblePhantasmCutIn({ key: `${message.getFlag("fgt", "attackerId")}:${np.name}`, name: np.name, rank: np.rank });
   });
   Hooks.on("renderChatMessageHTML", (message, html) => {
     // A card that just arrived slides in, once; the log's own first draw and
     // every later update draw it still (#364).
-    if (markSystemCard(html) && !arrived.has(message.id) && Date.now() - (message.timestamp ?? 0) < 8000) {
+    if (markSystemCard(html, { night: !isClassicUI() }) && !arrived.has(message.id) && Date.now() - (message.timestamp ?? 0) < 8000) {
       html.classList.add("fgt-fresh");
     }
     arrived.add(message.id);

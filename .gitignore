@@ -4,6 +4,8 @@ packs/*/
 !packs/_source/
 styles/fgt.css
 styles/fgt.css.map
+styles/fgt-classic.css
+styles/fgt-classic.css.map
 *.log
 .DS_Store
 .build/

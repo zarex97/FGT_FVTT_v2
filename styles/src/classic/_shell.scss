@@ -1,0 +1,607 @@
+// The sheet shell: window, header, nav rail, tab panes.
+// See docs/35-sheets-and-editor.md; DESIGN.md.
+//
+// The layout is a CSS grid over the six PARTS ApplicationV2 renders as
+// siblings. The header spans the full width, the nav rail sits under it on the
+// left, and the four tab parts all occupy the same cell -- only one of them is
+// `.active`, and the rest are display:none. That is why they can share a cell
+// without stacking.
+
+.application.fgt.sheet .window-content {
+  overflow: hidden;
+  padding: 0;
+
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "nav    body";
+
+  background: var(--fgt-bg);
+  color: var(--fgt-ink);
+}
+
+// The sheet scrolls. Foundry gives `.window-content` a fixed height and no
+// overflow of its own, so a Servant with thirteen abilities -- Medea -- simply
+// ran off the bottom with no way to reach the rest.
+//
+// The scroll lives on the PART root, which is what `scrollable: [""]` names, so
+// ApplicationV2 restores the position after each re-render. Scrolling
+// `.window-content` instead would work and would jump back to the top on every
+// edit, because the sheet re-renders on change.
+//
+// One scroll container per tab is now the point rather than the problem: the
+// position ApplicationV2 preserves is per part, and only one part is visible.
+.fgt-tab {
+  grid-area: body;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--fgt-gap);
+  padding: 0.75rem;
+
+  // Foundry's own tab handling toggles `.active`. Anything else is not on
+  // screen, which is what lets all four share one grid cell.
+  &:not(.active) { display: none; }
+}
+
+/* ── The actor sheet's layout (#364) ────────────────────────────────────── */
+
+// FGO's Servant screen: the portrait card's column on the left, the tab
+// buttons across the top of the right, the pane under them. A platform or a
+// structure has no card, and keeps the header across the top. Under 760px
+// the card's column stacks on top too.
+.application.fgt.sheet.actor {
+  container-type: inline-size;
+
+  .window-content {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "header nav"
+      "header body";
+  }
+
+  .window-content:has(> .fgt-header--plain) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+}
+
+@container (max-width: 760px) {
+  .application.fgt.sheet.actor .window-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "nav"
+      "body";
+  }
+
+  // Doubled, so it outranks the column the card's own block sets further down.
+  .fgt-header.fgt-header--card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 22rem;
+    border-right: none;
+    border-bottom: var(--fgt-border);
+
+    .fgt-portrait { flex: 0 0 9rem; }
+    .fgt-header__identity { flex: 1 1 12rem; }
+    .fgt-header__vitals { flex: 1 1 100%; }
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.fgt-header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: auto 1fr minmax(12rem, 18rem);
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--fgt-bg-raised);
+  border-bottom: var(--fgt-border);
+
+  &__portrait {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border: 2px solid var(--fgt-faction);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-portrait-bg);
+    // Clickable -- it opens the FilePicker (`data-action="editImage"`) --
+    // and nothing else marked that, so it looked exactly as inert as it was.
+    cursor: pointer;
+  }
+
+  &__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  &__name {
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--fgt-ink);
+
+    // Display-first: a derived-looking field that turns into an input only
+    // when you mean to use it. The sheet is a stat block, not a form.
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+  }
+
+  &__line {
+    margin: 0;
+    font-size: var(--fgt-text-label);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__truename {
+    margin: 0;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__concealed {
+    font-style: normal;
+    font-size: var(--fgt-text-label);
+    padding: 0 0.35rem;
+    border: var(--fgt-border);
+    border-radius: 999px;
+  }
+
+  &__faction {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--fgt-text-label);
+    color: var(--fgt-ink-dim);
+
+    select { flex: 1; min-width: 0; }
+  }
+
+  &__vitals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+
+  // The card's column: the portrait, who it is, then the three resources.
+  &--card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    overflow-y: auto;
+    border-bottom: none;
+    border-right: var(--fgt-border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--fgt-line) transparent;
+  }
+}
+
+/* ── Portrait card (#364) ───────────────────────────────────────────────── */
+
+// The face on night in both themes, framed in the Unit's faction colour.
+.fgt-portrait {
+  --fgt-portrait-ink: #e8e3d8;
+
+  flex: 0 0 auto;
+  margin: 0;
+  overflow: hidden;
+  border: 2px solid var(--fgt-faction);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-portrait-bg);
+
+  &__frame {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+  }
+
+  &__art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    cursor: pointer;
+  }
+
+  // A class icon is a glyph, not a face: it sits in the frame, not across it.
+  &__frame--class &__art { width: 55%; height: 55%; object-fit: contain; }
+
+  &__foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.4rem 0.5rem 0.5rem;
+    border-top: 1px solid var(--fgt-faction);
+    color: var(--fgt-portrait-ink);
+    // Core sets `figcaption` in italic; the foot is a name plate, not a caption.
+    font-style: normal;
+    text-align: center;
+  }
+
+  &__class {
+    font-size: var(--fgt-text-label);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  &__name {
+    display: block;
+    width: 100%;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-display);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--fgt-portrait-ink);
+  }
+
+  // The name is an input for whoever may rename the Unit.
+  input.fgt-portrait__name {
+    height: auto;
+
+    &:hover, &:focus { border-color: color-mix(in srgb, var(--fgt-portrait-ink) 35%, transparent); }
+  }
+}
+
+/* ── Tab buttons ────────────────────────────────────────────────────────── */
+
+// FGO's big buttons across the top (#364): an icon and a word each, the
+// active one filled gold. The `tabs` class is required for `changeTab` to find
+// this nav, and it brings Foundry's own tab-bar rules, restated here.
+.fgt-nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: row;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem 0;
+  border-bottom: var(--fgt-border);
+  background: none;
+
+  &__item {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 0;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: var(--fgt-border);
+    border-bottom: none;
+    border-radius: var(--fgt-radius) var(--fgt-radius) 0 0;
+    background: var(--fgt-bg-raised);
+    color: var(--fgt-ink-dim);
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--fgt-dur-state) var(--fgt-ease-out), border-color var(--fgt-dur-state) var(--fgt-ease-out);
+
+    &:hover { color: var(--fgt-ink); border-color: var(--fgt-ink-dim); }
+    &:focus-visible { outline: 2px solid var(--fgt-gold); outline-offset: -2px; }
+
+    // Active is a gold fill AND the bolder word -- two signals, because colour
+    // is never the only one (D29.7).
+    &.active {
+      border-color: var(--fgt-gold);
+      background: var(--fgt-gold);
+      color: var(--fgt-bg);
+    }
+  }
+
+  &__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── Shared furniture ───────────────────────────────────────────────────── */
+
+.fgt-panel {
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  padding: 0.6rem;
+
+  &__title {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+    border-bottom: var(--fgt-border);
+    padding-bottom: 0.25rem;
+  }
+}
+
+.fgt-empty {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--fgt-ink-dim);
+}
+
+.fgt-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--fgt-ink-dim);
+
+  &--warn { color: var(--fgt-warn); }
+}
+
+// A warning that does not block (§29.9's amber badge). Always an icon or a
+// word too, never the colour alone.
+.fgt-warning {
+  margin: 0.25rem 0 0;
+  font-size: var(--fgt-text-label);
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--fgt-warn);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+}
+
+.fgt-button {
+  padding: 0.4rem 0.6rem;
+  font-weight: 600;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+  color: var(--fgt-ink);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: var(--fgt-gold); color: var(--fgt-gold); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--attack {
+    width: 100%;
+    border-color: var(--fgt-crimson);
+  }
+}
+
+.fgt-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fgt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid currentcolor;
+
+  &--danger { color: var(--fgt-danger); }
+  &--warn { color: var(--fgt-warn); }
+  &--info { color: var(--fgt-ink-dim); }
+  &--ok { color: var(--fgt-ok); }
+}
+
+/* ── Resource bars ──────────────────────────────────────────────────────── */
+
+.fgt-bar {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr 3.2rem auto 3.2rem;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+
+  &__label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__track {
+    position: relative;
+    height: 0.95rem;
+    border: var(--fgt-border);
+    border-radius: 2px;
+    background: var(--fgt-bg-sunken);
+    overflow: hidden;
+  }
+
+  &__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--fgt-health);
+  }
+
+  // The number is printed ON the bar, always. A bar alone is a colour, and
+  // colour is never the only signal (D29.7).
+  &__value {
+    position: relative;
+    display: block;
+    text-align: center;
+    line-height: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 3px var(--fgt-bg-sunken);
+  }
+
+  &__none {
+    display: block;
+    text-align: center;
+    line-height: 0.95rem;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__sep { color: var(--fgt-ink-dim); }
+
+  input { width: 100%; text-align: center; font-size: 0.72rem; }
+
+  &--agility &__fill { background: var(--fgt-agility); }
+  &--luck &__fill { background: var(--fgt-luck); }
+}
+
+/* ── Legacy sheet body, still used by the item sheet ────────────────────── */
+
+.fgt-sheet {
+  flex: 1;
+  min-height: 0;
+
+  // Foundry v14 lays `.window-content` out as a TWO-column grid: a narrow tab
+  // strip and the content beside it. A sheet with several parts fills both. A
+  // sheet with ONE part lands in the first column and is squeezed to its 44px
+  // width -- which is how the item sheet came to render one word per line
+  // beside 680px of empty black. Spanning every track is what a single-part
+  // sheet means to say.
+  grid-column: 1 / -1;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--fgt-gap);
+  padding: var(--fgt-gap);
+
+  &__header {
+    display: flex;
+    gap: var(--fgt-gap);
+    align-items: flex-start;
+  }
+
+  &__portrait,
+  &__icon {
+    flex: 0 0 auto;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    cursor: pointer;
+  }
+
+  &__icon { width: 64px; height: 64px; }
+
+  &__identity {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    input[type="text"] { font-size: 1.25rem; font-weight: 600; }
+  }
+
+  &__truename { margin: 0; font-style: italic; opacity: 0.75; }
+
+  &__meta {
+    display: flex;
+    gap: var(--fgt-gap);
+
+    label { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; }
+    input { width: 6ch; text-align: center; }
+  }
+
+  &__resources,
+  &__parameters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--fgt-gap);
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+  }
+
+  &__description,
+  &__notes {
+    padding: var(--fgt-gap);
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    white-space: pre-wrap;
+  }
+}
+
+.fgt-sheet__setup {
+  align-self: flex-start;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.fgt-sheet__actions {
+  display: flex;
+  gap: var(--fgt-gap);
+}
+
+.fgt-sheet__attack {
+  flex: 1;
+  padding: 0.4rem;
+  font-weight: 600;
+}
+
+.fgt-sheet__faction {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+
+  select { flex: 1; }
+}
+
+.fgt-sheet__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+// An effect definition's own facts, on the item sheet. Two columns, so the
+// labels line up and the values are scannable.
+.fgt-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: 0.9em;
+
+  dt { opacity: 0.7; }
+  dd { margin: 0; }
+}
+
+// A polarity chip: what kind of thing this is, in one word.
+.fgt-chip {
+  align-self: center;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-border-light-tertiary, #7a7971);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--buff { border-color: #6a9; color: #8cb; }
+  &--debuff { border-color: #a66; color: #c88; }
+  &--status { border-color: var(--fgt-gold, #c9a227); color: var(--fgt-gold, #c9a227); }
+}
