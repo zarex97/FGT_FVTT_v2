@@ -3,7 +3,8 @@ id: 2026-11-02-bar-strip-says-infinite-on-last-turn
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** The action bar's effect strip gives each effect the time it has left, and *"∞"* only to an effect with no clock (#364 Nocturne, `barEffects`).
 **Actual:** Pressed as Player1 with six Mermaid Tokens on Kiara (#372): the strip read *"Mermaid Token · ∞"* for the one Token whose clock ran out that Turn (expiry 8 at tick 8), beside *"⅓◈"* and *"⅔◈"* for the others.
