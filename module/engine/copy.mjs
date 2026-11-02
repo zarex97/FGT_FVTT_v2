@@ -13,7 +13,7 @@
 
 import { canCopy, copyCandidates, copyAbility } from "../rules/copy.mjs";
 import { currentBoard, unitFrom, unitActor } from "./board.mjs";
-import { currentWar } from "./war.mjs";
+import { currentWar, isWarGM } from "./war.mjs";
 
 /**
  * A copy grant's terms, read off the grant: how many it copies, and the Rank,
@@ -126,6 +126,55 @@ export async function markCopyPicksDue({ actorIds = null, open = true } = {}) {
 }
 
 /**
+ * The picks owed on the board the GM is looking at: its copiers, each with a
+ * pick due and a grant to pick with.
+ *
+ * The War's board, never the world's actors. A pick is owed in the War its
+ * copier fights in, and every War has its own scene: walking `game.actors`
+ * opened Chiron's list over the Gray Audit on every reload, though he stands
+ * on Gilles Audit B (found live, 2026-11-02). The board is `offerCopies`'s
+ * own test of "here": a list opened for a copier not on it could only say
+ * "Open the War's scene".
+ *
+ * @param {object} [board]
+ * @returns {Array<{copierId: string, grantedBy: string}>}
+ */
+export function owedPicksHere(board = currentBoard()) {
+  /** @type {Array<{copierId: string, grantedBy: string}>} */
+  const owed = [];
+  for (const unit of board.units ?? []) {
+    const actor = unitActor(unit.id);
+    const grant = copyGrantOf(actor);
+    if (grant && actor.system?.copyPick?.due) owed.push({ copierId: actor.id, grantedBy: grantName(grant) });
+  }
+  return owed;
+}
+
+/**
+ * Open the list for every pick owed on this board, on the client that runs
+ * its War. A list already open is brought forward, not doubled.
+ *
+ * A list left open for a copier not on this board is closed: it belongs to
+ * another War, and opens again when that War's scene is drawn. One opened
+ * over another scene's board (a War committed while the GM looked elsewhere,
+ * #256) is closed on the next canvas and reopened on its War's.
+ *
+ * @param {object} [board]
+ * @returns {Promise<Array<{copierId: string, grantedBy: string}>>}
+ */
+async function openOwedPicks(board = currentBoard()) {
+  const { CopyDialog } = await import("../apps/copy-dialog.mjs");
+  const here = new Set((board.units ?? []).map((u) => u.id));
+  for (const app of [...foundry.applications.instances.values()]) {
+    if (app instanceof CopyDialog && !here.has(app.copierId)) await app.close();
+  }
+  if (!isWarGM()) return [];
+  const owed = owedPicksHere(board);
+  for (const d of owed) CopyDialog.open(d);
+  return owed;
+}
+
+/**
  * A copier whose token enters a war already under way owes its pick then.
  *
  * GM only, and only once the war has started: the war's own build marks every
@@ -133,22 +182,12 @@ export async function markCopyPicksDue({ actorIds = null, open = true } = {}) {
  */
 export function attachCopyPick() {
   // A pick still owed when the GM's client loads -- a reload closed the list
-  // the war's start opened -- opens again, or nothing would ask for it.
-  if (game.user?.isGM) {
-    const owed = [...(game.actors ?? [])].filter((a) => a.system?.copyPick?.due && copyGrantOf(a));
-    if (owed.length > 0) {
-      import("../apps/copy-dialog.mjs").then(({ CopyDialog }) => {
-        for (const a of owed) CopyDialog.open({ copierId: a.id, grantedBy: grantName(copyGrantOf(a)) });
-      }).catch((err) => console.error("FGT | Copy pick:", err));
-    }
-  }
-  // ...and is listed again when the GM's canvas changes: an offer opened over
-  // another scene's board is redrawn once the War's scene is drawn.
+  // the war's start opened -- opens again, or nothing would ask for it; and a
+  // GM who opens another War's scene is asked for the picks owed there.
+  const open = () => openOwedPicks().catch((err) => console.error("FGT | Copy pick:", err));
+  if (game.user?.isGM) open();
   Hooks.on("canvasReady", () => {
-    if (!game.user?.isGM) return;
-    import("../apps/copy-dialog.mjs").then(({ CopyDialog }) => {
-      for (const app of foundry.applications.instances.values()) if (app instanceof CopyDialog) app.render();
-    }).catch((err) => console.error("FGT | Copy pick:", err));
+    if (game.user?.isGM) open();
   });
   Hooks.on("createToken", (token) => {
     if (!game.user?.isGM || !currentWar()?.started) return;

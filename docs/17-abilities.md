@@ -244,7 +244,7 @@ ability it depends on is still cooling."* A refusal with no names keeps that lin
 
 **When.** The pick falls due when the war is built (`engine/war-setup.mjs` calls `engine/copy.mjs#markCopyPicksDue`
 once the field is deployed) and when a copier's token enters a war already under way (the `copyPick` engine
-listener). The GM's list opens by itself, and again on the GM's load while a pick is owed. `system.copyPick` holds
+listener). The GM's list opens by itself, and again on the GM's load or canvas change while a pick is owed on the board drawn (`owedPicksHere`): a pick is its War's, so a list for a copier on another War's scene is never opened there and is closed on a canvas change, one window per copier. `system.copyPick` holds
 `{due, poolIds}`: no Turn ends while any Unit on the board owes one (`rules/budget.mjs#copyPicksOwed`), and the pool
 is the other Servants on the field at that moment, the only ones a pick or a GM's redo offers. Only the GM opens the
 list from the sheet or the bar. The list is the canvas's board, so a GM looking at another scene gets no list but a

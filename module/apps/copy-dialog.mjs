@@ -66,7 +66,9 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {string} [options.grantedBy] the ability doing the copying
    */
   constructor({ copierId, grantedBy = null }) {
-    super();
+    // One window per copier: under one fixed id, a second owed pick on the
+    // same board took the first one's place, and the GM saw only one.
+    super({ id: CopyDialog.idFor(copierId) });
     this.#copierId = copierId;
     // The grant's own terms (#326): Scáthach copies two, Chiron three.
     const grant = copyGrantOf(unitActor(copierId));
@@ -75,6 +77,11 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#slots = terms?.slots ?? 0;
     // Its name, never Scáthach's: Chiron's pick opened titled hers (#326, live).
     this.#grantName = grant?.name ?? game.i18n.localize("FGT.Copy.Title");
+  }
+
+  /** The copier this list is for. @returns {string} */
+  get copierId() {
+    return this.#copierId;
   }
 
   /** @override */
@@ -88,9 +95,26 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {CopyDialog}
    */
   static open(options) {
+    // Already open for this copier (a reload's list, then the canvas drawn):
+    // brought forward, not opened twice.
+    const open = foundry.applications.instances.get(CopyDialog.idFor(options.copierId));
+    if (open instanceof CopyDialog) {
+      open.render(true);
+      open.bringToFront?.();
+      return open;
+    }
     const app = new CopyDialog(options);
     app.render(true);
     return app;
+  }
+
+  /**
+   * The window's id for one copier.
+   * @param {string} copierId
+   * @returns {string}
+   */
+  static idFor(copierId) {
+    return `fgt-copy-dialog-${copierId}`;
   }
 
   /** @inheritdoc */
