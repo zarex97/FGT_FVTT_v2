@@ -97,25 +97,31 @@
 
   <div class="fgt-header__vitals">
     {{#each header.bars as |bar|}}
-      <label class="fgt-bar fgt-bar--{{bar.key}}">
+      {{!-- The figures ON the bar are the fields (#364): click the current or
+            the maximum and type. No box beside the bar; the bar is the box. A
+            <div>, not a <label>: a label holding two inputs hands every click
+            on it to the first. --}}
+      <div class="fgt-bar fgt-bar--{{bar.key}}">
         <span class="fgt-bar__label">{{localize bar.name}}</span>
         <span class="fgt-bar__track">
-          {{#if bar.undamageable}}
-            {{!-- `null` max is intrinsically undamageable -- Pale Rider, the
-                  Kagome Spirits. An empty track would read as "one hit from
-                  death", which is the opposite of what it means. --}}
-            <span class="fgt-bar__none">{{localize "FGT.Sheet.Undamageable"}}</span>
-          {{else}}
-            <span class="fgt-bar__fill" style="width: {{bar.pct}}%"></span>
-            <span class="fgt-bar__value">{{bar.label}}</span>
-          {{/if}}
+          {{#unless bar.undamageable}}<span class="fgt-bar__fill" style="width: {{bar.pct}}%"></span>{{/unless}}
+          <span class="fgt-bar__value">
+            {{#if bar.undamageable}}
+              {{!-- `null` max is intrinsically undamageable -- Pale Rider, the
+                    Kagome Spirits. An empty track would read as "one hit from
+                    death", which is the opposite of what it means. A maximum
+                    typed here makes the Unit damageable. --}}
+              <span class="fgt-bar__none">{{localize "FGT.Sheet.Undamageable"}}</span>
+            {{else}}
+              <input class="fgt-bar__num" type="number" name="system.{{bar.key}}.value" value="{{bar.value}}"
+                     data-tooltip="{{localize 'FGT.Sheet.Current'}}" aria-label="{{localize bar.name}}: {{localize 'FGT.Sheet.Current'}}">
+              <span class="fgt-bar__sep">/</span>
+            {{/if}}
+            <input class="fgt-bar__num fgt-bar__num--max" type="number" name="system.{{bar.key}}.max" value="{{bar.max}}"
+                   placeholder="—" data-tooltip="{{localize 'FGT.Sheet.Maximum'}}" aria-label="{{localize bar.name}}: {{localize 'FGT.Sheet.Maximum'}}">
+          </span>
         </span>
-        <input type="number" name="system.{{bar.key}}.value" value="{{bar.value}}"
-               data-tooltip="{{localize 'FGT.Sheet.Current'}}">
-        <span class="fgt-bar__sep">/</span>
-        <input type="number" name="system.{{bar.key}}.max" value="{{bar.max}}"
-               data-tooltip="{{localize 'FGT.Sheet.Maximum'}}">
-      </label>
+      </div>
     {{/each}}
   </div>
 </header>

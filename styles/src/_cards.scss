@@ -120,7 +120,9 @@
 
 .fgt-param {
   display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem;
+  // The letter's column is as wide as the letter: a fixed 2.6rem cropped
+  // "A++" to "A+" and squeezed "EX" (#364).
+  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.25rem 0.65rem;
 
@@ -155,7 +157,12 @@
   }
 
   &__rank {
-    width: 100%;
+    // Wide enough for the longest Rank a sheet prints ("A++", "EX"), and as
+    // wide as what is typed where the browser can size a field to it.
+    width: 3.6em;
+    min-width: 3rem; // "A++" and "EX" fit, so every row's bar ends in line
+    @supports (field-sizing: content) { width: auto; field-sizing: content; }
+    padding: 0 0.2rem;
     height: auto;
     text-align: center;
     font-family: var(--fgt-font-display);

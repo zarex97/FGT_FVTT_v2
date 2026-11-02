@@ -8,7 +8,7 @@ import { registerSettings } from "./settings.mjs";
 import { applyUiStyle } from "./apps/ui-style.mjs";
 import * as data from "./data/index.mjs";
 import * as documents from "./documents/index.mjs";
-import { registerSheets } from "./apps/index.mjs";
+import { registerSheets, FGTActorSheet } from "./apps/index.mjs";
 import { activateChatListeners } from "./apps/chat/cards.mjs";
 import { FGTSocket } from "./net/socket.mjs";
 import { currentWar, gmForWar, warRule } from "./engine/war.mjs";
@@ -294,6 +294,11 @@ Hooks.once("ready", async () => {
   // ZON rings, threat ranges and Master protection, drawn from selection and
   // hover. Context, never a control.
   attachOverlays();
+  // The sheet's templates compiled while nothing is happening, so the first
+  // sheet a client opens does not pay for it in the click (#364).
+  const warm = () => FGTActorSheet.warmTemplates().catch((err) => console.warn("FGT | Sheet warm-up:", err));
+  if (globalThis.requestIdleCallback) globalThis.requestIdleCallback(warm, { timeout: 5000 });
+  else setTimeout(warm, 1000);
   // A platform's or a dimension's Level deleted under a client's feet. The
   // Storm Border surfacing moves everyone aboard to the ground and deletes its
   // Level in one breath, and the canvas was left not ready -- no board, no
