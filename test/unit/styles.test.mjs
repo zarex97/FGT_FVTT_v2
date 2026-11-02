@@ -15,13 +15,19 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 
-/** Every top-level `.class {` in a partial, mapped to the partials defining it. */
-function owners() {
-  const files = readdirSync("styles/src").filter((f) => f.endsWith(".scss") && f !== "fgt.scss");
+/**
+ * Every top-level `.class {` in a partial, mapped to the partials defining it.
+ * `styles/src/classic/` is the Classic look's own stylesheet (#364), compiled
+ * apart, so it is its own namespace and checked on its own.
+ *
+ * @param {string} [dir]
+ */
+function owners(dir = "styles/src") {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".scss") && f !== "fgt.scss");
   /** @type {Map<string, Set<string>>} */
   const map = new Map();
   for (const file of files) {
-    const source = readFileSync(`styles/src/${file}`, "utf8");
+    const source = readFileSync(`${dir}/${file}`, "utf8");
     for (const match of source.matchAll(/^\.([a-zA-Z0-9_-]+)\s*\{/gm)) {
       if (!map.has(match[1])) map.set(match[1], new Set());
       map.get(match[1]).add(file);
@@ -39,6 +45,14 @@ describe("stylesheet ownership", () => {
       .filter(([, files]) => files.size > 1)
       .map(([cls, files]) => `${cls} in ${[...files].sort().join(" and ")}`);
     expect(shared).toEqual([]);
+  });
+
+  it("gives every top-level class one owning partial in the Classic look too", () => {
+    const shared = [...owners("styles/src/classic")]
+      .filter(([, files]) => files.size > 1)
+      .map(([cls, files]) => `${cls} in ${[...files].sort().join(" and ")}`);
+    expect(shared).toEqual([]);
+    expect(owners("styles/src/classic").size).toBeGreaterThan(50);
   });
 
   it("keeps the action bar and the sheet's resource bars apart by name", () => {

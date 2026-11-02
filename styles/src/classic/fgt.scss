@@ -1,0 +1,23 @@
+// F/GT — Fate/Grail Tactics, the Classic look (#364)
+// Compiled to styles/fgt-classic.css. See DESIGN.md, "The Classic look".
+//
+// The interface as it stood after #365, #366 and #367 (the action bar, the
+// chat cards and the FGO sheet), before Grail War Nocturne. A frozen copy:
+// the partials here are #367's, word for word, so a world that picks Classic
+// in the settings sees what that branch drew. `apps/ui-style.mjs` loads this
+// file in place of `fgt.css`.
+//
+// The ability editor did not change with Nocturne, so both looks share its
+// one partial. `bridge` hides what the shared templates now draw for Nocturne
+// alone.
+//
+// `_tokens` comes first: everything below it names colours rather than
+// spelling them, which is what makes §29.9's two themes possible at all.
+
+@use "tokens";
+@use "shell";
+@use "cards";
+@use "effects";
+@use "../editor";
+@use "apps";
+@use "bridge";

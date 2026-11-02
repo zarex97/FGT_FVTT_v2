@@ -28,6 +28,7 @@ import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState, abilityNamesOf, resourceBar, groupEffects, remainingTurns } from "../actor-sheet/present.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { paintCircles } from "../ornament.mjs";
+import { isClassicUI, uiParts } from "../ui-style.mjs";
 import { currentBoard, unitFrom, unitOf, luckOf, gateContext, faction } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
@@ -108,6 +109,23 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = {
     body: { template: "systems/fgt/templates/hud/action-bar.hbs" },
   };
+
+  /**
+   * The Classic look (#364) is #365's bar: its own template, and the
+   * interface's theme rather than Nocturne's forced night.
+   *
+   * @inheritdoc
+   */
+  _initializeApplicationOptions(options) {
+    const out = super._initializeApplicationOptions(options);
+    if (isClassicUI()) out.classes = out.classes.filter((c) => c !== "themed" && c !== "theme-dark");
+    return out;
+  }
+
+  /** @inheritdoc */
+  _configureRenderParts(options) {
+    return uiParts(super._configureRenderParts(options));
+  }
 
   /** The controlled token this bar is showing. @type {object|null} */
   token = null;

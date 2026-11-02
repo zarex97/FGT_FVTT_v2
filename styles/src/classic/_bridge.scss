@@ -1,0 +1,16 @@
+// The Classic look's one addition to #367's partials (#364).
+//
+// The templates the two looks share (the sheet's header, its effect rows, a
+// Skill card's rows) carry markup Nocturne added: the summoning circle behind
+// the portrait, each effect's picture with its polarity diamond, the reader's
+// role banner. #367's partials never styled any of it, so an unstyled `<svg>`
+// or `<img>` would break the layout. Hidden here, so Classic draws what #367
+// drew. The cut-in is never started under Classic (`apps/ui-style.mjs`);
+// it is hidden too, in case a module starts it.
+
+.fgt-portrait__circle,
+.fgt-fx,
+.fgt-role,
+.fgt-cutin {
+  display: none !important;
+}
