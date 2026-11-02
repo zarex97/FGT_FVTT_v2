@@ -118,8 +118,13 @@ export async function landEffect(entry, ctx) {
   const authored = magnitudeOf(entry, def, ctx, caster);
   // A magnitude its Count sized to nothing lands nothing: NP Regen (Balmung)
   // comes *"if Siegfried had any 'Anti-Dragon' effects"* (#341). Said on the
-  // card as a reason, never an effect of 0.
-  if (entry.countedOnly && !(authored > 0)) {
+  // card as a reason, never an effect of 0. A chance its Count sized to
+  // nothing rolls nothing either: Nirmānnarati's Instakill, *"X=(20*number of
+  // Mental Debuffs on the DU)"*, is never rolled for a DU with none (#372
+  // reading 19, found pressing it live).
+  const countedChance = entry.chanceBonus?.countedOnly && entry.chanceBonus?.count
+    ? countOf(entry.chanceBonus.count, { target, self: caster }) : null;
+  if ((entry.countedOnly && !(authored > 0)) || countedChance === 0) {
     const reason = "nothing to count";
     return {
       outcome: "noop", reason, chance: null, intents: [], roll: null, trace: [],

@@ -1,0 +1,53 @@
+# Sessyoin Kiara (Summer), char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# "Clam Palace — Rank: A (A+) (A++)". The brackets are bought with Mermaid
+# Tokens (`rules/tiers.mjs`, #372). First Dodge to her allies within 2, herself
+# included (#204); then the enemies in a 3x3 next to her, Gilles's Evil Gaze
+# shape: Aim removed, then Bewitchment once, twice or three times, each its own
+# roll and instance (reading 14), Def Dwn and Def Dwn (A), both landing (15).
+schema: 1
+id: kiara-summer-clam-palace
+name: "Clam Palace"
+rank: A
+kind: skill
+slug: clamPalace
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. First, applies @effect[dodge]{Dodge} for 1◈ Turns, 1 time to all allied Units within
+  a 2 panel area of herself. Then, affects all enemy Units within a 3x3 panel area in any non-diagonal direction next
+  to herself. Has the following effects-
+  1. Removes all '@effect[aim]{Aim}' buffs from the affected Units.
+  2. Inflicts the '@effect[bewitchment]{Bewitchment}' Mental Debuff for 1◈ Turns, Crit Chance is reduced by 10%
+     (Inflict twice) (Inflict three times).
+  3. Inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 20%. (25%) (30%).
+  4. Inflicts @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns, all damage taken is increased by 20% (25%) (30%); and Luck
+     is reduced by 1 whenever damage is received from an Attack.
+  Cooldown: 4◈ Turns (4◈-⅓◈ Turns) (4◈-⅔◈ Turns). The bracketed figures, and its Rank (A+) (A++), are its own with
+  one and two Mermaid Tokens spent.
+tiers:
+  - { refs: { bewitch: 1, defDwn: 20 } }
+  - { rank: "A+", cooldown: "4◈-⅓◈", refs: { bewitch: 2, defDwn: 25 } }
+  - { rank: "A++", cooldown: "4◈-⅔◈", refs: { bewitch: 3, defDwn: 30 } }
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+phases:
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: dodge, duration: "1◈", uses: 1 }
+  - kind: removeEffect
+    target: reuse
+    effects: [aim]
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: bewitchment, magnitude: 10, duration: "1◈", applications: "@tier.bewitch" }
+      - { id: defDwn, magnitude: "@tier.defDwn", duration: "1◈" }
+      - { id: defDwnA, magnitude: "@tier.defDwn", duration: "1◈" }

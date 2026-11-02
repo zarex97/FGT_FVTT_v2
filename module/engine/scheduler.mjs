@@ -368,6 +368,13 @@ export function fireEvent(event, units, ctx) {
       if (handler.notOnApplyTurn && handler.appliedAt !== null && handler.appliedAt !== undefined
         && handler.appliedAt >= (ctx.tick ?? 0)) continue;
 
+      // ...and a cadence counted from the Turn it landed, which fires first:
+      // Mermaid's Nourishment's *"At the end of the Turn this buff was applied,
+      // and at the end of the Turn after every ⅓◈ Turns"* (#372 reading 5).
+      // Curse's periodic reads the same rule (`rules/periodic.mjs#periodicDue`).
+      if (handler.every && typeof handler.appliedAt === "number"
+        && !periodicDue({ every: handler.every }, { appliedTick: handler.appliedAt }, ctx.tick ?? 0, ctx.turnsPerRound ?? 3)) continue;
+
       // Charm: "removed at the end of the Combat Phase if the unit takes
       // damage from an attack." The caller reports who the phase actually
       // damaged; an untracked phase damages nobody, so the clause cannot fire

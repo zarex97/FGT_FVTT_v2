@@ -115,7 +115,11 @@ export function expectedDamage(ability, attacker) {
       flatBonus: spec.flatBonus ?? 0,
       // Every conditional multiplier the ability declares, taken as though it
       // fired. Same reasoning as `branches`: the ceiling is the weapon.
-      conditionalMultipliers: (spec.conditionalMultipliers ?? []).map((c) => ({ ...c, predicate: null })),
+      // A counted factor at its ceiling (Nirmānnarati's ×4 at ten Mental
+      // Debuffs, #372): there is no DU here to count against.
+      conditionalMultipliers: (spec.conditionalMultipliers ?? []).map((c) => ({
+        ...c, predicate: null, factor: typeof c.factor === "number" ? c.factor : (c.factor?.max ?? 1),
+      })),
       // A crit is not assumed. The crit coin is 50/50 for a Noble Phantasm
       // (Ch. 21) and assuming it would scale every entry by the same factor
       // anyway — but it would also let a crit-damage buff on the OWNER change

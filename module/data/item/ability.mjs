@@ -189,6 +189,12 @@ function abilityCommon() {
     // paths; the damage, the cost and the cooldown read the number.
     criteria: new fields.ArrayField(new fields.ObjectField()),
 
+    // A Skill's bracketed figures, bought by spending tokens (`rules/tiers.mjs`,
+    // #372): `[base, one, two]`, each `{rank?, cooldown?, refs}`, the `refs`
+    // standing for every `"@tier.<key>"` in its phases. Read by
+    // `engine/skill-use.mjs#useSkill` through `tierView`.
+    tiers: new fields.ArrayField(new fields.ObjectField()),
+
     // "Requires 3 [Semiramis' Poison] to use" -- a cost on USING the ability,
     // spent by `engine/skill-use.mjs`'s `itemCostIntents` once the matching
     // `itemAtLeast` requirement (`rules/items.mjs`) has already gated it.
@@ -766,6 +772,9 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // end together: Sita's Janaka (#348 ruling 4). Read by
       // `engine/effect-applier.mjs#applyEffect`.
       resetsSiblings: new fields.BooleanField({ required: false, initial: false }),
+      // An Effect whose instances are spent to buy a Skill's tier: Mermaid
+      // Tokens, `{max, except, kinds}` (#372). Read by `rules/tiers.mjs#tierSpend`.
+      spentForTier: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // What a barrier effect absorbs, and where its pool lives (§A.3's
       // barrier tier). EMIYA's Rho Aias is the only instance.
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),

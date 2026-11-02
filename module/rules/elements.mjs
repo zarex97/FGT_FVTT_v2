@@ -24,7 +24,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { test as testPredicate, referencedOptions } from "./predicate.mjs";
 import { orderElements } from "./ordering.mjs";
-import { countScaleOf, countedValue, countOf, UnknownCountKind } from "./count.mjs";
+import { countScaleOf, countedValue, countOf, UnknownCountKind, BOARD_COUNT_KINDS } from "./count.mjs";
 
 /**
  * @typedef {object} Contributions
@@ -269,7 +269,7 @@ function stampInstance(out, before, instanceId) {
 // Day Round, the 'Soaked' effect is removed"* asked it at collection, read
 // "false", and was dropped: nothing ever dried off (#258, live).
 const DEFERRED_PREFIXES = Object.freeze([
-  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:", "self:phase:",
+  "target:", "attack:", "self:inHomeBase", "self:inOwnRegion", "self:onPlatform:", "self:inField:", "self:fieldActive:", "self:phase:",
   // `war:` is the War's Region and the Round's phase, board facts too (#314).
   "war:",
   "revival:",
@@ -755,6 +755,9 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // ability's own handler, which has no arrival.
     appliedAt: ability?.fromEffect ? (ability.appliedTick ?? null) : null,
     notOnApplyTurn: el.notOnApplyTurn ?? false,
+    // A cadence from the Turn the effect landed (`scheduler.mjs#fireEvent`,
+    // Mermaid's Nourishment, #372).
+    every: el.every ?? null,
     source,
   };
 }
@@ -1109,7 +1112,19 @@ export const EXECUTORS = Object.freeze({
     // ones (`divinity`, `dmgBoost`, `dmgCut`) belong to the clauses that own
     // them, and an explicit `modifierKey` still wins over both.
     const flatStage = el.stage === "flat";
+    // Sized by the board (MoonCancer's distinct enemy Classes, #372): this pass
+    // has no board, so the figure per step travels on the modifier and
+    // `rules/snapshot.mjs#annotateBoardCounts` sizes it once the board is built.
+    const scale = countScaleOf(el);
+    const boardCount = scale && BOARD_COUNT_KINDS.includes(scale.count?.of) && !ctx?.board
+      ? {
+        scale,
+        per: scalar(rawValue(el, rank, ctx, "value")),
+        ...(el.npValue !== undefined ? { npPer: scalar(rawValue(el, rank, ctx, "npValue")) } : {}),
+      }
+      : null;
     out.modifiers.push({
+      ...(boardCount ? { boardCount } : {}),
       key: el.modifierKey ?? (el.direction === "taken"
         ? (flatStage ? "flatReduction" : "defUp")
         : (flatStage ? "flatDamage" : "atkUp")),

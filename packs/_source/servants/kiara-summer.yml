@@ -1,0 +1,67 @@
+# Sessyoin Kiara (Summer)
+# Conversion source: char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+# Audit #372, docs/superpowers/specs/2026-11-02-kiara-summer-clauses.md. The first Moon Cancer.
+#
+# Max Health is the END table's, 1600 at A+, not the printed 1500 (§46.6, #328
+# ruling 18): `baseHealth` is the sheet's and the derivation overrides it. "(Japan)"
+# is Japan for every Region rule, the parentheses typographic (reading 1).
+schema: 1
+id: kiara-summer
+name: "Sessyoin Kiara (Summer)"
+type: servant
+
+trueName: Sessyoin Kiara
+servantClasses: [moonCancer]
+classContainer: moonCancer
+alignment: { order: lawful, morality: evil }
+region: [japan]
+attributes: [female, servant, earth, humanoid, antiHero]
+
+parameters: { str: C, end: "A+", agi: C, mag: "A+", luc: B }
+baseHealth: 1500
+mov: 5
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 100, mag: 210 }
+# "At a Range of 1, Sessyoin's Normal Attacks use Base Attack (STR). At a Range of 2
+# of higher, Sessyoin's Normal Attacks use Base Attack (MAG) and deal Water damage."
+# Summer Habetrot's bands, word for word.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - { from: 2, component: mag, element: water }
+sustainability: "4◈"
+
+abilities:
+  - { ref: swimsuit }
+  - { ref: class-mooncancer }
+  - { ref: class-territory-creation, rank: EX }
+  # U-Olga Marie's shape: Independent Action carried at a Rank under its own name.
+  - ref: class-independent-action
+    rank: E
+    name: "Independent Manifestation"
+    description: |
+      (Passive 1) Has a high Sustainability (4◈ Turns).
+      (Passive 2) Master's ZON is increased by 1 panel.
+      (Passive 3) Requires 2 successful 'Contract Servant' rolls to be contracted by enemy Masters and Casters.
+      (Passive) Chance of being inflicted with Mental Debuffs, @effect[instakill]{Instakill}, @effect[death]{Death},
+      and @effect[erase]{Erase} is reduced by 40%.
+      This Skill counts as 'Independent Action — Rank: E'.
+    passiveRules:
+      - key: ZonBonus
+        table: independentActionZon
+      - { key: ApplicationChance, direction: incoming, volatility: mental, value: 40 }
+      - { key: ApplicationChance, direction: incoming, severity: instakill, value: 40 }
+      - { key: ApplicationChance, direction: incoming, severity: death, value: 40 }
+      - { key: ApplicationChance, direction: incoming, severity: erase, value: 40 }
+  - { ref: kiara-summer-spiritual-world-creation }
+  - { ref: kiara-summer-logos-eater }
+  - { ref: kiara-summer-mermaids-flesh }
+  - { ref: kiara-summer-jintsuriki }
+  - { ref: kiara-summer-clam-palace }
+  - { ref: kiara-summer-nirmannarati }
+
+notes: |
+  A Moon Cancer in a swimsuit. Mermaid's Flesh makes Mermaid Tokens, buffs her next Skill spends, at most two, for
+  its bracketed figures; Clam Palace stacks Bewitchment, a Mental Debuff, which her NP counts for its damage and
+  for its Instakill.

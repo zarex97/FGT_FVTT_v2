@@ -77,6 +77,7 @@ import { shownName, shownNameById } from "./public-identity.mjs";
 import { warRule, currentWar } from "./war.mjs";
 import { phaseChance } from "../rules/phase-chance.mjs";
 import { durationChanges } from "../rules/effect-duration.mjs";
+import { tierSpend, tierIndex, tierView } from "../rules/tiers.mjs";
 
 /**
  * Use an active Skill.
@@ -107,7 +108,7 @@ export async function useSkill({
   anyMoment = false,
 }) {
   const actor = unitActor(actorId);
-  const ability = actor?.items?.get(abilityId);
+  let ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
   // An ability whose use is a setup dialog is never USED: it spent a Servant
   // action and posted "No effect" when the action bar sent it here (#204).
@@ -158,6 +159,11 @@ export async function useSkill({
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
 
+  // Its tier (#372): the tokens it spends, removed now, before its effects and
+  // once nothing can refuse it, and the ability read as the tier they bought.
+  const tier = await spendTier(actor, ability, self);
+  ability = tier.ability;
+
   // Its criteria (#283), counted once over the Units it is aimed at, as the
   // attack path counts them: the cost and the clock below read the number.
   const criteria = declarationCriteria(ability.system?.criteria, targets, self, board);
@@ -207,6 +213,7 @@ export async function useSkill({
   // Master pays the Command Spell first. Run below, once the costs are paid.
   const applied = failure || fails ? [] : await runPhases(ability, actor, targets.units, board,
     (p) => !p.afterCosts, { useRecord: record });
+  if (tier.row) applied.unshift(tier.row);
   noteFact(record, "summoned", applied.summoned ?? 0);
   noteFact(record, "channelStarted", Boolean(applied.channelStarted));
 
@@ -293,6 +300,35 @@ export async function useSkill({
   await flushAutoCounters();
 
   return { ok: true, applied, use: record };
+}
+
+/**
+ * Spend the tokens a Skill's use buys its tier with, and read the Skill as that tier.
+ *
+ * Mermaid Tokens (#372): a use spends at most two, the soonest to end first,
+ * and every Active Skill spends them (reading 8), one with no `tiers` boosting
+ * nothing. The spend is a line on the card, naming the tokens and the tier.
+ *
+ * @param {object} actor
+ * @param {object} ability the ability Item
+ * @param {object} self the user, as the board sees it
+ * @returns {Promise<{ability: object, row: object|null}>}
+ */
+export async function spendTier(actor, ability, self) {
+  const spend = tierSpend({
+    ability,
+    instances: self?.effectInstances ?? [],
+    defOf: (id) => EffectRegistry.get(id),
+  });
+  const index = tierIndex(ability, spend?.tier ?? 0);
+  const view = tierView(ability, index);
+  if (!spend) return { ability: view, row: null };
+  await applyWorldIntents(spend.spentIds.map((id) => I.removeEffect(actor.id, id, "spent")), `skill:${ability.id}`);
+  const token = EffectRegistry.get(spend.defId)?.name ?? spend.defId;
+  const name = game.i18n.format(index > 0 ? "FGT.Tier.Spent" : "FGT.Tier.SpentNothing", {
+    n: spend.tier, token, ability: ability.name, rank: view.system?.rank ?? "",
+  });
+  return { ability: view, row: { unitId: actor.id, summary: { id: spend.defId, name, outcome: "applied", reason: null } } };
 }
 
 /**

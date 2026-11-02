@@ -89,7 +89,9 @@ function barEffects(snapshot, turnsPerRound, tick) {
       // Foundry's stock icons are no one's art: the glyph stands in for them.
       img: row.img && !row.img.startsWith("icons/svg/") ? row.img : null,
       polarity: row.polarity, // fgt-polarity-ok: the row's polarity, polarityOf's (`groupEffects`)
-      left: turns ? ticksLabel(turns, turnsPerRound) : "∞",
+      // No clock is ∞; a clock running out this Turn is said so, never ∞
+      // (a Mermaid Token on its last Turn read "∞" on the strip, #372, live).
+      left: turns === null ? "∞" : (turns > 0 ? ticksLabel(turns, turnsPerRound) : game.i18n.localize("FGT.HUD.EndsThisTurn")),
     };
   });
 }

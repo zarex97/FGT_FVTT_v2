@@ -1,0 +1,12 @@
+schema: 1
+id: kiara-summer-spiritual-world-creation
+name: "Spiritual World Creation"
+rank: EX
+kind: skill
+slug: spiritualWorldCreation
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) NP damage dealt is increased by 10%.
+passiveRules:
+  - { key: DamageModifier, modifierKey: npDmUp, direction: dealt, value: 10, predicate: ["attack:kind:np"] }

@@ -348,3 +348,16 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
 - **Handler actions**: `CooldownDelta` takes `scope: skills` (*"Skill Cooldown"*: every Skill, Class Skills included,
   no NP), `restart` (*"NP Cooldown is Reset"*, each clock to its full length, #328 ruling 13), and an `ability` named by
   slug or content id; `RemoveEffect` takes a `family`, and `untimedOnly` to spare an instance with a clock.
+
+### Sessyoin Kiara (Summer)'s pieces (#372)
+
+**`OnEvent` `every`.** A handler fires on a cadence counted from the Turn its effect landed, which fires first: Mermaid's
+Nourishment's *"At the end of the Turn this buff was applied, and at the end of the Turn after every ⅓◈ Turns"*
+(`every: "⅓◈"` on `anyTurnEnd`). Read by `engine/scheduler.mjs#fireEvent` through `rules/periodic.mjs#periodicDue`,
+Curse's own rule, so the two cadences cannot disagree.
+
+**A passive sized by the board.** A `DamageModifier` whose `count` reads the board (`board`, `classes`) is collected
+with no board, so its figure per step travels on the modifier (`boardCount`) and `rules/snapshot.mjs#annotateBoardCounts`
+sizes it once the board is built: MoonCancer's *"5% for every different enemy Servant Class on the field other than
+MoonCancer"* (`class-mooncancer`, eight more Moon Cancer sheets print it). Its doubling reads `self:inOwnRegion` and
+`target:inOwnRegion`, the War fought in a Region the Unit is from (`annotateRegionBonus`), deferred to the pipeline.
