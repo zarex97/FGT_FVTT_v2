@@ -1,0 +1,21 @@
+# "(Passive) All Total Water Damage taken is reduced by 50% including NP."
+#
+# The same sentence on Anastasia (Summer), Summer Habetrot and Sessyoin Kiara
+# (Summer). Kiara's is the first to reference one shared Skill (#372); the two
+# older copies carry the same element.
+schema: 1
+id: swimsuit
+name: "Swimsuit!"
+kind: skill
+slug: swimsuit
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All Total Water Damage taken is reduced by 50% including NP.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: elementTotalDefUp
+    element: water
+    direction: taken
+    value: 50
+    npValue: 50

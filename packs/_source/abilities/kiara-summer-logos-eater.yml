@@ -1,0 +1,24 @@
+# "(Passive) All damage received from 'Humanoid' Units is reduced by 10% including NP."
+#
+# The Alter Ego Class passive's shape (`class-alter-ego`): in the damage
+# pipeline `self:` is the ATTACKER, so "received from 'Humanoid' Units" names
+# `self:` and `defer: true` holds it for the pipeline. Implied Humanoids count
+# (Human implies Humanoid), a Human Master among them (#372 reading 21).
+schema: 1
+id: kiara-summer-logos-eater
+name: "Logos Eater"
+rank: D
+kind: skill
+slug: logosEater
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage received from 'Humanoid' Units is reduced by 10% including NP.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 10
+    npValue: 10
+    defer: true
+    predicate: ["self:attribute:humanoid"]

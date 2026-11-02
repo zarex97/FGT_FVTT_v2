@@ -118,141 +118,159 @@ Grilled 2026-11-02. Round 1: readings 1–22 ruled as written, all as recommende
 | 21 | Logos Eater's *"Humanoid' Units"* are those whose Attributes hold Humanoid, implied ones included (Human ⟹ Humanoid); a Master who is Human counts. | LE.1 |
 | 22 | MoonCancer's two modifiers stack as an Atk Up and a Def Up do, alongside her other damage modifiers, never multiplied in. The doubling makes them 10% a Class. | MC.dealt, MC.taken |
 
+## Live presses (done, 2026-11-02)
+
+War "Kiara Audit" (scene `aLapqUrTVbcipEua`, fought in Japan, 3 Turns a Round): Kiara and Gray for Faction 1
+(Player1); Cú Chulainn, Medea, Arjuna and Kingprotea for Faction 2, Anastasia (Summer) brought in for Water.
+Staged where the board would not produce a case: Home Bases painted (the custom War had none), cooldowns reset and
+Mermaid Tokens placed for each bracket, her attack flag and the faction's attack pool reset between presses, Health
+set for Guts and for her Master's NP cost, Bewitchments placed for the ×4 ceiling, fixed dice for the debuff rolls,
+Units moved into areas. Pressed as Player1 through the sheet and the action bar, the enemy side answered from the GM.
+
+**All 100 Clauses closed: 74 Pressed, 26 Observed.** Observed, not pressed, each with what was read: the statblock
+lines read off her sheet; `SW.np` (no Water NP in this War); `TC.p2.np` and `TC.stack` (no enemy NP left; no second
+Territory Creation on her side); `IM.contract`, `IM.mental`, `IM.ik`, `IM.death`, `IM.erase`, `IM.counts` (the
+engine's live answers off her board unit); `MN.token.buff` (each Token one buff instance); `NM.tag`.
+
+**Fixed from the board:** the Instakill rolled against a DU with no Mental Debuff (`chanceBonus.countedOnly`,
+`docs/surprises/2026-11-02-instakill-rolled-with-no-mental-debuff.md`); the bar's strip read "∞" for an effect on its
+last Turn (`docs/surprises/2026-11-02-bar-strip-says-infinite-on-last-turn.md`); the spend line's wording.
+
 ## Statblock
 
-- [ ] **ST.name** · True Name: Sessyoin Kiara
-- [ ] **ST.class** · Class: Moon Cancer (the sheet's folder; no Class line is printed)
-- [ ] **ST.region** · Region: (Japan) (Q)
-- [ ] **ST.align** · Alignment: Lawful Evil
-- [ ] **ST.param** · STR C, END A+, AGI C, MAG A+, LUC B
-- [ ] **ST.attr** · Attributes: Female, Servant, [Earth], Humanoid, Anti-Hero (Spirit implied)
-- [ ] **ST.hp** · Base Health 1600 by the table (the sheet prints 1500)
-- [ ] **ST.mov** · MOV 5
-- [ ] **ST.range** · Range 3 panels, 1 target
-- [ ] **ST.ba** · Base Attack STR 100, MAG 210
-- [ ] **ST.sus** · Sustainability: 4◈ Turns
-- [ ] **ST.tokens** · Mermaid Tokens: 0, the count of her Token buffs (Q)
-- [ ] **ST.items** · Items held: none
+- [x] **ST.name** · True Name: Sessyoin Kiara — Observed live 2026-11-02: her sheet as Player1
+- [x] **ST.class** · Class: Moon Cancer (the sheet's folder; no Class line is printed) — Observed live 2026-11-02: the portrait card reads Moon Cancer
+- [x] **ST.region** · Region: (Japan) (Q) — Observed live 2026-11-02: Japan; in the Japan War every Parameter reads +1 (C→C+, A+→A++)
+- [x] **ST.align** · Alignment: Lawful Evil — Observed live 2026-11-02: Lawful Evil on the sheet
+- [x] **ST.param** · STR C, END A+, AGI C, MAG A+, LUC B — Observed live 2026-11-02: C A+ C A+ B written, the Region's step beside each
+- [x] **ST.attr** · Attributes: Female, Servant, [Earth], Humanoid, Anti-Hero (Spirit implied) — Observed live 2026-11-02: board attributes female, servant, earth, humanoid, antiHero, spirit, hominidae
+- [x] **ST.hp** · Base Health 1600 by the table (the sheet prints 1500) — Observed live 2026-11-02: 1700 in the Japan War (END A++ with the Region's step; 1600 at A+, unit-tested)
+- [x] **ST.mov** · MOV 5 — Observed live 2026-11-02: MOV 5
+- [x] **ST.range** · Range 3 panels, 1 target — Observed live 2026-11-02: Range 3, 1 target
+- [x] **ST.ba** · Base Attack STR 100, MAG 210 — Observed live 2026-11-02: BA 100→110 / 210→220 (the Region's step)
+- [x] **ST.sus** · Sustainability: 4◈ Turns — Observed live 2026-11-02: 4◈, 12 turns left
+- [x] **ST.tokens** · Mermaid Tokens: 0, the count of her Token buffs (Q) — Observed live 2026-11-02: the bar's strip shows each Mermaid Token with its own clock
+- [x] **ST.items** · Items held: none — Observed live 2026-11-02: none
 
 ## Normal Attack — the Note
 
-- [ ] **NA.str** · At a Range of 1, her Normal Attacks use Base Attack (STR)
-- [ ] **NA.mag** · At a Range of 2 or higher, they use Base Attack (MAG)
-- [ ] **NA.water** · …and deal Water damage
+- [x] **NA.str** · At a Range of 1, her Normal Attacks use Base Attack (STR) — Pressed live 2026-11-02: as Player1 at Range 1 on Arjuna, BA(STR) 110
+- [x] **NA.mag** · At a Range of 2 or higher, they use Base Attack (MAG) — Pressed live 2026-11-02: as Player1 at Range 2 on Arjuna, BA(MAG) 220
+- [x] **NA.water** · …and deal Water damage — Pressed live 2026-11-02: at Range 2 on Anastasia (Summer), her 'Swimsuit! (Total water) ×0.5' read it (declared GM-side)
 
 ## Swimsuit! *(Passive)*
 
-- [ ] **SW.water** · All Total Water damage taken is reduced by 50%
-- [ ] **SW.np** · …including NP
+- [x] **SW.water** · All Total Water damage taken is reduced by 50% — Pressed live 2026-11-02: Anastasia's Ice Bucket Challenge (Water) on Kiara, 'Swimsuit! (Total water) ×0.5'
+- [x] **SW.np** · …including NP — Observed live 2026-11-02: the modifier's npValue 50 on her board unit; no Water NP in this War
 
 ## MoonCancer *(Passive)*
 
-- [ ] **MC.count** · The count: every different enemy Servant Class on the field other than Moon Cancer (Q)
-- [ ] **MC.dealt** · All damage dealt is increased by 5% for each
-- [ ] **MC.dealt.np** · …including NP
-- [ ] **MC.taken** · All damage taken is reduced by 5% for each
-- [ ] **MC.taken.np** · …including NP
-- [ ] **MC.region** · If she was summoned in her Region, both magnitudes are doubled (10% a Class) (Q)
+- [x] **MC.count** · The count: every different enemy Servant Class on the field other than Moon Cancer (Q) — Pressed live 2026-11-02: −40 at four enemy Classes, −20/+20 at two, 0 with none standing; +30 on the NP Process after Medea fell
+- [x] **MC.dealt** · All damage dealt is increased by 5% for each — Pressed live 2026-11-02: Kiara's Normal Attacks +20
+- [x] **MC.dealt.np** · …including NP — Pressed live 2026-11-02: her NP +40, then +30
+- [x] **MC.taken** · All damage taken is reduced by 5% for each — Pressed live 2026-11-02: Cú's Normal Attack −40
+- [x] **MC.taken.np** · …including NP — Pressed live 2026-11-02: Kingprotea's NP −20
+- [x] **MC.region** · If she was summoned in her Region, both magnitudes are doubled (10% a Class) (Q) — Pressed live 2026-11-02: 10% a Class in the Japan War; observed live 2026-11-02 5% a Class on the Gray Audit board (no Region)
 
 ## Territory Creation — Class Skill, Rank EX *(Passive 1 + 2)*
 
-- [ ] **TC.p1** · *(Passive 1)* In her Home Base, all damage she deals is increased by 6d20 after calculation
-- [ ] **TC.p1.np** · …including NP
-- [ ] **TC.p2** · *(Passive 2)* While she is on the field, damage taken by allied Units in their Home Base is further reduced by (3d10+30)
-- [ ] **TC.p2.np** · …including NP
-- [ ] **TC.stack** · With several allied Territory Creations, only the highest Rank takes effect
+- [x] **TC.p1** · *(Passive 1)* In her Home Base, all damage she deals is increased by 6d20 after calculation — Pressed live 2026-11-02: her Normal Attack from her Home Base, 'Territory Creation = 68'
+- [x] **TC.p1.np** · …including NP — Pressed live 2026-11-02: her NP from her Home Base, 'Territory Creation = 59'
+- [x] **TC.p2** · *(Passive 2)* While she is on the field, damage taken by allied Units in their Home Base is further reduced by (3d10+30) — Pressed live 2026-11-02: Gray in his Home Base hit by a Master, 'Territory Creation = −51'
+- [x] **TC.p2.np** · …including NP — Observed live 2026-11-02: the aura's dice reduction carries no NP exclusion; no enemy NP was left to throw
+- [x] **TC.stack** · With several allied Territory Creations, only the highest Rank takes effect — Observed live 2026-11-02: her aura is group territoryCreation, highestOnly; no second Territory Creation on her side
 
 ## Independent Manifestation — Class Skill, Rank E *(Passive 1–4)*
 
-- [ ] **IM.sus** · *(Passive 1)* A high Sustainability: 4◈ Turns
-- [ ] **IM.zon** · *(Passive 2)* Her Master's ZON is increased by 1 panel
-- [ ] **IM.contract** · *(Passive 3)* Enemy Masters and Casters need 2 successful 'Contract Servant' rolls to contract her
-- [ ] **IM.mental** · *(Passive)* Chance of being inflicted with Mental Debuffs is reduced by 40%
-- [ ] **IM.ik** · …Instakill, reduced by 40%
-- [ ] **IM.death** · …Death, reduced by 40%
-- [ ] **IM.erase** · …Erase, reduced by 40%
-- [ ] **IM.counts** · This Skill counts as 'Independent Action — Rank: E'
+- [x] **IM.sus** · *(Passive 1)* A high Sustainability: 4◈ Turns — Observed live 2026-11-02: 4◈ on the sheet
+- [x] **IM.zon** · *(Passive 2)* Her Master's ZON is increased by 1 panel — Observed live 2026-11-02: her Master's ZON 3 with +1 Independent Manifestation
+- [x] **IM.contract** · *(Passive 3)* Enemy Masters and Casters need 2 successful 'Contract Servant' rolls to contract her — Observed live 2026-11-02: rollsRequired 2 by an enemy, 1 by an ally
+- [x] **IM.mental** · *(Passive)* Chance of being inflicted with Mental Debuffs is reduced by 40% — Observed live 2026-11-02: applicationChances 40 (mental)
+- [x] **IM.ik** · …Instakill, reduced by 40% — Observed live 2026-11-02: applicationChances 40 (instakill)
+- [x] **IM.death** · …Death, reduced by 40% — Observed live 2026-11-02: applicationChances 40 (death)
+- [x] **IM.erase** · …Erase, reduced by 40% — Observed live 2026-11-02: applicationChances 40 (erase)
+- [x] **IM.counts** · This Skill counts as 'Independent Action — Rank: E' — Observed live 2026-11-02: slug independentAction at Rank E
 
 ## Spiritual World Creation — Rank EX *(Passive)*
 
-- [ ] **SP.np** · NP damage dealt is increased by 10%
+- [x] **SP.np** · NP damage dealt is increased by 10% — Pressed live 2026-11-02: 'Spiritual World Creation = 10' on her NP
 
 ## Logos Eater — Rank D *(Passive)*
 
-- [ ] **LE.1** · All damage received from 'Humanoid' Units is reduced by 10% (Q)
-- [ ] **LE.np** · …including NP
+- [x] **LE.1** · All damage received from 'Humanoid' Units is reduced by 10% (Q) — Pressed live 2026-11-02: 'Logos Eater = −10' against Cú's and Anastasia's attacks
+- [x] **LE.np** · …including NP — Pressed live 2026-11-02: −10 on Kingprotea's NP
 
 ## Mermaid's Flesh — Rank EX *(Active)*
 
-- [ ] **MF.when** · Used during her Turn
-- [ ] **MF.guts** · 1. Applies Guts for 1◈+⅔◈ Turns
-- [ ] **MF.guts.rev** · …when she is defeated she revives with 25% of her Max Health
-- [ ] **MF.cleanse** · 2. Removes all debuffs from herself
-- [ ] **MF.regen** · 3. Applies Regen for 1◈ Turns
-- [ ] **MF.regen.heal** · …her Health is restored by 15% of its maximum at the end of her Turn, at the end of any Turn she Acts, and at the end of the Round
-- [ ] **MF.npup** · 4. Applies NP DmUp for 1◈ Turns, NP damage dealt is increased by 20%
-- [ ] **MF.nour** · 5. Applies the 'Mermaid's Nourishment' buff for 1◈ Turns
-- [ ] **MF.cd** · Cooldown: 4◈ Turns
+- [x] **MF.when** · Used during her Turn — Pressed live 2026-11-02: as Player1 on her Turn
+- [x] **MF.guts** · 1. Applies Guts for 1◈+⅔◈ Turns — Pressed live 2026-11-02: Guts 25, expiry 6 (1◈+⅔◈)
+- [x] **MF.guts.rev** · …when she is defeated she revives with 25% of her Max Health — Pressed live 2026-11-02: Kingprotea's NP felled her at 1 Health: 'revived by Guts, with 425 Health'
+- [x] **MF.cleanse** · 2. Removes all debuffs from herself — Pressed live 2026-11-02: 'Def Dwn removed'
+- [x] **MF.regen** · 3. Applies Regen for 1◈ Turns — Pressed live 2026-11-02: Regen 15, expiry 4
+- [x] **MF.regen.heal** · …her Health is restored by 15% of its maximum at the end of her Turn, at the end of any Turn she Acts, and at the end of the Round — Pressed live 2026-11-02: +255 at the end of her Turn, of a Turn she Evaded, and of the Round; +18 to the cap
+- [x] **MF.npup** · 4. Applies NP DmUp for 1◈ Turns, NP damage dealt is increased by 20% — Pressed live 2026-11-02: NP DmUp 20, read on her NP
+- [x] **MF.nour** · 5. Applies the 'Mermaid's Nourishment' buff for 1◈ Turns — Pressed live 2026-11-02: Mermaid's Nourishment, expiry 4
+- [x] **MF.cd** · Cooldown: 4◈ Turns — Pressed live 2026-11-02: 12
 
 ### Mermaid's Nourishment *(the buff)*
 
-- [ ] **MN.gain.first** · At the end of the Turn the buff was applied, she gains one Mermaid Token (Q)
-- [ ] **MN.gain.every** · …and at the end of the Turn after every ⅓◈ Turns (Q)
-- [ ] **MN.token.dur** · Each Mermaid Token lasts 1◈+⅓◈ Turns
-- [ ] **MN.token.buff** · Each Mermaid Token counts as a separate buff (Q)
-- [ ] **MN.spend** · Using a Skill while she holds any Mermaid Tokens removes them from her (Q)
-- [ ] **MN.spend.mf** · …a Skill other than Mermaid's Flesh: Mermaid's Flesh spends none (Q)
-- [ ] **MN.boost** · …and that Skill's effects are boosted: its first bracket for one Token, its second for two
-- [ ] **MN.max** · At most two Mermaid Tokens are consumed by one Skill use (Q)
+- [x] **MN.gain.first** · At the end of the Turn the buff was applied, she gains one Mermaid Token (Q) — Pressed live 2026-11-02: a Token at the end of Turn 1
+- [x] **MN.gain.every** · …and at the end of the Turn after every ⅓◈ Turns (Q) — Pressed live 2026-11-02: at the end of Turns 2 and 3: three at 3 Turns a Round
+- [x] **MN.token.dur** · Each Mermaid Token lasts 1◈+⅓◈ Turns — Pressed live 2026-11-02: each 1◈+⅓◈ (expiry 5, 6, 7)
+- [x] **MN.token.buff** · Each Mermaid Token counts as a separate buff (Q) — Observed live 2026-11-02: each Token one buff instance, six counted with three others
+- [x] **MN.spend** · Using a Skill while she holds any Mermaid Tokens removes them from her (Q) — Pressed live 2026-11-02: Clam Palace spent 2 of 3
+- [x] **MN.spend.mf** · …a Skill other than Mermaid's Flesh: Mermaid's Flesh spends none (Q) — Pressed live 2026-11-02: Mermaid's Flesh with 2 Tokens kept both
+- [x] **MN.boost** · …and that Skill's effects are boosted: its first bracket for one Token, its second for two — Pressed live 2026-11-02: 'Mermaid Token ×2 spent: Clam Palace at Rank A++'
+- [x] **MN.max** · At most two Mermaid Tokens are consumed by one Skill use (Q) — Pressed live 2026-11-02: the third Token kept
 
 ## Jintsūriki (Sumi) — Rank B (B+) (A) *(Active)*
 
-- [ ] **JS.when** · Used during her Turn
-- [ ] **JS.rank** · Its Rank is B; B+ with one Token, A with two (Q)
-- [ ] **JS.npcd** · Reduces her NP Cooldown by 1◈ Turns
-- [ ] **JS.npcd.1** · …by 1◈+⅓◈ Turns with one Token
-- [ ] **JS.npcd.2** · …by 1◈+⅔◈ Turns with two
-- [ ] **JS.crit** · Then applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of her, herself included
-- [ ] **JS.crit.val** · …Crit Chance is increased by 20%
-- [ ] **JS.crit.1** · …25% with one Token
-- [ ] **JS.crit.2** · …30% with two
-- [ ] **JS.cd** · Cooldown: 4◈ Turns
-- [ ] **JS.cd.1** · …4◈-⅓◈ Turns with one Token
-- [ ] **JS.cd.2** · …4◈-⅔◈ Turns with two
+- [x] **JS.when** · Used during her Turn — Pressed live 2026-11-02: as Player1
+- [x] **JS.rank** · Its Rank is B; B+ with one Token, A with two (Q) — Pressed live 2026-11-02: card B, B+, A
+- [x] **JS.npcd** · Reduces her NP Cooldown by 1◈ Turns — Pressed live 2026-11-02: 21→18
+- [x] **JS.npcd.1** · …by 1◈+⅓◈ Turns with one Token — Pressed live 2026-11-02: 21→17
+- [x] **JS.npcd.2** · …by 1◈+⅔◈ Turns with two — Pressed live 2026-11-02: 21→16
+- [x] **JS.crit** · Then applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of her, herself included — Pressed live 2026-11-02: her aura gives Gray +25 Crit Chance
+- [x] **JS.crit.val** · …Crit Chance is increased by 20% — Pressed live 2026-11-02: 20
+- [x] **JS.crit.1** · …25% with one Token — Pressed live 2026-11-02: 25
+- [x] **JS.crit.2** · …30% with two — Pressed live 2026-11-02: 30
+- [x] **JS.cd** · Cooldown: 4◈ Turns — Pressed live 2026-11-02: 12
+- [x] **JS.cd.1** · …4◈-⅓◈ Turns with one Token — Pressed live 2026-11-02: 11
+- [x] **JS.cd.2** · …4◈-⅔◈ Turns with two — Pressed live 2026-11-02: 10
 
 ## Clam Palace — Rank A (A+) (A++) *(Active)*
 
-- [ ] **CP.when** · Used during her Turn
-- [ ] **CP.rank** · Its Rank is A; A+ with one Token, A++ with two (Q)
-- [ ] **CP.dodge** · First, applies Dodge for 1◈ Turns, 1 time, to all allied Units within a 2 panel area of her, herself included
-- [ ] **CP.area** · Then affects every enemy Unit within a 3x3 panel area in any non-diagonal direction next to her
-- [ ] **CP.enemy** · …enemies only: an ally in the 3x3 is untouched
-- [ ] **CP.aim** · 1. Removes all 'Aim' buffs from the affected Units (Q)
-- [ ] **CP.bew** · 2. Inflicts the 'Bewitchment' Mental Debuff for 1◈ Turns, Crit Chance is reduced by 10% (Q)
-- [ ] **CP.bew.1** · …inflicted twice with one Token (Q)
-- [ ] **CP.bew.2** · …three times with two (Q)
-- [ ] **CP.bew.mental** · Bewitchment is a Mental Debuff
-- [ ] **CP.dd** · 3. Inflicts Def Dwn for 1◈ Turns, all damage taken is increased by 20% (Q)
-- [ ] **CP.dd.1** · …25% with one Token
-- [ ] **CP.dd.2** · …30% with two
-- [ ] **CP.dda** · 4. Inflicts Def Dwn (A) for 1◈ Turns, all damage taken is increased by 20% (Q)
-- [ ] **CP.dda.1** · …25% with one Token
-- [ ] **CP.dda.2** · …30% with two
-- [ ] **CP.dda.luck** · …and Luck is reduced by 1 whenever damage is received from an Attack
-- [ ] **CP.cd** · Cooldown: 4◈ Turns
-- [ ] **CP.cd.1** · …4◈-⅓◈ Turns with one Token
-- [ ] **CP.cd.2** · …4◈-⅔◈ Turns with two
+- [x] **CP.when** · Used during her Turn — Pressed live 2026-11-02: as Player1
+- [x] **CP.rank** · Its Rank is A; A+ with one Token, A++ with two (Q) — Pressed live 2026-11-02: card A, A+, A++
+- [x] **CP.dodge** · First, applies Dodge for 1◈ Turns, 1 time, to all allied Units within a 2 panel area of her, herself included — Pressed live 2026-11-02: Dodge on her, Gray and her Master
+- [x] **CP.area** · Then affects every enemy Unit within a 3x3 panel area in any non-diagonal direction next to her — Pressed live 2026-11-02: the east 3x3; Arjuna outside untouched
+- [x] **CP.enemy** · …enemies only: an ally in the 3x3 is untouched — Pressed live 2026-11-02: 'NOT TARGETED Assassin — an ally' inside the 3x3
+- [x] **CP.aim** · 1. Removes all 'Aim' buffs from the affected Units (Q) — Pressed live 2026-11-02: 'Lancer: Aim removed'
+- [x] **CP.bew** · 2. Inflicts the 'Bewitchment' Mental Debuff for 1◈ Turns, Crit Chance is reduced by 10% (Q) — Pressed live 2026-11-02: once; Cú's Crit Chance read 30 with two
+- [x] **CP.bew.1** · …inflicted twice with one Token (Q) — Pressed live 2026-11-02: twice
+- [x] **CP.bew.2** · …three times with two (Q) — Pressed live 2026-11-02: three rolls, one landed, two resisted; then three landed
+- [x] **CP.bew.mental** · Bewitchment is a Mental Debuff — Pressed live 2026-11-02: counted by her NP as a Mental Debuff
+- [x] **CP.dd** · 3. Inflicts Def Dwn for 1◈ Turns, all damage taken is increased by 20% (Q) — Pressed live 2026-11-02: 20
+- [x] **CP.dd.1** · …25% with one Token — Pressed live 2026-11-02: 25
+- [x] **CP.dd.2** · …30% with two — Pressed live 2026-11-02: 30
+- [x] **CP.dda** · 4. Inflicts Def Dwn (A) for 1◈ Turns, all damage taken is increased by 20% (Q) — Pressed live 2026-11-02: 20
+- [x] **CP.dda.1** · …25% with one Token — Pressed live 2026-11-02: 25
+- [x] **CP.dda.2** · …30% with two — Pressed live 2026-11-02: 30
+- [x] **CP.dda.luck** · …and Luck is reduced by 1 whenever damage is received from an Attack — Pressed live 2026-11-02: Gray's hit on Cú: Luck 4→3
+- [x] **CP.cd** · Cooldown: 4◈ Turns — Pressed live 2026-11-02: 12
+- [x] **CP.cd.1** · …4◈-⅓◈ Turns with one Token — Pressed live 2026-11-02: 11
+- [x] **CP.cd.2** · …4◈-⅔◈ Turns with two — Pressed live 2026-11-02: 10
 
 ## Nirmānnarati - Heaven's Form: Paradise of Pleasure - Mandala — Rank A (NP) [Anti-World]
 
-- [ ] **NM.tag** · An [Anti-World] Noble Phantasm of Rank A
-- [ ] **NM.ba** · Base Attack (MAG) is used
-- [ ] **NM.area** · Hits a 5x5 panel area in any non-diagonal direction next to her
-- [ ] **NM.who** · …every Unit in it is a DU (Q)
-- [ ] **NM.dmg** · Deals 4x damage
-- [ ] **NM.mental** · If the DU has any Mental Debuffs, damage dealt is increased by 100% (Q)
-- [ ] **NM.mental.per** · …plus 20% for every Mental Debuff on the DU (Q)
-- [ ] **NM.mental.max** · …counted at most 10 times (Q)
-- [ ] **NM.ik** · Then, an X% chance of inflicting Instakill on the DU, X = 20 × its Mental Debuffs (Q)
-- [ ] **NM.ik.zero** · …a DU with no Mental Debuff is never rolled for (Q)
-- [ ] **NM.cd** · Cooldown: 7◈ Turns
+- [x] **NM.tag** · An [Anti-World] Noble Phantasm of Rank A — Observed live 2026-11-02: npTags antiWorld
+- [x] **NM.ba** · Base Attack (MAG) is used — Pressed live 2026-11-02: BA(MAG) 220
+- [x] **NM.area** · Hits a 5x5 panel area in any non-diagonal direction next to her — Pressed live 2026-11-02: the east 5x5, 25 panels, three targets
+- [x] **NM.who** · …every Unit in it is a DU (Q) — Pressed live 2026-11-02: Gray, her ally, hit for 840
+- [x] **NM.dmg** · Deals 4x damage — Pressed live 2026-11-02: '4× damage'
+- [x] **NM.mental** · If the DU has any Mental Debuffs, damage dealt is increased by 100% (Q) — Pressed live 2026-11-02: Cú 'Mental Debuffs ×2.2'
+- [x] **NM.mental.per** · …plus 20% for every Mental Debuff on the DU (Q) — Pressed live 2026-11-02: one debuff ×2.2
+- [x] **NM.mental.max** · …counted at most 10 times (Q) — Pressed live 2026-11-02: Kingprotea with 11, '×4'
+- [x] **NM.ik** · Then, an X% chance of inflicting Instakill on the DU, X = 20 × its Mental Debuffs (Q) — Pressed live 2026-11-02: Cú 'rolled 29 vs 5%' (20 less his resistance)
+- [x] **NM.ik.zero** · …a DU with no Mental Debuff is never rolled for (Q) — Pressed live 2026-11-02: 'not applied, nothing to count' on Gray and Anastasia (after the fix)
+- [x] **NM.cd** · Cooldown: 7◈ Turns — Pressed live 2026-11-02: 21

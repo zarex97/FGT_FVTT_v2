@@ -350,6 +350,12 @@ export const FACETS = Object.freeze([
     prose: "{subject} is in its Home Base",
   }),
   facet({
+    id: "inOwnRegion",
+    // MoonCancer's *"summoned in their Region"* (#372 reading 1).
+    english: "Is fighting in a War fought in a Region it is from.",
+    prose: "{subject} fights in its own Region",
+  }),
+  facet({
     id: "inField",
     segments: [{ name: "field", value: open() }],
     english: "Is standing inside a named bounded field.",

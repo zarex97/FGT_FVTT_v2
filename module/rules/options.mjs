@@ -700,6 +700,11 @@ function add(options, side, unit, withoutModeHeld = false) {
   // which is why it is emitted for `self` and `target` alike.
   if (unit.inHomeBase) options.add(`${side}:inHomeBase`);
 
+  // Fought in a Region the Unit is from: MoonCancer's *"If this Servant was
+  // summoned in their Region, the magnitudes of this Skill are doubled"* (#372
+  // reading 1). A board fact (`snapshot.mjs#annotateRegionBonus`).
+  if (unit.inOwnRegion) options.add(`${side}:inOwnRegion`);
+
   // An empty pool. Emitted only for pools the unit actually HAS, so that a
   // clause about somebody else's resource is false rather than vacuously true
   // -- "Drake has no Galleon Tokens" must not be satisfied by a Servant who

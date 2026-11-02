@@ -31,8 +31,15 @@ import { chebyshev } from "../domain/geometry.mjs";
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
   "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
-  "antiAttributeEffects", "npsHeld", "critChance", "maxHealth",
+  "antiAttributeEffects", "npsHeld", "critChance", "maxHealth", "classes", "effects",
 ]);
+
+/**
+ * The kinds that read the War's board, so a passive sized by one is sized once
+ * the board is built (`rules/snapshot.mjs#annotateBoardCounts`), never at an
+ * actor-only collection that has no board and would count nothing.
+ */
+export const BOARD_COUNT_KINDS = Object.freeze(["board", "classes"]);
 
 /** A Count whose kind is not in {@link COUNT_KINDS}. */
 export class UnknownCountKind extends Error {
@@ -91,22 +98,30 @@ export function countOf(spec, ctx = {}) {
       // *"X = number of enemy Units on the board with the 'Dove' effect"*
       // (Familiar: Doves): a per-Unit membership test summed over the board,
       // in the ordinary predicate grammar rather than an aggregate syntax.
-      return (ctx.board?.units ?? []).filter((unit) => {
-        // The asker itself, when the clause counts the others, and only the
-        // Units standing: Gilles's *"X = number of Servants on the board"* as he
-        // falls (#323) counts no defeated body.
-        if (spec.excludeSelf && unit.id === ctx.self?.id) return false;
-        if (spec.standing && unit.defeated) return false;
-        if (spec.relation && relationOf(ctx.self, unit, ctx.board) !== spec.relation) return false;
-        // Several relations, `self` among them: Chibirā Sanu's *"X=the number of
-        // allied Units within a 2 panel area of herself"*, herself included (#359
-        // ruling 22, #132).
-        if (Array.isArray(spec.relations) && !spec.relations.includes(relationOf(ctx.self, unit, ctx.board))) return false;
-        // ...and within a distance of the asker, nearest panel to nearest panel:
-        // *"for every enemy Unit within a 3 panel area of herself"* (ruling 21).
-        if (typeof spec.within === "number" && !(unitDistance(ctx.self, unit) <= spec.within)) return false;
-        return passes(spec.requires, unit);
+      return boardUnits(spec, ctx).length;
+    case "classes": {
+      // The distinct Servant Classes among the Units the board filter keeps:
+      // MoonCancer's *"for every different enemy Servant Class on the field other
+      // than MoonCancer"* (#372 readings 2, 3). A Servant holding two Classes adds
+      // both; `except` leaves a Class out.
+      const except = new Set(spec.except ?? []);
+      const classes = new Set();
+      for (const unit of boardUnits(spec, ctx)) {
+        for (const c of unit.servantClasses ?? []) if (!except.has(c)) classes.add(c);
+      }
+      return classes.size;
+    }
+    case "effects": {
+      // The effect instances a Unit holds, by polarity and volatility: the
+      // Mental Debuffs on the DU that Nirmānnarati counts (#372 readings 14,
+      // 18-20). One per instance: three Bewitchments are three.
+      const who = spec.side === "self" ? (ctx.self ?? null) : (ctx.target ?? null);
+      return (who?.effectInstances ?? []).filter((e) => {
+        if (spec.polarity && e.polarity !== spec.polarity) return false; // fgt-polarity-ok: the instance's projected polarity, polarityOf's (`snapshot.mjs#effectInstances`)
+        if (spec.volatility && e.volatility !== spec.volatility) return false;
+        return true;
       }).length;
+    }
     case "parameters":
       return parametersCounted(spec, ctx.self, ctx.target);
     case "resource": {
@@ -179,6 +194,32 @@ export function countOf(spec, ctx = {}) {
     default:
       throw new UnknownCountKind(spec?.of);
   }
+}
+
+/**
+ * The board's Units a `board` or `classes` Count keeps.
+ *
+ * @param {object} spec
+ * @param {CountContext} ctx
+ * @returns {object[]}
+ */
+function boardUnits(spec, ctx) {
+  return (ctx.board?.units ?? []).filter((unit) => {
+    // The asker itself, when the clause counts the others, and only the
+    // Units standing: Gilles's *"X = number of Servants on the board"* as he
+    // falls (#323) counts no defeated body.
+    if (spec.excludeSelf && unit.id === ctx.self?.id) return false;
+    if (spec.standing && unit.defeated) return false;
+    if (spec.relation && relationOf(ctx.self, unit, ctx.board) !== spec.relation) return false;
+    // Several relations, `self` among them: Chibirā Sanu's *"X=the number of
+    // allied Units within a 2 panel area of herself"*, herself included (#359
+    // ruling 22, #132).
+    if (Array.isArray(spec.relations) && !spec.relations.includes(relationOf(ctx.self, unit, ctx.board))) return false;
+    // ...and within a distance of the asker, nearest panel to nearest panel:
+    // *"for every enemy Unit within a 3 panel area of herself"* (ruling 21).
+    if (typeof spec.within === "number" && !(unitDistance(ctx.self, unit) <= spec.within)) return false;
+    return passes(spec.requires, unit);
+  });
 }
 
 /**

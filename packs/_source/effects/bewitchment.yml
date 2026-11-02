@@ -1,0 +1,23 @@
+# Sessyoin Kiara (Summer)'s Clam Palace, char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# "Inflicts the 'Bewitchment' Mental Debuff for 1◈ Turns, Crit Chance is reduced
+#  by 10% (Inflict twice) (Inflict three times)."
+#
+# `magnitudeStacks`: each infliction is its own instance with its own clock, so
+# twice is two Mental Debuffs and -20% (#372 reading 14). `volatility: mental`
+# puts it in every Mental Debuff count and under every Mental Debuff resistance.
+schema: 1
+id: bewitchment
+name: "Bewitchment"
+description: |
+  A Mental Debuff. Crit Chance is reduced by X%. Each infliction is a separate debuff with its own duration.
+polarity: debuff
+volatility: mental
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+defaultMagnitude: 10
+rules:
+  - key: CheckModifier
+    check: crit
+    value: "-@magnitude"

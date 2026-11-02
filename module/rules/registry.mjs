@@ -73,6 +73,8 @@ export const EffectRegistry = {
         rulesOncePerBearer: Boolean(sys.rulesOncePerBearer),
         // Read by `engine/effect-applier.mjs#applyEffect` (#348 ruling 4).
         resetsSiblings: Boolean(sys.resetsSiblings),
+        // Read by `rules/tiers.mjs#tierSpend` (Mermaid Tokens, #372).
+        spentForTier: sys.spentForTier ?? null,
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

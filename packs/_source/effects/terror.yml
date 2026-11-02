@@ -20,7 +20,9 @@ description: |
   At the end of every Turn, X% chance of @effect[stun]{Stun} for 1◈ Turns, then Terror is removed.
   The chance is not modified by debuff chance or resist effects.
 polarity: debuff
-volatility: volatile
+# Mental, as Appendix A §A.11 lists it (#372 reading 20): Men.Debuff Immune and every Mental Debuff
+# resistance cover it, and a count of Mental Debuffs counts it.
+volatility: mental
 valence: offensive
 stacking: noneRefresh
 baseChance: 100
