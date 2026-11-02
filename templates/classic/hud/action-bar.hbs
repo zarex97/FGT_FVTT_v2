@@ -1,0 +1,78 @@
+{{!-- The action bar (§29.5). Rows wrap; nothing here has an upper bound,
+      which is exactly what the token HUD column could not survive. --}}
+<div class="fgt-actionbar">
+  <div class="fgt-actionbar__portrait">
+    <img src="{{portrait.img}}" alt="{{portrait.name}}">
+    <div class="fgt-actionbar__identity">
+      <span class="fgt-actionbar__name">{{portrait.name}}</span>
+      {{#if portrait.subtitle}}<span class="fgt-actionbar__subtitle">{{portrait.subtitle}}</span>{{/if}}
+    </div>
+    <div class="fgt-actionbar__resources">
+      {{#each resources as |r|}}
+        <span class="fgt-actionbar__resource"><b>{{localize r.label}}</b> {{r.value}}{{#if r.max}} / {{r.max}}{{/if}}</span>
+      {{/each}}
+      {{!-- §6.10's pools. They gate abilities, so they belong beside the
+            buttons rather than a tab away on the sheet. --}}
+      {{#each pools as |p|}}
+        <span class="fgt-actionbar__resource fgt-actionbar__resource--pool"><b>{{p.label}}</b> {{p.value}}{{#if p.max}} / {{p.max}}{{/if}}</span>
+      {{/each}}
+    </div>
+  </div>
+
+  {{!-- §12.8. Said out loud, because the bar opening by itself is otherwise a
+        surprise: the player did not press anything to get here. --}}
+  {{#if counter.armed}}
+    <div class="fgt-actionbar__counter">{{localize "FGT.Counter.Armed"}}</div>
+  {{/if}}
+
+  <div class="fgt-actionbar__rows">
+    {{#each rows as |row|}}
+      <div class="fgt-actionbar__row" data-row="{{row.id}}">
+        <span class="fgt-actionbar__row-label">{{localize row.label}}</span>
+        <div class="fgt-actionbar__slots">
+          {{#each row.slots as |slot|}}
+            <button type="button"
+                    class="fgt-slot{{#if slot.disabled}} fgt-slot--disabled{{/if}}{{#if slot.ring}} fgt-slot--{{slot.ring}}{{/if}}{{#if slot.counter}} fgt-slot--counter{{/if}}"
+                    {{!-- `row.id`, NOT `../row.id`: a block parameter stays in
+                          scope inside the nested each, and `../` walks past it
+                          to nothing. It rendered as an empty attribute, so the
+                          click handler could not tell an action from an
+                          ability and returned silently. --}}
+                    data-action="useSlot" data-row="{{row.id}}" data-slot="{{slot.id}}"
+                    data-tooltip="{{slot.tooltip}}">
+              {{#if slot.img}}<img class="fgt-slot__art" src="{{slot.img}}" alt="">{{/if}}
+              {{#if slot.icon}}<i class="fgt-slot__icon {{slot.icon}}"></i>{{/if}}
+              {{#if slot.cost}}<span class="fgt-slot__cost">{{slot.cost.amount}}◈</span>{{/if}}
+              {{#if slot.cooldown}}<span class="fgt-slot__cooldown">{{slot.cooldown.label}}</span>{{/if}}
+              {{#if slot.tally}}<span class="fgt-slot__tally">{{slot.tally.tally}}/{{slot.tally.count}}</span>{{/if}}
+            </button>
+          {{/each}}
+        </div>
+      </div>
+    {{/each}}
+  </div>
+
+  {{!-- The partial is handed `turn` as its context, so `turn.hbs` keeps
+        reading its own fields at the top level and needed no edits. --}}
+  {{#if turn.active}}
+    <div class="fgt-actionbar__turn">{{> fgt-turn-panel turn}}</div>
+  {{else}}
+    {{!-- Out of a match every ability on this bar is refused with `noMatch`
+          (`rules/costs.mjs`), because a use would write a cooldown nothing can
+          ever count down. A row of dead buttons with no explanation is the one
+          thing D29.2 forbids, so the panel's slot says why rather than being
+          empty. --}}
+    <div class="fgt-actionbar__nomatch" data-tooltip="{{localize 'FGT.HUD.NoMatchHint'}}">
+      <i class="fa-solid fa-hourglass-half"></i>
+      <span>{{localize "FGT.HUD.NoMatch"}}</span>
+      {{!-- Before a War starts is when its locked rules can still change, so
+            the GM's door to them is here too, not only on the turn panel. --}}
+      {{#if turn.canEditRules}}
+        <button type="button" class="fgt-hud__rules" data-action="warRules"
+                data-tooltip="{{localize 'FGT.WarRules.Open'}}" aria-label="{{localize 'FGT.WarRules.Open'}}">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </button>
+      {{/if}}
+    </div>
+  {{/if}}
+</div>

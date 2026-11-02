@@ -5,6 +5,7 @@
 
 import { FGT } from "./config.mjs";
 import { registerSettings } from "./settings.mjs";
+import { applyUiStyle } from "./apps/ui-style.mjs";
 import * as data from "./data/index.mjs";
 import * as documents from "./documents/index.mjs";
 import { registerSheets } from "./apps/index.mjs";
@@ -131,6 +132,10 @@ Hooks.once("init", () => {
 
   registerSheets();
   registerSettings();
+
+  // The interface's look (#364): Classic's stylesheet takes fgt.css's place
+  // before anything is drawn. Reads the setting just registered.
+  applyUiStyle();
 
   // Must happen at init: the canvas reads CONFIG.Canvas.layers when it is built.
   registerTargetingLayer();

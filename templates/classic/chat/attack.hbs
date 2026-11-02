@@ -1,0 +1,210 @@
+<div class="fgt-card">
+  <header class="fgt-card__header">
+    <span class="fgt-card__attacker">{{attackerName}}</span>
+    <span class="fgt-card__arrow"><i class="fa-solid fa-swords" aria-hidden="true"></i></span>
+    <span class="fgt-card__defender">{{defenderName}}</span>
+    <span class="fgt-card__ability">
+      {{abilityName}}{{#if abilityRank}} ({{abilityRank}}){{/if}}
+    </span>
+    {{!-- Ranged, Melee or Special against this defender (#281): what a
+          platform's protection and Gravity Manipulation ask. --}}
+    {{#if delivery}}
+      <span class="fgt-card__delivery">{{localize (concat "FGT.Delivery." delivery)}}</span>
+    {{/if}}
+  </header>
+
+  {{!-- §26.7. `visibility` is computed for whoever is LOOKING, because
+        `fillAttackCard` re-renders this template on each client. It used to be
+        computed and then never read: the damage and the whole breakdown were
+        public to the table regardless of who was involved. --}}
+  {{#if missed}}
+    {{!-- Combat Process step 1.5. The attack did not happen: no reaction, no
+          damage, no Counter. Shown rather than silently omitted, because a
+          swing that vanished with no line reads as a lost attack. --}}
+    <section class="fgt-card__missed">
+      {{#if noEffect}}{{noEffect}}{{else}}{{localize "FGT.Card.Missed2"}}{{/if}}
+      {{#if missRoll}}
+        <span class="fgt-card__miss-roll">
+          {{missRoll.total}} / {{missRoll.target}}%{{#if missRoll.source}} ({{missRoll.source}}){{/if}}
+        </span>
+      {{/if}}
+    </section>
+  {{/if}}
+
+  {{!-- The die that drew this defender at random (Dainisshō, #353). --}}
+  {{#if drawn}}
+    <section class="fgt-card__note">{{drawn}}</section>
+  {{/if}}
+
+  {{!-- A Luck rung the Process declined for its Unit, and why (#252). --}}
+  {{#each luckClosed as |line|}}
+    <section class="fgt-card__note">{{line}}</section>
+  {{/each}}
+
+  {{!-- What the Attack may deal, before it does: for the defender's side and
+        the GM, so Eye of the Mind or a Command Spell is decided knowing it. --}}
+  {{#if damagePreview}}
+    <section class="fgt-card__note fgt-card__preview">{{localize "FGT.Card.DamagePreview" range=damagePreview}}</section>
+  {{/if}}
+
+  {{#if result}}
+    {{#unless visibility.involved}}
+      <div class="fgt-card__hidden">{{localize "FGT.Chat.HiddenDamage"}}</div>
+    {{/unless}}
+  {{/if}}
+
+  {{#if visibility.involved}}
+  {{!-- The damage, when there was one: an Instakill skips the damage step,
+        and the effects below are still read (#208). --}}
+  {{#if result}}
+    <section class="fgt-card__result">
+      <div class="fgt-card__total">{{result.summary.total}}</div>
+      {{#if result.summary.hasSplit}}
+        <div class="fgt-card__split">
+          {{result.summary.magical}} magical · {{result.summary.physical}} physical
+        </div>
+      {{/if}}
+      {{#if result.summary.negatedBy}}
+        <div class="fgt-card__negated">Negated by {{result.summary.negatedBy}}</div>
+      {{/if}}
+      {{#if result.summary.injury}}
+        <div class="fgt-card__flag">Injury Roll required</div>
+      {{/if}}
+      {{#if result.summary.overpower}}
+        <div class="fgt-card__flag">{{result.summary.overpower}}</div>
+      {{/if}}
+      {{#if result.summary.underpower}}
+        <div class="fgt-card__flag">{{result.summary.underpower}}</div>
+      {{/if}}
+      {{#if result.summary.shieldAbsorbed}}
+        <div class="fgt-card__flag">Shield absorbed {{result.summary.shieldAbsorbed}}</div>
+      {{/if}}
+    </section>
+
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-breakdown">
+      Damage breakdown
+    </button>
+    <table class="fgt-breakdown" id="fgt-breakdown" hidden>
+      {{#each result.rows as |row|}}
+        <tr class="fgt-breakdown__row{{#if row.inert}} fgt-breakdown__row--inert{{/if}}">
+          <td class="fgt-breakdown__index">{{row.index}}</td>
+          <td class="fgt-breakdown__label">
+            {{row.label}}
+            {{#each row.contributors as |c|}}
+              <div class="fgt-breakdown__contributor">
+                <span>{{c.source}}</span>
+                {{#if c.note}}<span class="fgt-breakdown__note">{{c.note}}</span>{{/if}}
+                <span class="fgt-breakdown__value">{{c.value}}</span>
+              </div>
+            {{/each}}
+            {{#each row.notes as |n|}}
+              <div class="fgt-breakdown__blocked">✕ {{n.text}}</div>
+            {{/each}}
+            {{!-- §26.7. The delta and the running total stay so the reader can
+                  check the arithmetic; what is withheld is whose rule produced
+                  it. --}}
+            {{#if row.hiddenContributors}}
+              <div class="fgt-breakdown__redacted">
+                {{localize "FGT.Chat.HiddenContributors" n=row.hiddenContributors}}
+              </div>
+            {{/if}}
+          </td>
+          <td class="fgt-breakdown__delta">{{row.delta}}</td>
+          <td class="fgt-breakdown__running">{{row.running}}</td>
+        </tr>
+      {{/each}}
+    </table>
+  {{/if}}
+
+    {{!-- What landed, for those entitled to read it. A defender learns what was
+          applied to them by name; everyone else learns only how many. --}}
+    {{#if visibility.effectNames.length}}
+      <ul class="fgt-card__effects">
+        {{#each visibility.effectNames as |e|}}<li>{{e}}</li>{{/each}}
+        {{#if visibility.effectsHidden}}<li class="fgt-card__hidden">{{localize "FGT.Skill.HiddenEffects" n=visibility.effectsHidden}}</li>{{/if}}
+      </ul>
+    {{else}}
+      {{#if visibility.effectCount}}
+        <div class="fgt-card__hidden">{{localize "FGT.Skill.HiddenEffects" n=visibility.effectCount}}</div>
+      {{/if}}
+    {{/if}}
+  {{/if}}
+
+  {{#if prompt}}
+    <section class="fgt-card__prompt{{#unless prompt.isMine}} fgt-card__prompt--other{{/unless}}">
+      <p class="fgt-card__prompt-label">{{prompt.label}}</p>
+      {{#if prompt.isMine}}
+        <div class="fgt-card__buttons">
+          {{#each prompt.options as |option|}}
+            <button type="button" data-fgt-event="{{option.event}}" {{#if option.disabled}}disabled{{/if}}>
+              {{option.label}}
+              {{#if option.hint}}<small>{{option.hint}}</small>{{/if}}
+            </button>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="fgt-card__waiting">Waiting for the other player…</p>
+      {{/if}}
+    </section>
+  {{/if}}
+
+  {{!-- Command Spells interrupt an in-flight resolution (Ch. 17 17.4). Only
+        shown when this viewer owns a Master that can actually spend one. --}}
+  {{#if csPass}}
+    <section class="fgt-card__prompt fgt-card__prompt--cs">
+      <p class="fgt-card__prompt-label">{{localize "FGT.Prompt.commandSpell"}}</p>
+      <div class="fgt-card__buttons">
+        {{#each commandSpells as |cs|}}
+          <button type="button" data-fgt-cs="{{cs.id}}" data-fgt-master="{{cs.masterId}}" data-fgt-servant="{{cs.servantId}}">
+            {{cs.name}}
+            {{#if cs.essence}}<small>{{localize "FGT.Master.Essence"}}</small>{{else}}<small>{{cs.cost}} CS</small>{{/if}}
+          </button>
+        {{/each}}
+        <button type="button" class="fgt-card__cs-pass{{#unless prompt}} fgt-card__cs-pass--waiting{{/unless}}" data-fgt-cs-pass data-fgt-masters="{{csPass.masterList}}" data-fgt-rung="{{csPass.rung}}">
+          {{localize "FGT.CommandSpell.Pass"}}
+        </button>
+      </div>
+    </section>
+  {{/if}}
+
+  {{#if countdown}}
+    {{!-- §27.5. The default on expiry is always the option that spends nothing,
+          so a disconnected player never loses Luck or a Command Spell. --}}
+    <div class="fgt-card__waiting {{#if countdown.expired}}fgt-card__waiting--expired{{/if}}">
+      {{#if countdown.expired}}
+        {{localize "FGT.Await.TimedOut"}}
+      {{else}}
+        {{localize "FGT.Await.Waiting" name=prompt.label time=countdown.label}}
+      {{/if}}
+      {{#if countdown.canDecideForThem}}
+        <button type="button" data-fgt-decide>{{localize "FGT.Await.DecideForThem"}}</button>
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if rolls.length}}
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-rolls">
+      Rolls ({{rolls.length}})
+    </button>
+    <div class="fgt-rolls" id="fgt-rolls" hidden>
+      {{#each rolls as |r|}}
+        <div class="fgt-rolls__entry {{#if r.rerolledFrom}}fgt-rolls__entry--reroll{{/if}}">
+          <div class="fgt-rolls__purpose">{{r.purpose}}</div>
+          {{#each r.lines as |line|}}<div class="fgt-rolls__line">{{line}}</div>{{/each}}
+          {{#if r.rerolledFrom}}<div class="fgt-rolls__reason">re-rolled: {{r.reason}}</div>{{/if}}
+        </div>
+      {{/each}}
+    </div>
+  {{/if}}
+
+  {{#if history.length}}
+    <button type="button" class="fgt-card__toggle" data-fgt-toggle="fgt-ladder">
+      Ladder ({{history.length}})
+    </button>
+    <ol class="fgt-ladder" id="fgt-ladder" hidden>
+      {{#each history as |h|}}
+        <li><span class="fgt-ladder__state">{{h.state}}</span> → {{h.event}}</li>
+      {{/each}}
+    </ol>
+  {{/if}}
+</div>

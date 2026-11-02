@@ -233,6 +233,18 @@ glyph (gold when usable), the name with its Rank, the text, and a gold USE.
 The key, six skewed segments from E to EX lit ember-gold to the Rank in force (EX in white gold), and
 the letter Rank.
 
+## The Classic look
+
+A world can turn Nocturne off: the world setting *Interface look* picks **Classic**, the look of the
+three polish PRs before Nocturne (#365 the bar, #366 the cards, #367 the FGO sheet). It follows
+Foundry's light or dark theme, uses Foundry's own faces, and does not animate. Its stylesheet is a
+frozen copy in `styles/src/classic/`, compiled to `styles/fgt-classic.css`; its two rebuilt templates
+are in `templates/classic/` (`module/apps/ui-style.mjs`, Ch. 35).
+
+Nocturne is where design work happens. A new window or block is styled in `styles/src/` **and** in
+`styles/src/classic/`, in Classic's plainer tokens, or named Nocturne's alone in
+`test/unit/ui-style-364.test.mjs`; a new hook in a rebuilt template goes into its Classic copy too.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -241,6 +253,7 @@ the letter Rank.
 - **Do** keep core's window positioning when dressing a window (`plate($position: null)`).
 - **Do** gate every motion on `prefers-reduced-motion`, and the cut-in on photosensitive mode too.
 - **Do** keep every class name and `data-*` attribute that code or tests read.
+- **Do** give Classic every new block and hook, or name it Nocturne's alone.
 
 ### Don't:
 - **Don't** animate a re-render. A part re-renders as a fresh element.
