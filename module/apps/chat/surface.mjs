@@ -15,12 +15,18 @@
  * message's frame on. A message with no card (a player's chat line) is left
  * on core's parchment.
  *
+ * The Classic look (`night: false`, `apps/ui-style.mjs`) keeps #366's card:
+ * no forced night, so it follows the interface's theme as it did then.
+ *
  * @param {HTMLElement} html the `li.chat-message` from `renderChatMessageHTML`
+ * @param {object} [options]
+ * @param {boolean} [options.night] Nocturne's night palette; on by default
  * @returns {boolean} whether it was marked
  */
-export function markSystemCard(html) {
+export function markSystemCard(html, { night = true } = {}) {
   if (!html?.querySelector?.(".fgt-card")) return false;
-  html.classList.add("fgt", "fgt-message", "themed", "theme-dark");
+  html.classList.add("fgt", "fgt-message");
+  if (night) html.classList.add("themed", "theme-dark");
   return true;
 }
 

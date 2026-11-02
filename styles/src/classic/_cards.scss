@@ -1,0 +1,532 @@
+// Stat tiles, ability cards, pip rows and bars.
+
+.fgt-resource {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  input { width: 5ch; text-align: center; }
+  &__sep { opacity: 0.6; }
+}
+
+.fgt-parameter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  span { font-size: 0.7rem; letter-spacing: 0.05em; opacity: 0.75; }
+  input { width: 4ch; text-align: center; }
+}
+
+.fgt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-bottom: var(--fgt-border);
+
+    &--np { font-weight: 600; }
+    &:last-child { border-bottom: none; }
+  }
+
+  &__rank { font-variant-numeric: tabular-nums; opacity: 0.8; }
+  &__empty { padding: 0.25rem 0.5rem; opacity: 0.6; font-style: italic; }
+}
+
+.fgt-master {
+  &__cs { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  &__pips { letter-spacing: 0.15em; }
+  &__cscount { font-variant-numeric: tabular-nums; }
+  &__granted { font-size: 0.7rem; opacity: 0.75; margin-left: 0.3rem; }
+  &__unbound { color: var(--fgt-danger, #b33); font-size: 0.72rem; font-weight: 700; }
+  &__cs--unbound { background: rgba(180, 50, 50, 0.08); }
+
+  &__servants { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+  &__servant { display: flex; gap: 0.4rem; align-items: baseline; padding: 0.15rem 0; }
+  &__name { font-weight: 600; }
+  &__distance { opacity: 0.7; font-size: 0.72rem; }
+  &__zon--in { color: var(--fgt-ok, #3a3); }
+  &__zon--out { color: var(--fgt-danger, #b33); }
+  &__penalty { font-size: 0.7rem; opacity: 0.75; }
+  &__none { font-style: italic; opacity: 0.7; font-size: 0.78rem; }
+  &__warning {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+    border-left: 3px solid var(--fgt-warn, #c80);
+  }
+}
+
+.fgt-list__edit {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+
+  &:hover { opacity: 1; }
+}
+
+.fgt-list__name {
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  flex: 1 1 auto;
+
+  &:hover { text-decoration: underline; }
+}
+
+.fgt-list__row {
+  &--mode { font-style: italic; }
+  &--on { font-weight: 600; font-style: normal; }
+  &--passive { opacity: 0.75; }
+}
+
+.fgt-list__name--passive {
+  flex: 1 1 auto;
+  cursor: default;
+}
+
+.fgt-list__state {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0 0.25rem;
+  border: 1px solid currentcolor;
+  border-radius: 2px;
+  opacity: 0.5;
+
+  .fgt-list__row--on & { opacity: 1; }
+}
+
+/* ── Parameter rows (§5.6) ──────────────────────────────────────────────── */
+
+// FGO's Parameters (#364): the key, a bar of six segments E to EX, and the
+// letter. The letter stays an input, because checking the sheet against the
+// paper it came from is this row's whole job; the bar is filled to the Rank in
+// force, which is what every rule reads.
+.fgt-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.25rem 1rem;
+}
+
+.fgt-param {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding: 0.2rem 0;
+  border-bottom: var(--fgt-border);
+
+  &__key {
+    flex: 0 0 2.5rem;
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__bar {
+    flex: 1 1 5rem;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    height: 0.6rem;
+  }
+
+  &__seg {
+    border: 1px solid var(--fgt-line);
+    border-radius: 2px;
+    background: var(--fgt-bg-sunken);
+
+    &--on { border-color: var(--fgt-crimson); background: var(--fgt-crimson); }
+  }
+
+  &__rank {
+    flex: 0 0 3.25rem;
+    width: 3.25rem;
+    text-align: center;
+    font-family: var(--fgt-font-display);
+    font-size: var(--fgt-text-title);
+    font-weight: 700;
+    color: var(--fgt-ink);
+    background: none;
+    border: 1px solid transparent;
+
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+  }
+
+  &__effective { font-weight: 700; color: var(--fgt-ink); }
+
+  // A granted parameter says what it was WRITTEN with as well as what it is
+  // now. §5.6: only granted steps move Base Attack, so a row that shows one
+  // number cannot be checked against the Servant it came from.
+  &__granted {
+    font-size: var(--fgt-text-label);
+    color: var(--fgt-gold);
+    white-space: nowrap;
+  }
+
+  &--granted { border-bottom-color: var(--fgt-gold); }
+}
+
+/* ── Stat grid ──────────────────────────────────────────────────────────── */
+
+.fgt-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.3rem;
+}
+
+.fgt-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+
+  &__key {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // "derived", "3 turns left" -- the qualifier that stops a reader hunting for
+  // where a number came from.
+  &__note {
+    font-size: 0.62rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+  }
+}
+
+// Why a number is that number. `statDeltas` has said in a comment since it was
+// written that it is "here so a sheet can explain the number".
+.fgt-deltas,
+.fgt-bands {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  color: var(--fgt-ink-dim);
+
+  code {
+    font-size: 0.7rem;
+    color: var(--fgt-gold);
+    background: none;
+    padding: 0;
+  }
+}
+
+/* ── Resource pools (§6.10) ─────────────────────────────────────────────── */
+
+.fgt-pools {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fgt-pool {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+
+  &__key { text-transform: capitalize; }
+  &__pips { color: var(--fgt-gold); letter-spacing: 0.1em; }
+  &__count { font-variant-numeric: tabular-nums; color: var(--fgt-ink-dim); }
+}
+
+/* ── Turn budget ────────────────────────────────────────────────────────── */
+
+.fgt-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.12rem 0.45rem;
+    border: 1px solid var(--fgt-line);
+    border-radius: 999px;
+    color: var(--fgt-ink-dim);
+
+    // Spent is struck through as well as dimmed: a player with seven Servants
+    // should not have to distinguish two greys.
+    &--spent {
+      color: var(--fgt-ink);
+      border-color: var(--fgt-gold);
+      background: var(--fgt-bg-sunken);
+      text-decoration: line-through;
+    }
+  }
+}
+
+.fgt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+
+  .fgt-button { flex: 1 1 8rem; }
+}
+
+// A compulsion forbids a target. It is one of the two highest-value elements
+// on the sheet (§29.2) because the alternative is finding out after committing.
+.fgt-warning--compulsion {
+  border-left-color: var(--fgt-crimson);
+}
+
+/* ── Ability rows (§29.2) ───────────────────────────────────────────────── */
+
+// FGO's skill row (#364): "SKILL 1" and its Cooldown on the left, the
+// picture, then the name, its Rank and its text. The kind is the control the
+// row carries (a passive has none) and the glyph on its tile.
+.fgt-card-ability {
+  display: grid;
+  grid-template-columns: 4.5rem 2.75rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0 0.6rem;
+  margin-bottom: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-raised);
+
+  &.is-on {
+    background: var(--fgt-bg-sunken);
+    box-shadow: inset 0 0 0 1px var(--fgt-gold);
+  }
+
+  &__slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    padding-top: 0.1rem;
+  }
+
+  &__slot-label {
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fgt-ink);
+  }
+
+  &__slot-cd { font-size: var(--fgt-text-label); color: var(--fgt-ink-dim); }
+  &__slot-cd-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  // The picture. Gold while it can be used, dashed while it cannot; the state
+  // line says why, so the tile is never the only signal.
+  &__tile {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    overflow: hidden;
+    border: var(--fgt-border);
+    border-radius: var(--fgt-radius);
+    background: var(--fgt-bg-sunken);
+    color: var(--fgt-ink-dim);
+
+    &--ready { border-color: var(--fgt-gold); color: var(--fgt-gold); }
+    &--blocked { border-style: dashed; }
+  }
+
+  &__icon { width: 100%; height: 100%; object-fit: cover; border: none; }
+  &__glyph { font-size: var(--fgt-text-title); }
+
+  &__body { min-width: 0; }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__name {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: var(--fgt-text-title);
+    font-weight: 600;
+  }
+
+  // Right after the name, as FGO prints "Lv. 6".
+  &__rank {
+    font-size: var(--fgt-text-title);
+    font-weight: 700;
+    color: var(--fgt-ink-dim);
+  }
+
+  // The controls sit at the row's far end, whatever the name's length.
+  &__use,
+  &__passive { margin-left: auto; }
+
+  &__np,
+  &__delivery {
+    font-size: var(--fgt-text-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0 0.3rem;
+    border: var(--fgt-border);
+    border-radius: 2px;
+    color: var(--fgt-ink-dim);
+  }
+
+  &__use {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.6rem;
+    font-size: var(--fgt-text-label);
+  }
+
+  &__passive {
+    font-size: var(--fgt-text-label);
+    font-style: italic;
+    color: var(--fgt-ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__edit {
+    flex: 0 0 auto;
+    width: auto;
+    background: none;
+    border: none;
+    color: var(--fgt-ink-dim);
+    cursor: pointer;
+    padding: 0 0.2rem;
+
+    &:hover { color: var(--fgt-gold); }
+  }
+
+  &__state {
+    margin: 0.25rem 0 0;
+    font-size: var(--fgt-text-label);
+    color: var(--fgt-ok);
+
+    // A blocked ability says so in words and carries a barred icon. The button
+    // above it is disabled and tooltipped with the same sentence, so the
+    // reason is reachable from the control as well as beside it (D29.2).
+    &--blocked { color: var(--fgt-warn); }
+  }
+
+  &__cost {
+    margin: 0.15rem 0 0;
+    font-size: var(--fgt-text-label);
+    color: var(--fgt-ink-dim);
+
+    &--short { color: var(--fgt-danger); }
+  }
+
+  &__ok { color: var(--fgt-ok); font-weight: 700; }
+  &__no { color: var(--fgt-danger); font-weight: 600; }
+
+  &__desc {
+    margin-top: 0.3rem;
+    font-size: var(--fgt-text-body);
+
+    summary {
+      cursor: pointer;
+      font-size: var(--fgt-text-label);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--fgt-ink-dim);
+    }
+
+    div { padding-top: 0.25rem; color: var(--fgt-ink-dim); }
+  }
+}
+
+.fgt-warning--irreversible {
+  border-color: var(--fgt-danger);
+  color: var(--fgt-danger);
+}
+
+@container (max-width: 760px) {
+  .fgt-card-ability { grid-template-columns: 3.75rem 2.5rem minmax(0, 1fr); }
+}
+
+/* ── Details fields ─────────────────────────────────────────────────────── */
+
+.fgt-field {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+
+  > span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--fgt-ink-dim);
+  }
+
+  // Display-first: reads as a stat block until you mean to edit it.
+  input[type="text"] {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--fgt-ink);
+
+    &:hover, &:focus { border-color: var(--fgt-line); background: var(--fgt-bg-sunken); }
+  }
+
+  &--check {
+    grid-template-columns: auto 1fr;
+
+    > span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 0.75rem; }
+  }
+
+  &--image { align-items: start; }
+}
+
+.fgt-field__image {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: var(--fgt-border);
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+  cursor: pointer;
+}
+
+// Combat Process step 1.5 -- a swing that did not happen (Blind's Miss) --
+// and a rung the Process skipped with its reason (a Luck Check removed, #252).
+// Muted rather than alarming: it is an outcome, not an error.
+.fgt-card__missed, .fgt-card__note {
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--fgt-radius);
+  background: var(--fgt-bg-sunken);
+  color: var(--fgt-ink-dim);
+  font-style: italic;
+
+  .fgt-card__miss-roll { font-variant-numeric: tabular-nums; font-style: normal; }
+}

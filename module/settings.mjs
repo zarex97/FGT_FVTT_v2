@@ -17,6 +17,7 @@ import { registerFactionMenu } from "./apps/faction-config.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
 import { WarRulesApp } from "./apps/war-rules.mjs";
 import { WAR_RULES } from "./domain/war-rules.mjs";
+import { UI_STYLES } from "./apps/ui-style.mjs";
 
 /** A setting's type, from a War Rule's. */
 const SETTING_TYPE = { number: Number, boolean: Boolean, string: String, roster: Array };
@@ -54,6 +55,15 @@ export function registerSettings() {
   // give every War a field nothing reads.
   s("activeSkillBudget", { name: "FGT.Settings.ActiveSkillBudget", type: String, default: "move" });
   s("devMode", { name: "FGT.Settings.DevMode", type: Boolean, default: false });
+
+  // The interface's look, for the whole table (#364): Grail War Nocturne, or
+  // the Classic look from before it. Read once per load by `apps/ui-style.mjs`,
+  // which swaps the stylesheet at `init`; hence the reload.
+  s("uiStyle", {
+    name: "FGT.Settings.UiStyle", hint: "FGT.Settings.UiStyleHint",
+    type: String, default: UI_STYLES[0], requiresReload: true,
+    choices: Object.fromEntries(UI_STYLES.map((k) => [k, `FGT.Settings.UiStyleChoice.${k}`])),
+  });
 
   // The roster a NEW War starts from; each War holds its own
   // (`MatchData.factions`). Edited through the menu below rather than a text

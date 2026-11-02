@@ -26,6 +26,7 @@ import { warRule, currentWar } from "../../engine/war.mjs";
 import { processOpenIn } from "../../engine/combat-process.mjs";
 import { veiledSpec } from "../../rules/concealment.mjs";
 import { paintCircles } from "../ornament.mjs";
+import { isClassicUI } from "../ui-style.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -623,12 +624,14 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /**
    * Night on every theme (#364): the plates are drawn for night, so core's own
    * inputs and selects inside are told the same, whatever the sheet's own
-   * theme setting reads.
+   * theme setting reads. The Classic look (#364) keeps the sheet's own theme,
+   * as #367 did.
    *
    * @inheritdoc
    */
   _initializeApplicationOptions(options) {
     const out = super._initializeApplicationOptions(options);
+    if (isClassicUI()) return out;
     out.classes = [...out.classes.filter((c) => !/^theme-/.test(c)), "themed", "theme-dark"];
     return out;
   }
@@ -649,7 +652,8 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   changeTab(tab, group, options) {
     super.changeTab(tab, group, options);
     const pane = this.element?.querySelector(`.tab[data-group="${group}"][data-tab="${tab}"]`);
-    if (!pane || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Nocturne's motion; the Classic look changes tab still.
+    if (!pane || isClassicUI() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     pane.classList.remove("fgt-entering");
     void pane.offsetWidth;
     pane.classList.add("fgt-entering");
