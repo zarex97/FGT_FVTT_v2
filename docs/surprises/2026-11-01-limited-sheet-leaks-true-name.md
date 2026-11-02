@@ -3,7 +3,8 @@ id: 2026-11-01-limited-sheet-leaks-true-name
 found: live press
 kind: two-readers-one-rule
 status: open
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A player who may open a concealed Servant's actor sheet but does not own it would see its public identity everywhere on that sheet. The new portrait card reads "Caster" for Medea and shows the class image.
 **Actual:** On 2026-11-01, Player1 was given Limited on Medea for the press and then had it removed. The card read "Caster", but the window title read *"Servant: Medea"*. Four ability descriptions also printed the name, for example *"Restores Medea's Health by 30%"*, and so did the biography.
