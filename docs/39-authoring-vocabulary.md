@@ -64,6 +64,8 @@ is closed (`module/rules/count.mjs#COUNT_KINDS`, #319):
 | `tally` | a Mode's Tally | — |
 | `healthMissing` | the whole percent of its Max Health the Unit is missing (Atk Up (Redbranch), #339) | — |
 | `antiAttributeEffects` | the Effects on the Unit that raise damage dealt to, or cut damage taken from, Units of an Attribute, each once; a Passive's modifiers carry no effect instance and are left out (NP Regen (Balmung), #341) | `attribute` |
+| `classes` | the distinct Servant Classes among the Units a `board` Count would keep, a two-Class Servant adding both; `except` leaves Classes out (MoonCancer, #372 readings 2, 3). A passive sized by it, or by `board`, is sized once the board is built (`rules/snapshot.mjs#annotateBoardCounts`) | — |
+| `effects` | the Effect instances on the DU (`side: target`, the default) or the asker (`side: self`), filtered by `polarity` and `volatility`, one per instance (the Mental Debuffs Nirmānnarati counts, #372 readings 14, 18–20) | — |
 
 The value is `base + per × floor(count / each)`, clamped to `max`; `zeroPaysNothing` pays nothing at all at zero, its
 `base` included. On an Effect Entry, `countedOnly` lands nothing at all when the magnitude counts to 0, and says so on

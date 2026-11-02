@@ -72,6 +72,8 @@ describe("the reference sheets", () => {
     expect(disagree.sort()).toEqual([
       "asterios: sheet 1500, END A++ → 1700",
       "castor: sheet 1500, END A++ → 1700",
+      // Sessyoin Kiara (Summer) at A+ (#372).
+      "kiara-summer: sheet 1500, END A+ → 1600",
       "penthesilea: sheet 1250, END B+ → 1350",
       "pollux: sheet 1500, END A++ → 1700",
       // The first that disagrees upward, ruled the table's too (#328 ruling 18).

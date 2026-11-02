@@ -30,6 +30,7 @@ import { test as testPredicate } from "../predicate.mjs";
 import { revisionOf } from "../../domain/revisions.mjs";
 import { holdsFamily } from "../effects/families.mjs";
 import { EffectRegistry } from "../registry.mjs";
+import { countOf, countedValue } from "../count.mjs";
 
 /** Block's base percentage. A constant, not a dice entry (Ch. 41 Q1). */
 export const BLOCK_BASE_PERCENT = 25;
@@ -543,6 +544,25 @@ function stage2Crit(s) {
 }
 
 /**
+ * A conditional multiplier's factor: a number, or one sized by a Count read
+ * against this Process's DU (`rules/count.mjs`). Nirmānnarati's *"increased by
+ * 100% plus 20% for every Mental Debuff (max. 10 times) on the DU"* is
+ * `{base: 2, per: 0.2, max: 4, zeroPaysNothing, count: {of: effects, …}}`, a
+ * factor of ×(2 + 0.2n) that does not apply at all with no Mental Debuff (#372
+ * reading 18).
+ *
+ * @param {{factor: number|object}} cm
+ * @param {PipelineState} s
+ * @returns {number|null} null when a counted factor counts nothing
+ */
+function conditionalFactor(cm, s) {
+  if (typeof cm.factor === "number") return cm.factor;
+  const ctx = { target: s.ctx.defender ?? null, self: s.ctx.attacker ?? null };
+  if (cm.factor?.zeroPaysNothing && countOf(cm.factor.count, ctx) === 0) return null;
+  return countedValue(cm.factor, ctx);
+}
+
+/**
  * Stage 3 — the ability's own multiplier, its conditional multipliers, and its
  * flat bonus.
  *
@@ -562,8 +582,11 @@ function stage3AbilityMultiplier(s) {
   let conditional = 1;
   for (const cm of s.ctx.conditionalMultipliers ?? []) {
     if (!testPredicate(cm.predicate, s.predicateCtx)) continue;
-    conditional *= cm.factor;
-    s.contribute("conditionalMultiplier", cm.factor, cm.source ?? "ability clause", "attacker");
+    const factor = conditionalFactor(cm, s);
+    if (factor === null) continue;
+    conditional *= factor;
+    const label = typeof cm.factor === "number" ? (cm.source ?? "ability clause") : `${cm.source ?? "ability clause"} ×${factor}`;
+    s.contribute("conditionalMultiplier", factor, label, "attacker");
   }
   // "N% extra damage" held as a BUFF rather than stated by the Attack: the
   // Shisarot Form's extension, *"Habetrot's next Attack deals 100% extra

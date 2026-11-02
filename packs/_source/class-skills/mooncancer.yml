@@ -1,0 +1,64 @@
+# The Moon Cancer Class passive, printed word for word on nine sheets in
+# char_orig_sheets/by-class/Mooncancer (Sessyoin Kiara (Summer) first, #372):
+#
+# "(Passive) All damage dealt including NP is increased by 5% for every
+#  different enemy Servant Class on the field other than MoonCancer. All damage
+#  taken including NP is reduced by 5% for every different enemy Servant Class on
+#  the field other than MoonCancer. If this Servant was summoned in their Region,
+#  the magnitudes of this Skill are doubled."
+#
+# One template every Moon Cancer references (#372 reading 4), as Alter Ego's.
+#
+# THE COUNT reads the board: the distinct Classes of the enemy Servants standing
+# on it, a two-Class Servant adding both, Moon Cancer left out (readings 2, 3).
+# An actor-only collection has no board, so the figure per Class travels on the
+# modifier and `rules/snapshot.mjs#annotateBoardCounts` sizes it.
+#
+# THE DOUBLING: "summoned in their Region" is the War fought in a Region she is
+# from (`inOwnRegion`, reading 1). Two modifiers per half, 5 or 10 a Class.
+# In the damage pipeline `self:` is the ATTACKER and `target:` the defender, so
+# the dealt half asks `self:` and the taken half `target:`, each about her.
+#
+# Both halves stack as an Atk Up and a Def Up do (reading 22).
+schema: 1
+id: class-mooncancer
+name: "MoonCancer"
+source: class
+slug: moonCancer
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  (Passive) All damage dealt including NP is increased by 5% for every different enemy Servant Class on the field
+  other than MoonCancer. All damage taken including NP is reduced by 5% for every different enemy Servant Class on
+  the field other than MoonCancer. If this Servant was summoned in their Region, the magnitudes of this Skill are
+  doubled.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 5
+    npValue: 5
+    count: { of: classes, relations: [enemy], requires: ["self:type:servant"], standing: true, except: [moonCancer] }
+    predicate: ["not:self:inOwnRegion"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 10
+    npValue: 10
+    count: { of: classes, relations: [enemy], requires: ["self:type:servant"], standing: true, except: [moonCancer] }
+    predicate: ["self:inOwnRegion"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 5
+    npValue: 5
+    count: { of: classes, relations: [enemy], requires: ["self:type:servant"], standing: true, except: [moonCancer] }
+    predicate: ["not:target:inOwnRegion"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 10
+    npValue: 10
+    count: { of: classes, relations: [enemy], requires: ["self:type:servant"], standing: true, except: [moonCancer] }
+    predicate: ["target:inOwnRegion"]

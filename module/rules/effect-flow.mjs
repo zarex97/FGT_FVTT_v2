@@ -451,7 +451,7 @@ export const ENTRY_KEYS = Object.freeze({
   chance: { type: "number", means: "The stated chance, in place of the definition's." },
   // True Name Discernment's NP DmDwn, *"for every NP the DU has, the chance ...
   // is increased by 20%"* (#351): `{count: {of}, per}`, read against the DU.
-  chanceBonus: { type: "json", means: "Raises the chance by `per` for each the Count finds on the target." },
+  chanceBonus: { type: "json", means: "Raises the chance by `per` for each the Count finds on the target; `countedOnly` rolls nothing when it finds none." },
   // God's Resolution: *"Ignores Stun Resist, Stun Immune, and any other effects
   // that specifically reduce the chance of being inflicted with Stun"* (#351).
   ignoresNamedDefences: { type: "boolean", means: "Passes every immunity and resistance that names this effect; general ones still apply." },

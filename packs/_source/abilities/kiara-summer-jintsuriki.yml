@@ -1,0 +1,33 @@
+# Sessyoin Kiara (Summer), char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# "Jintsūriki (Sumi) — Rank: B (B+) (A)". The brackets are bought with Mermaid
+# Tokens (`rules/tiers.mjs`, #372): `tiers[n]` is n Tokens spent, and every
+# `"@tier.<key>"` below reads it. S.Crit Up is the aura its caster holds (#132).
+# "Supernatural Power (Ink)." is a label nothing reads.
+schema: 1
+id: kiara-summer-jintsuriki
+name: "Jintsūriki (Sumi)"
+rank: B
+kind: skill
+slug: jintsuriki
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Supernatural Power (Ink). Used during your Turn. Reduces NP Cooldown by 1◈ Turns (1◈+⅓◈ Turns)
+  (1◈+⅔◈ Turns); then applies @effect[sCritUp]{S.Crit Up} to all allied Units within a 2 panel area of Sessyoin
+  for ⅓◈ Turns, Crit Chance is increased by 20% (25%) (30%). Cooldown: 4◈ Turns (4◈-⅓◈ Turns) (4◈-⅔◈ Turns).
+  The bracketed figures, and its Rank (B+) (A), are its own with one and two Mermaid Tokens spent.
+tiers:
+  - { refs: { npCut: "1◈", crit: 20 } }
+  - { rank: "B+", cooldown: "4◈-⅓◈", refs: { npCut: "1◈+⅓◈", crit: 25 } }
+  - { rank: "A", cooldown: "4◈-⅔◈", refs: { npCut: "1◈+⅔◈", crit: 30 } }
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "@tier.npCut", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sCritUp, magnitude: "@tier.crit", duration: "⅓◈" }

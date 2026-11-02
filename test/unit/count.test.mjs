@@ -21,6 +21,9 @@ describe("the closed list of kinds (Q19)", () => {
       // Great Decisive Battle's Atk Up per 5% of Crit Chance above 50, and its
       // NP DmUp per 300 Max Health (#359 rulings 19, 20).
       "critChance", "maxHealth",
+      // MoonCancer's distinct enemy Classes, and the Mental Debuffs on a DU
+      // Nirmānnarati counts (#372).
+      "classes", "effects",
     ]);
     expect(Object.isFrozen(COUNT_KINDS)).toBe(true);
   });

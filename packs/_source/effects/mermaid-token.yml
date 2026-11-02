@@ -1,0 +1,26 @@
+# Sessyoin Kiara (Summer)'s Mermaid's Flesh, char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# "Sessyoin gains one Mermaid Token for 1◈+⅓◈ Turns. When Sessyoin uses a Skill
+#  other than Mermaid's Flesh while she has any Mermaid Tokens, they are removed
+#  from her and the effects of the Skill are boosted; only a maximum of two
+#  Mermaid Tokens can be consumed per Skill usage in this way. Each Mermaid Token
+#  counts as a separate buff."
+#
+# One instance per Token (`magnitudeStacks`), each with its own clock, so a
+# removal takes one and a count counts each (#372 reading 12). The spend is the
+# Token's own, not Mermaid's Nourishment's: a Token outliving the buff still
+# boosts (reading 6). `spentForTier` is read by `rules/tiers.mjs#tierSpend`;
+# what each Skill's tiers are is the Skill's (`tiers`).
+schema: 1
+id: mermaidToken
+name: "Mermaid Token"
+description: |
+  Sessyoin's next Skill other than Mermaid's Flesh spends her Mermaid Tokens, at most two, and is boosted by one
+  bracket for each. Each Mermaid Token counts as a separate buff.
+polarity: buff
+volatility: nonVolatile
+valence: neither
+stacking: magnitudeStacks
+baseChance: 100
+spentForTier: { max: 2, kinds: [skill], except: [kiara-summer-mermaids-flesh] }
+rules: []

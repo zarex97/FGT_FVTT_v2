@@ -464,3 +464,22 @@ that effect was `target: self` and paid at declaration; and it asked before read
 Chibirā Sanu's Pretender pick was asked twice per Process, and asked when the NP only lengthened the Form. A branch is
 a rider only when it puts an effect on somebody other than the caster, and a choice its predicate holds back is not
 asked.
+
+### Sessyoin Kiara (Summer)'s pieces (#372)
+
+**Tiers bought with tokens** (`rules/tiers.mjs`). Her Skills print their boosted figures in brackets, *"Rank: B (B+)
+(A)"*, *"20% (25%) (30%)"*, *"Cooldown: 4◈ Turns (4◈-⅓◈ Turns) (4◈-⅔◈ Turns)"*, the first for one Mermaid Token
+spent, the second for two. A Skill states `tiers: [base, one, two]`, each `{rank?, cooldown?, refs}`, and its phases
+write `"@tier.<key>"` where a figure changes. The token says it is spent: an Effect definition's `spentForTier`,
+`{max, kinds, except}` (`mermaidToken`: at most 2, by a `skill`, never by Mermaid's Flesh). `useSkill` spends after
+the gate and the targets, before any phase (`spendTier`, readings 7 and 9): the tokens nearest their end first, `max`
+at most, the rest kept; an Active Skill with no `tiers` spends them and boosts nothing (reading 8). The use reads the
+Skill through `tierView`, a read-through view of the document with its `rank`, `cooldown` and resolved phases, so the
+card's Rank, the Cooldown the use sets and every figure are the tier's (readings 10, 11); the card says *"2 Mermaid
+Token spent: Clam Palace at Rank A++"*. The build refuses a `@tier.<key>` some tier does not give, and checks each
+tier's phases, Rank and Cooldown once resolved (`tools/lib/content.mjs#tiersAreComplete`).
+
+**The Mermaid Tokens themselves** are buffs, one instance each (`magnitudeStacks`): a removal takes one, a count counts
+each (reading 12). `mermaidsNourishment` makes them on a cadence counted from its landing Turn (`OnEvent` with
+`every: "⅓◈"`, Ch. 10): at the end of that Turn and every ⅓◈ after, never on the Turn it ends; three Tokens at 3
+Turns a Round, four at 8 (reading 5). A Token outliving the buff still spends (reading 6).
