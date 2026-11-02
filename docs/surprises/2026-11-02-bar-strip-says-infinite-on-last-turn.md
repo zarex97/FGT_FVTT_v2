@@ -8,4 +8,4 @@ reviewed: false
 **Expected:** The action bar's effect strip gives each effect the time it has left, and *"∞"* only to an effect with no clock (#364 Nocturne, `barEffects`).
 **Actual:** Pressed as Player1 with six Mermaid Tokens on Kiara (#372): the strip read *"Mermaid Token · ∞"* for the one Token whose clock ran out that Turn (expiry 8 at tick 8), beside *"⅓◈"* and *"⅔◈"* for the others.
 **Cause:** `module/apps/hud/action-bar.mjs:92 @ 83af213a` — `turns ? ticksLabel(...) : "∞"`. `remainingTurns` answers 0 for a clock ending this Turn and `null` for none, and the truthiness test sent both to the no-clock branch.
-**Fix:** `module/apps/hud/action-bar.mjs:94 @ uncommitted` — `null` is ∞, 0 is *"ends this Turn"* (`FGT.HUD.EndsThisTurn`). Read live after the fix: *"Mermaid Token · ends this Turn"*.
+**Fix:** `module/apps/hud/action-bar.mjs:94 @ d1077f8a` — `null` is ∞, 0 is *"ends this Turn"* (`FGT.HUD.EndsThisTurn`). Read live after the fix: *"Mermaid Token · ends this Turn"*.
