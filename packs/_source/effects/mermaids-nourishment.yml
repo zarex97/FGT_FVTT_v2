@@ -1,0 +1,28 @@
+# Sessyoin Kiara (Summer)'s Mermaid's Flesh, char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# "Applies the 'Mermaid's Nourishment' buff for 1◈ Turns. Has the following
+#  effects- At the end of the Turn this buff was applied, and at the end of the
+#  Turn after every ⅓◈ Turns, Sessyoin gains one Mermaid Token for 1◈+⅓◈ Turns."
+#
+# Every Turn's end, any side's (`anyTurnEnd`, Kingprotea's Endless
+# Proliferation), on the cadence `every: "⅓◈"` counted from the Turn it landed,
+# which fires first: three Tokens at 3 Turns a Round, four at 8, three at 15
+# (#372 reading 5). An effect's handler does not fire on the Turn it ends.
+schema: 1
+id: mermaidsNourishment
+name: "Mermaid's Nourishment"
+description: |
+  At the end of the Turn this buff was applied, and at the end of the Turn after every ⅓◈ Turns, Sessyoin gains
+  one @effect[mermaidToken]{Mermaid Token} for 1◈+⅓◈ Turns.
+polarity: buff
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    every: "⅓◈"
+    then:
+      - { key: ApplyEffect, effect: { id: mermaidToken }, duration: "1◈+⅓◈" }

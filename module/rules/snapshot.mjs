@@ -14,7 +14,7 @@
  * the effect engine bumps.
  */
 
-import { stacksHeld } from "./count.mjs";
+import { stacksHeld, countOf, countedValue } from "./count.mjs";
 import { tallyHandler } from "./modes.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
@@ -1122,6 +1122,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // Ch. 08 requires that one to be synchronous and current.
   board.auraIndex = buildAuraIndex(board);
   annotateAuras(units, board, board.auraIndex);
+  // A passive sized by the board (MoonCancer's distinct enemy Classes, #372):
+  // collected with no board, it is sized here, once the board says who stands.
+  annotateBoardCounts(units, board);
 
   return board;
 }
@@ -1288,7 +1291,37 @@ function annotatePlatforms(units, board) {
 function annotateRegionBonus(units, board) {
   const warRegion = board.warRegion ?? null;
   if (!warRegion) return;
-  for (const u of units) applyRegionBonus(u, warRegion);
+  for (const u of units) {
+    applyRegionBonus(u, warRegion);
+    // *"If this Servant was summoned in their Region"* (MoonCancer, #372
+    // reading 1): the War is fought in a Region the Unit is from. Read as
+    // `self:inOwnRegion` / `target:inOwnRegion`.
+    if ((u.region ?? []).includes(warRegion)) u.inOwnRegion = true;
+  }
+}
+
+/**
+ * Size every modifier a board Count scales (`rules/elements.mjs`, `boardCount`):
+ * `per × count`, its NP figure the same, the count read now that the board has
+ * every Unit, its relations and its defeated. MoonCancer's *"5% for every
+ * different enemy Servant Class on the field"* (#372).
+ *
+ * @param {object[]} units
+ * @param {object} board
+ * @returns {void}
+ */
+export function annotateBoardCounts(units, board) {
+  for (const u of units) {
+    for (const m of u.modifiers ?? []) {
+      const spec = m?.boardCount;
+      if (!spec) continue;
+      const ctx = { board, self: u };
+      const size = (per) => countedValue({ ...spec.scale, per }, ctx);
+      m.value = size(spec.per);
+      if (spec.npPer !== undefined && spec.npPer !== null) m.npValue = size(spec.npPer);
+      m.counted = countOf(spec.scale.count, ctx);
+    }
+  }
 }
 
 /**
@@ -1656,6 +1689,9 @@ function effectInstances(actor) {
       unremovable: Boolean(e.system?.unremovable ?? def?.unremovable),
       // What it LANDED as (`rules/effect-instance.mjs`, #315).
       polarity: polarityOf(e.system, def),
+      // What a Count of effects filters on: a Mental Debuff is one of
+      // `volatility: mental` (#372 reading 20).
+      volatility: def?.volatility ?? null,
       magnitude: e.system?.magnitude ?? 0,
       // When it landed and how far it has decayed, for `magnitudeOf` (#296).
       appliedTick: e.system?.appliedTick ?? null,

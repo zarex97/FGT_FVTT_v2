@@ -43,6 +43,7 @@ import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 import { CUT_KINDS } from "../../module/rules/elements.mjs";
 import { MODIFIABLE_PATHS } from "../../module/rules/derived.mjs";
 import { FAILURE_THEN, FAILURE_CLASSES } from "../../module/rules/use-failure.mjs";
+import { TIER_REF, tierRefsIn, resolveTierRefs } from "../../module/rules/tiers.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -1576,10 +1577,16 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     }
   }
 
+  // A Skill's tiers (#372): every tier gives every `@tier.<key>` its phases
+  // read, and each tier's phases, Rank and Cooldown parse once resolved.
+  tiersAreComplete(doc, path, problems);
+
   // Durations and cooldowns
   for (const [field, value] of durationFields(doc)) {
     if (value === null || value === undefined) continue;
     if (typeof value === "string" && value.startsWith("@") && isTemplate(doc)) continue;
+    // A tier's ref, resolved and checked tier by tier above.
+    if (typeof value === "string" && value.startsWith(TIER_REF)) continue;
     try {
       parseTick(value);
     } catch (err) {
@@ -2155,6 +2162,34 @@ function actionTables(el) {
 
 
 /** @param {object} doc @returns {Array<[string, unknown]>} */
+function tiersAreComplete(doc, path, problems) {
+  const tiers = doc.tiers ?? [];
+  const used = tierRefsIn(doc.phases ?? []);
+  if (tiers.length === 0) {
+    if (used.length > 0) problems.push(`${path}: phases read ${used.map((k) => TIER_REF + k).join(", ")} and the ability states no tiers`);
+    return;
+  }
+  tiers.forEach((tier, i) => {
+    const refs = { ...(tiers[0]?.refs ?? {}), ...(tier?.refs ?? {}) };
+    for (const key of used) {
+      if (!(key in refs)) problems.push(`${path}: tiers[${i}] gives no "${key}" (${TIER_REF}${key})`);
+    }
+    if (tier?.rank !== undefined) {
+      try { Rank.parseOrNull(tier.rank); } catch { problems.push(`${path}: tiers[${i}].rank is not a valid rank ("${tier.rank}")`); }
+    }
+    if (tier?.cooldown !== undefined) {
+      try { parseTick(tier.cooldown); } catch (err) { problems.push(`${path}: tiers[${i}].cooldown is not a valid duration ("${tier.cooldown}") — ${err.message}`); }
+    }
+    if (used.some((k) => !(k in refs))) return;
+    for (const [field, value] of durationFields({ phases: resolveTierRefs(doc.phases ?? [], refs) })) {
+      if (value === null || value === undefined) continue;
+      try { parseTick(value); } catch (err) {
+        problems.push(`${path}: tiers[${i}] makes ${field} an invalid duration ("${value}") — ${err.message}`);
+      }
+    }
+  });
+}
+
 function rankFields(doc) {
   /** @type {Array<[string, unknown]>} */
   const out = [];

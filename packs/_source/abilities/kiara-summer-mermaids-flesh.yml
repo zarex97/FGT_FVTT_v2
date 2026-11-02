@@ -1,0 +1,42 @@
+# Sessyoin Kiara (Summer), char_orig_sheets/by-class/Mooncancer/Sessyoin Kiara (Summer).md
+#
+# Five effects in the sheet's order: Guts, the cleanse, Regen, NP DmUp, and the
+# buff that makes Mermaid Tokens (`mermaidsNourishment`). The Tokens it makes are
+# spent by her other Skills (`mermaidToken`'s `spentForTier`), never by this one.
+schema: 1
+id: kiara-summer-mermaids-flesh
+name: "Mermaid's Flesh"
+rank: EX
+kind: skill
+slug: mermaidsFlesh
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[guts]{Guts} for 1◈+⅔◈ Turns, when Sessyoin is defeated she revives with 25% of her Max Health.
+  2. Removes all debuffs from herself.
+  3. Applies @effect[regen]{Regen} for 1◈ Turns, at the end of her Turn, at the end of any Turn she Acts, and at the
+     end of the Round, her Health is restored by 15% of its maximum value.
+  4. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP damage dealt is increased by 20%.
+  5. Applies the '@effect[mermaidsNourishment]{Mermaid's Nourishment}' buff for 1◈ Turns. At the end of the Turn
+     this buff was applied, and at the end of the Turn after every ⅓◈ Turns, Sessyoin gains one
+     @effect[mermaidToken]{Mermaid Token} for 1◈+⅓◈ Turns. When Sessyoin uses a Skill other than Mermaid's Flesh
+     while she has any Mermaid Tokens, they are removed from her and the effects of the Skill are boosted; only a
+     maximum of two Mermaid Tokens can be consumed per Skill usage in this way. Each Mermaid Token counts as a
+     separate buff.
+  Cooldown: 4◈ Turns.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: guts, duration: "1◈+⅔◈", magnitude: 25 }
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: regen, duration: "1◈", magnitude: 15 }
+      - { id: npDmUp, duration: "1◈", magnitude: 20 }
+      - { id: mermaidsNourishment, duration: "1◈" }
