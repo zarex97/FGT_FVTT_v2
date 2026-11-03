@@ -23,3 +23,6 @@ packs/_staged/
 .impeccable/config.local.json
 .impeccable/live/
 .impeccable/hook.cache.json
+
+# Linked Summon research: wiki API cache
+tools/relations/.cache/
