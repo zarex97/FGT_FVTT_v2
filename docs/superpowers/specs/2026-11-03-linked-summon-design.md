@@ -50,6 +50,23 @@ opposing Servant, in the normal draw and in the linked draw alike.
 - A relationship is created only by a **TYPE-MOON wiki `Relationships` entry** or **a sheet that names
   the other Servant**. A line on the FGO wiki's `Sub:<Name>/Character Mentions` is a lead for review,
   never an entry: mentions are inbound and noisy (Jacques de Molay mentions Jason over a golden fleece).
+- **An entry is a line, not a tie** (ruled 2026-11-03, after mining showed most entries are FGO My Room
+  chatter; Surprise `2026-11-03-wiki-entry-is-not-a-tie`). Each entry is read and classed by context:
+
+  | Context | Proposed as |
+  |---|---|
+  | Knew each other in life or legend | `knew`, or `bond` for partners |
+  | Met in a Holy Grail War story | `knew`, or `bond` for a Master and their main Servant |
+  | Met in an FGO main-story chapter (Singularity, Lostbelt) | `cycle` |
+  | Only Chaldea My Room or event chatter | **no entry** |
+  | A denial, or not about a tie | no entry |
+
+  A reviewer may override any preset's numbers to show a leaning (a story rivalry at 10/60).
+- **Variants of one figure** (Arturia, Arturia Alter, Arturia Lily, a summer form) share the figure's
+  relationships and are **not** tied to each other. Proposals are made per wiki page (the figure) and
+  expand to every roster sheet of that figure when the table is built.
+- Each Class batch lists **every** proposed pair with its preset and a one-line reason, the uncertain
+  ones flagged at the top for the user to rule.
 - Every entry records its **source URL, page revision id and a short quote**: a copied source is a
   snapshot to compare against (Lesson *Sources stay in the repo*).
 - Claude mines the pages and **proposes** a preset per pair, with its quote; the user **approves in

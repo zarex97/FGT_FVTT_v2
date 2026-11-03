@@ -27,3 +27,6 @@ packs/_staged/
 # Linked Summon research: wiki API cache
 tools/relations/.cache/
 __pycache__/
+tools/relations/work/
+tools/relations/mined.json
+tools/relations/resolved.json

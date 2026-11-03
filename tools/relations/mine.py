@@ -12,6 +12,7 @@ import wiki
 from resolve import query
 
 HERE = os.path.dirname(__file__)
+GROUPISH = re.compile(r"Servants|Emperors|Knights|Round Table|members|Argonauts|Classroom|Shinsengumi|Generals", re.I)
 LINK = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]")
 
 
@@ -41,8 +42,16 @@ def entries(text):
             sub = clean(h.group(2))
             continue
         if line.startswith(";"):
+            # an entry with no body of its own, right after a group heading's
+            # entries, belongs to that group ("[[Argonauts]] Servants" then
+            # ";[[Jason]]", ";[[Medea]]"...): it points back at the heading
+            prev = out[-1] if out else None
+            group = None
+            if prev is not None:
+                group = prev["group"] if not prev["body"] and prev.get("group") is not None \
+                    else (len(out) - 1 if prev["body"] else None)
             cur = {"head": line[1:], "targets": [m.group(1).strip() for m in LINK.finditer(line)],
-                   "sub": sub, "body": []}
+                   "sub": sub, "body": [], "group": group}
             out.append(cur)
         elif line.startswith(":") and cur:
             cur["body"].append(line.lstrip(":"))
@@ -65,7 +74,12 @@ def main():
         level = rel[0]["toclevel"]
         # the section and its subsections share the first index's text
         text = wikitext(page, rel[0]["index"])
-        for e in entries(text):
+        es = entries(text)
+        for e in es:
+            g = es[e["group"]] if e["group"] is not None else None
+            e["groupHead"] = clean(g["head"]) if g else None
+            e["groupBody"] = " ".join(g["body"]) if g else ""
+            e["groupTargets"] = g["targets"] if g else []
             raw.append({"page": page, "revid": revid, **e})
     targets = sorted({t for e in raw for t in e["targets"]})
     canon = {}
@@ -97,10 +111,16 @@ def main():
             p, via = land(t)
             if p and p != e["page"]:
                 hits.setdefault(p, via)
+        text = clean(" ".join(e["body"]))
+        group = None
+        if not text and e["groupHead"] and GROUPISH.search(e["groupHead"]) \
+                and not any(land(t)[0] for t in e["groupTargets"]):
+            # the heading names no roster figure: a group, and its text is the evidence
+            group, text = e["groupHead"], clean(e["groupBody"])
         for t, via in sorted(hits.items()):
-            out.append({
+            out.append({"group": group,
                 "from": e["page"], "to": t, "via": via, "sub": e["sub"],
-                "text": clean(" ".join(e["body"]))[:600],
+                "text": text[:600],
                 "revid": e["revid"],
                 "url": "https://typemoon.fandom.com/wiki/" + urllib.parse.quote(e["page"].replace(" ", "_"))
                        + "?oldid=" + str(e["revid"]),
