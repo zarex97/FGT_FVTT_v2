@@ -20,6 +20,7 @@ _None._
 
 - Barghest (Lostbelt) – Mash Kyrielight: `cycle` 20/10, see [Archer](Archer.md)
 - Goetia – Mash Kyrielight: `cycle` 20/10, see [Beast](Beast.md)
+- Habetrot – Mash Kyrielight: `cycle` 20/10, see [Pretender](Pretender.md)
 - Lancelot (Saber) – Mash Kyrielight: `knew` 40/40, see [Saber](Saber.md)
 - Lilith – Mash Kyrielight: `cycle` 5/40 ✱, see [Berserker](Berserker.md)
 

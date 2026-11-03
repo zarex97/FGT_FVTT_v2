@@ -12,6 +12,8 @@ here is in the game: approved rows move to `packs/_source/relations.yml` with #3
    3051 entries naming another roster figure, 2247 pairs.
 3. Each pair was read and classed (`CLASSIFY.md`): legend, Grail War, story chapter, Chaldea chatter, none.
    `validate.py` checked every row against its own pair and quote.
+   A second pass (`RULE.md`) re-read the 497 flagged pairs under the user's four rulings of 2026-11-03
+   (vessels, lineage, event plots, alternate selves); 459 resolved.
 4. `named.py` searched every sheet for every other figure's name; the hits were read by hand.
 
 ## Files
@@ -28,8 +30,8 @@ A pair sits in the Class file of its alphabetically first figure and is listed a
 
 | | Pairs |
 |---|---|
-| Proposed, unflagged | 294 |
-| To rule (flagged) | 497 |
-| Set aside (Chaldea chatter, denials, empty) | 1456 |
+| Proposed, unflagged | 573 |
+| To rule (flagged) | 38 |
+| Set aside (Chaldea chatter, denials, empty, two forms of one person) | 1636 |
 | Named on a sheet | 72 (21 to rule) |
 | Groups | 11 |
