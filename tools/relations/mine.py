@@ -71,13 +71,35 @@ def main():
     canon = {}
     for i in range(0, len(targets), 50):
         canon.update(query(targets[i:i + 50]))
+    def strip(t):
+        return re.sub(r"\s*\([^)]*\)\s*$", "", t or "").strip()
+
+    by_base = defaultdict(set)
+    for p in by_page:
+        by_base[strip(p)].add(p)
+
+    def land(t):
+        """A link's roster page: exact, else its base form, else the one roster form of that base."""
+        c = canon.get(t) or t
+        if c in by_page:
+            return c, "exact"
+        if strip(c) in by_page:
+            return strip(c), "base"
+        forms = by_base.get(c, set()) | (by_base.get(strip(c), set()) if strip(c) != c else set())
+        if len(forms) == 1:
+            return next(iter(forms)), "form"
+        return None, None
+
     out = []
     for e in raw:
-        hits = {canon.get(t) for t in e["targets"]} & set(by_page)
-        hits.discard(e["page"])
-        for t in sorted(hits):
+        hits = {}
+        for t in e["targets"]:
+            p, via = land(t)
+            if p and p != e["page"]:
+                hits.setdefault(p, via)
+        for t, via in sorted(hits.items()):
             out.append({
-                "from": e["page"], "to": t, "sub": e["sub"],
+                "from": e["page"], "to": t, "via": via, "sub": e["sub"],
                 "text": clean(" ".join(e["body"]))[:600],
                 "revid": e["revid"],
                 "url": "https://typemoon.fandom.com/wiki/" + urllib.parse.quote(e["page"].replace(" ", "_"))
