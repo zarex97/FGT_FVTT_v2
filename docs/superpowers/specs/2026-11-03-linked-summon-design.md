@@ -62,6 +62,16 @@ opposing Servant, in the normal draw and in the linked draw alike.
   | A denial, or not about a tie | no entry |
 
   A reviewer may override any preset's numbers to show a leaning (a story rivalry at 10/60).
+
+  Ruled 2026-11-03, after the first pass flagged 497 pairs:
+  - **A pseudo-Servant's vessel's ties count** as the Servant's: Zhuge Liang (Waver) – Iskandar is a bond,
+    Ishtar (Rin) – EMIYA counts, Rasputin (Kirei) – Angra Mainyu counts.
+  - **Ancestors, descendants and rival clans who never met** are `cycle` (Caesar – Nero); a clan feud may
+    lean enemy (Kagekiyo against the Genji, e.g. 10/40).
+  - **A tie an FGO event's plot makes** (SE.RA.PH, Heian-kyō, the Prison Tower, Servant Summer, the Saber
+    Wars) counts like a story chapter, `cycle`. A My Room line from an event is still chatter.
+  - **A Lostbelt or alternate self** carries the tie when it treats the other as the person it knew
+    (Lostbelt Morgan – Gawain); when it says the other is a different person, there is no tie.
 - **Variants of one figure** (Arturia, Arturia Alter, Arturia Lily, a summer form) share the figure's
   relationships and are **not** tied to each other. Proposals are made per wiki page (the figure) and
   expand to every roster sheet of that figure when the table is built.

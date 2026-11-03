@@ -11,7 +11,7 @@ norm = lambda s: " ".join((s or "").translate(QUOTES).split())
 bad = 0
 for out in sorted(glob.glob(os.path.join(HERE, "work", "*.out.json"))):
     name = os.path.basename(out)
-    if name == "named.out.json":
+    if name.startswith("named"):
         continue
     inp = json.load(open(out.replace(".out.json", ".json"), encoding="utf-8"))
     rows = json.load(open(out, encoding="utf-8"))

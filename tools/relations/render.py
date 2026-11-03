@@ -36,13 +36,20 @@ def main():
     inputs = {}
     for f in glob.glob(os.path.join(HERE, "work", "*.json")):
         n = os.path.basename(f)
-        if n.endswith(".out.json") or n.startswith("named"):
+        if n.endswith(".out.json") or n.startswith(("named", "flagged")):
             continue
         for r in json.load(open(f, encoding="utf-8")):
             inputs[(r["a"], r["b"])] = r
-    for f in sorted(g for g in glob.glob(os.path.join(HERE, "work", "*.out.json")) if not os.path.basename(g).startswith("named")):
+    # the second pass (RULE.md) re-decides flagged pairs; its call replaces the first pass's
+    second = {}
+    for f in glob.glob(os.path.join(HERE, "work", "flagged-*.out.json")):
+        for r in json.load(open(f, encoding="utf-8")):
+            second[(r["a"], r["b"])] = r
+    for f in sorted(g for g in glob.glob(os.path.join(HERE, "work", "*.out.json"))
+                    if not os.path.basename(g).startswith(("named", "flagged"))):
         cls = re.sub(r"-part\d+$", "", os.path.basename(f)[:-9])
         for r in json.load(open(f, encoding="utf-8")):
+            r = second.get((r["a"], r["b"]), r)
             src = inputs[(r["a"], r["b"])]
             r["aSheets"], r["bSheets"] = src["aSheets"], src["bSheets"]
             rows_by_cls[cls].append(r)
