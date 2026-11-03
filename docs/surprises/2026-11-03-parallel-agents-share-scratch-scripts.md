@@ -12,6 +12,6 @@ Berserker-part2 came back with rows #20 onward carrying quotes from another batc
 grateful to Thesseus for killing him"* on Charles-Henri Sanson | Napoleon).
 **Cause:** `tools/relations/CLASSIFY.md:1 @ 926266f` — the brief named each agent's input and output but
 not a private working directory; a shared scratch path is a shared working copy.
-**Fix:** `tools/relations/validate.py:1 @ uncommitted` — every classified row is checked against its own
+**Fix:** `tools/relations/validate.py:1 @ c14bbb9` — every classified row is checked against its own
 input pair, and its quote against that pair's own entries, so a wrong-batch read fails by name; the two
 batches are redone, and the brief now names a private directory per agent.
