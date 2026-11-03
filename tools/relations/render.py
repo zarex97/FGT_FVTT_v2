@@ -36,11 +36,11 @@ def main():
     inputs = {}
     for f in glob.glob(os.path.join(HERE, "work", "*.json")):
         n = os.path.basename(f)
-        if n.endswith(".out.json") or n == "named-leads.json":
+        if n.endswith(".out.json") or n.startswith("named"):
             continue
         for r in json.load(open(f, encoding="utf-8")):
             inputs[(r["a"], r["b"])] = r
-    for f in sorted(glob.glob(os.path.join(HERE, "work", "*.out.json"))):
+    for f in sorted(g for g in glob.glob(os.path.join(HERE, "work", "*.out.json")) if not os.path.basename(g).startswith("named")):
         cls = re.sub(r"-part\d+$", "", os.path.basename(f)[:-9])
         for r in json.load(open(f, encoding="utf-8")):
             src = inputs[(r["a"], r["b"])]
