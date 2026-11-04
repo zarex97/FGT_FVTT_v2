@@ -43,6 +43,32 @@ export function markSystemCard(html, { night = true } = {}) {
  * @param {boolean} viewer.ownsTarget the defender, or one a Skill landed on
  * @returns {"gm"|"both"|"attacker"|"defender"|"observer"}
  */
+/**
+ * Is this attack card closed to this reader?
+ *
+ * An area Attack that caught a Unit its attacker could not see (#381): an Evade or
+ * Heads leaves no trace on the attacker's side, for only the defender's side and
+ * the GM saw it. Its card opens when the damage lands, which is Tails, since that
+ * ends Presence Concealment.
+ *
+ * @param {object} args
+ * @param {object} args.state the Process
+ * @param {object|null} [args.result] the damage result
+ * @param {boolean} [args.isGM]
+ * @param {boolean} [args.seesDefender] the reader may observe the defender
+ * @returns {boolean}
+ */
+export function unseenCard({ state, result = null, isGM = false, seesDefender = false } = {}) {
+  if (!state?.unseenByAttacker || isGM || seesDefender) return false;
+  return !result || result.flags?.concealmentVeil?.heads === true;
+}
+
+/**
+ * The reader's role on a card.
+ *
+ * @param {{isGM?: boolean, ownsActor?: boolean, ownsTarget?: boolean}} [args]
+ * @returns {string}
+ */
 export function viewerRole({ isGM = false, ownsActor = false, ownsTarget = false } = {}) {
   if (isGM) return "gm";
   if (ownsActor && ownsTarget) return "both";

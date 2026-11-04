@@ -119,7 +119,8 @@ export function processOffers(state, board = currentBoard()) {
   // Heals, Full Heals and Cure Servants on one attack, six of them for
   // Servants nowhere near it. It is the Master–Servant relationship that
   // decides, never the player who happens to hold several.
-  const involved = new Set([state.attackerId, state.defenderId].filter(Boolean));
+  // Not the attacker's side on a Unit it cannot see: the offer would name it (#381).
+  const involved = new Set([state.unseenByAttacker ? null : state.attackerId, state.defenderId].filter(Boolean));
   const inThis = (master) => involved.has(master.id)
     || (board.units ?? []).some((u) => involved.has(u.id) && u.masterId === master.id);
   /** @type {object[]} */
