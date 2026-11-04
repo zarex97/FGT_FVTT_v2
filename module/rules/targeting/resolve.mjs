@@ -18,7 +18,7 @@ import { test as testPredicate } from "../predicate.mjs";
 import { rollOptionsFor } from "../options.mjs";
 import { compulsionNarrowing } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
-import { relationOf } from "../relations.mjs";
+import { relationOf, isFriendly } from "../relations.mjs";
 import { guardsInRange, guardsNear } from "../master-guard.mjs";
 import { crossLevelLegal, interiorOf } from "../platforms.mjs";
 import { NORMAL_ATTACK_DELIVERY } from "../delivery.mjs";
@@ -86,8 +86,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
    * @param {string} reason
    * @returns {false}
    */
+  // A Unit the attacker's side cannot see (#381): Presence Concealment on anybody
+  // but a friend. Asked of the caster, never the client, so a GM pressing for a
+  // side reads what that side reads.
+  const unseen = (u) => Boolean(u?.concealed) && !isFriendly(relationOf(caster, u, board));
   const drop = (u, reason) => {
-    excluded.push({ unitId: u.id, name: shownNameOf(u, board) || u.id, reason });
+    excluded.push({ unitId: u.id, name: shownNameOf(u, board) || u.id, reason, ...(unseen(u) ? { unseen: true } : {}) });
     return false;
   };
 
@@ -641,7 +645,11 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   }
 
   // 9. CHOOSER
-  const withMeta = survivors.map((u) => ({ ...toTargeted(u, caster, bands, !isChosen), ...(tiers.get(u.id) ?? {}) }));
+  const withMeta = survivors.map((u) => ({
+    ...toTargeted(u, caster, bands, !isChosen),
+    ...(tiers.get(u.id) ?? {}),
+    ...(unseen(u) ? { unseen: true } : {}),
+  }));
   let chosen = withMeta;
   let needsChoice = false;
   /** @type {TargetedUnit[]} */
@@ -686,9 +694,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // sending its id, which is what makes this safe to accept from a client.
   if (placement.chosenIds && chooser !== "chosen") {
     const wanted = new Set(placement.chosenIds);
-    const kept = chosen.filter((t) => wanted.has(t.unitId));
+    // A Unit the dialog never offered was never turned down (#381).
+    const kept = chosen.filter((t) => wanted.has(t.unitId) || t.unseen);
     for (const t of chosen) {
-      if (!wanted.has(t.unitId)) {
+      if (!wanted.has(t.unitId) && !t.unseen) {
         const unit = (board.units ?? []).find((u) => u.id === t.unitId);
         drop(unit ?? { id: t.unitId }, "not selected by the attacker");
       }
@@ -765,7 +774,25 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     }
   }
 
-  if (chosen.length === 0 && !needsChoice && errors.length === 0) {
+  // AN EMPTY AIM (#381). An area Attack may be aimed where its user sees no Unit,
+  // and it may still catch one they cannot see. A hidden Unit never changes the
+  // answer: only what the attacker's side sees decides it, or a refusal would
+  // tell them who stands there. A body counts as nothing. A visible Unit that
+  // cannot be hit still refuses, in its own words, however empty the rest is.
+  const areaAttack = (placement.reach ?? spec.reach) === "attack" && chooser === "all"
+    && (spec.shape?.kind ?? "unit") !== "unit" && !spec.pathTargets;
+  const seenTargets = chosen.filter((t) => !t.unseen);
+  let emptyAim = false;
+  if (areaAttack && seenTargets.length === 0 && !needsChoice && errors.length === 0) {
+    const inTheWay = excluded.filter((e) => !e.unseen && e.unitId !== caster.id && e.reason !== "defeated");
+    if (inTheWay.length === 0) {
+      emptyAim = true;
+      warnings.push("No Unit is seen in the selected area.");
+    } else {
+      errors.push(`No legal targets: ${inTheWay[0].name} is ${inTheWay[0].reason}`
+        + (inTheWay.length > 1 ? ` (and ${inTheWay.length - 1} more excluded).` : "."));
+    }
+  } else if (chosen.length === 0 && !needsChoice && errors.length === 0) {
     // A warning for zone placement, an error for an attack: an ability whose
     // effect is not target-dependent is legal with nothing in the area.
     //
@@ -791,7 +818,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     );
   }
 
-  return { units: chosen, panels, anchor, warnings, errors, needsChoice, candidates, excluded };
+  return { units: chosen, panels, anchor, warnings, errors, needsChoice, candidates, excluded, emptyAim };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1116,7 +1143,8 @@ export function validate(spec, caster, board, placement = {}) {
  * @returns {object[]}
  */
 export function unitsShown(resolved) {
-  return (resolved?.needsChoice ? resolved.candidates : resolved?.units) ?? [];
+  // A Unit its user cannot see is no name, count or range under the cursor (#381).
+  return ((resolved?.needsChoice ? resolved.candidates : resolved?.units) ?? []).filter((u) => !u.unseen);
 }
 
 /**

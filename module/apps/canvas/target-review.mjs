@@ -24,6 +24,7 @@
 
 import { formatRange } from "../../rules/preview.mjs";
 import { shownNameById } from "../../engine/public-identity.mjs";
+import { unitsShown } from "../../rules/targeting/resolve.mjs";
 
 /** "Put it somewhere else." A third outcome, distinct from `[]` and from `null`. */
 export const REAIM = Symbol("re-aim");
@@ -73,13 +74,13 @@ export async function reviewTargets({
   // so this dialog is where the pick is made, and it opens whatever the
   // `targetingReview` setting says: a choice cannot be skipped (#129).
   const choosing = resolved?.needsChoice === true;
-  const units = choosing ? (resolved.candidates ?? []) : (resolved?.units ?? []);
+  const units = unitsShown(resolved);
   const preticked = new Set(choosing ? choicePreselection(units, max) : units.map((t) => t.unitId));
-  const excluded = resolved?.excluded ?? [];
+  const excluded = (resolved?.excluded ?? []).filter((e) => !e.unseen);
 
   // Nothing caught and nothing excluded is the strongest reason to want another
   // go, so it is the one case where an empty result still asks.
-  if (units.length === 0 && excluded.length === 0) {
+  if (units.length === 0 && excluded.length === 0 && !resolved?.emptyAim) {
     if (!canReaim) {
       ui.notifications.info(game.i18n.format("FGT.Targeting.NothingCaught", { name: label }));
       return [];
