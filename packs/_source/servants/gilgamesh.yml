@@ -1,0 +1,50 @@
+# packs/_source/servants/gilgamesh.yml
+# Conversion source: char_orig_sheets/by-class/Archer/Gilgamesh.md
+# Audit: #374 (docs/superpowers/specs/2026-11-02-gilgamesh-clauses.md)
+#
+# Not Proto Gil or Ko-Gil: three sheets of one True Name, each its own Servant. He refs
+# Proto Gil's Treasury of Babylon and Enkidu as they stand (reading 27).
+#
+# Every printed figure agrees with its table: STR B -> 125, MAG B -> 175, END C -> 1000.
+schema: 1
+id: gilgamesh
+name: Gilgamesh
+type: servant
+
+trueName: Gilgamesh
+servantClasses: [archer]
+classContainer: archer
+alignment: { order: chaotic, morality: good }
+# "Ancient Mesopotamia, Middle East": Semiramis's two nodes.
+region: [mesopotamia, middleEast]
+# "Male, Servant, [Sky], King, Humanoid". NO `divine`: his Divinity grants it.
+attributes: [male, servant, sky, king, humanoid]
+
+parameters: { str: B, end: C, agi: C, mag: B, luc: A }
+baseHealth: 1000
+mov: 4
+range: { panels: 4, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+# "Sustainability: N/A" -- Independent Action A+, Passive 1.
+sustainability: null
+
+abilities:
+  - ref: class-independent-action
+    rank: "A+"
+    description: |
+      (Passive 1) Sustainability does not apply.
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Cannot be contracted by enemy Casters and Masters.
+  # Rank E, shifted to C by Golden Armor's Passive 3.
+  - { ref: class-magic-resistance, rank: E }
+  # Revised Divinity: his sheet prints the Fixed Divine sentence.
+  - { ref: divinity, rank: B, printedRevision: revised }
+  - { ref: gilgamesh-golden-armor }
+  - { ref: charisma-passive, rank: "A+", flat: 27 }
+  - { ref: gilgamesh-one-who-saw-it-all }
+  - { ref: gilgamesh-golden-rule }
+  - { ref: proto-gil-treasury-of-babylon }
+  - { ref: gilgamesh-gate-of-babylon }
+  - { ref: gilgamesh-enuma-elish }
+  - { ref: proto-gil-enkidu }

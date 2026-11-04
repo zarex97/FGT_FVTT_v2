@@ -100,6 +100,9 @@ export function tierView(ability, index) {
   own("phases", resolveTierRefs(base.phases ?? [], refs));
   if (tier.rank) own("rank", tier.rank);
   if (tier.cooldown) own("cooldown", { ...(base.cooldown ?? {}), max: tier.cooldown });
+  // A chosen Rank sets the damage too: Gate of Babylon's *"Rank A: 4x"* and its
+  // 100 for every + (#374 readings 2, 3).
+  if (tier.damage) own("damage", { ...(base.damage ?? {}), ...tier.damage });
   return new Proxy(ability, {
     get(target, prop) {
       if (prop === "system") return system;
@@ -108,6 +111,26 @@ export function tierView(ability, index) {
       return typeof value === "function" ? value.bind(target) : value;
     },
   });
+}
+
+/**
+ * The ability as the Rank its user chose reads, for one whose `tiers` are chosen
+ * at the declaration and never bought (`tierChoice`).
+ *
+ * Gate of Babylon: *"Gilgamesh can choose the Rank of this NP"*, fifteen choices,
+ * the choice being the Rank in force for that use (#374 reading 2). The answer
+ * crosses a socket, so a choice no tier holds is `null`, and the caller refuses.
+ * An ability with no choice to make is returned as it is.
+ *
+ * @param {object|null} ability the ability Item
+ * @param {unknown} chosen the tier index, from the placement or the Process
+ * @returns {object|null}
+ */
+export function chosenTierView(ability, chosen) {
+  if (!ability?.system?.tierChoice) return ability ?? null;
+  const count = ability.system.tiers?.length ?? 0;
+  if (!Number.isInteger(chosen) || chosen < 0 || chosen >= count) return null;
+  return tierView(ability, chosen);
 }
 
 /**

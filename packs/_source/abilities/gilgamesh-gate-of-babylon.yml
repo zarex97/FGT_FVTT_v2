@@ -1,0 +1,114 @@
+# Gate of Babylon: King's Treasure, Rank E~A++ (#374).
+#
+# The passive is Ko-Gil's sentence: +50% on his Normal Attack, added like an Atk Up.
+# "(100%?)" is the author's doubt (reading 1).
+#
+# The Active's Rank is chosen at the declaration (`tierChoice`, `rules/tiers.mjs`):
+# fifteen tiers, each setting the Rank, the Cooldown, the damage and the dice, and the
+# Rank in force prices its Master's cost (readings 2, 3, 4). A + adds 100 damage, ⅓◈
+# and no die. Ko-Gil's B++ (3.5x plus 200, 6◈+⅔◈) is this table's row.
+#
+# Every Unit in the 5x3 is hit, and only enemies roll (reading 5), each its own dice
+# (reading 6). A number rolled twice lands twice: a stage adds, and any other debuff
+# is extended (`noneExtend`). Freeze and Sleep print no Turns, a typo for 1◈ (reading
+# 7). Three or more 6s land Crystalfreeze instead, three or more 12s Nightmare (8).
+# Row 18 is Deafen(Y), Y its number of 18s, and stays at 1◈ (9).
+schema: 1
+id: gilgamesh-gate-of-babylon
+name: "Gate of Babylon: King's Treasure"
+rank: null
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: gateOfBabylon
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+sameRoundExclusive: [gilgamesh-enuma-elish]
+description: |
+  Rank: E~A++
+
+  (Passive) Normal Attack damage dealt is increased by 50%. This effect is negated if Gilgamesh is inflicted with
+  @effect[npSeal]{NP Seal}.
+  (Active) Base Attack (STR) is used. Hits a 5x3 or 3x5 panel area in any non-diagonal direction next to Gilgamesh.
+  Gilgamesh can choose the Rank of this NP, which changes the amount of damage dealt as follows- Rank A: 4x, Rank B:
+  3.5x, Rank C: 3x, Rank D: 2.5x, Rank E: 2x. Additionally, Gilgamesh can add up to two + to the NP Rank, and it will
+  deal 100 extra damage for every + added in this way.
+  Then, all affected enemy Units roll a twenty-sided die for each Rank of NP used and are inflicted with the
+  corresponding debuff(s), as follows- 1. Curse 2. Burn (2◈ Turns) 3. Shock (2◈ Turns) 4. Poison 5. Stun (1◈ Turns)
+  6. Freeze (Note: If three or more 6s are rolled, becomes Crystalfreeze instead) 7. Slow (1◈ Turns) 8. Immobilize
+  (1◈ Turns) 9. Disable (1◈ Turns) 10. NP Seal (1◈ Turns) 11. Bleed (1◈ Turns) 12. Sleep (Note: If three or more 12s
+  are rolled, becomes Nightmare instead) 13. Seal (1◈ Turns) 14. Blind (1◈ Turns) 15. Silence (1◈ Turns) 16. Addle
+  (1◈ Turns) 17. Gashed (1◈ Turns) 18. Deafen (1◈ Turns, magnitude starts at 1, increases by 1 more for every extra
+  18 rolled) 19. Dragonblight (1◈ Turns) 20. Crystallize (1◈ Turns).
+  If the same number is rolled, that debuff is applied the same amount of times its number is rolled; for debuffs
+  which do not stack, its duration is extended instead.
+  Cooldown: 3◈ Turns at Rank E, increases by 1◈ Turns for every increase in Rank and increases by ⅓◈ Turns for every +
+  added.
+  Note: The Active effect/usage of Gate of Babylon cannot be used on the same Round as Enuma Elish, and vice-versa.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 50
+    npValue: 50
+    predicate: ["attack:kind:normal", "not:self:effect:npSeal"]
+tierChoice: true
+tiers:
+  - { rank: "E", cooldown: "3◈", damage: { multiplier: 2, flatBonus: 0 }, refs: { dice: 1 } }
+  - { rank: "E+", cooldown: "3◈+⅓◈", damage: { multiplier: 2, flatBonus: 100 }, refs: { dice: 1 } }
+  - { rank: "E++", cooldown: "3◈+⅔◈", damage: { multiplier: 2, flatBonus: 200 }, refs: { dice: 1 } }
+  - { rank: "D", cooldown: "4◈", damage: { multiplier: 2.5, flatBonus: 0 }, refs: { dice: 2 } }
+  - { rank: "D+", cooldown: "4◈+⅓◈", damage: { multiplier: 2.5, flatBonus: 100 }, refs: { dice: 2 } }
+  - { rank: "D++", cooldown: "4◈+⅔◈", damage: { multiplier: 2.5, flatBonus: 200 }, refs: { dice: 2 } }
+  - { rank: "C", cooldown: "5◈", damage: { multiplier: 3, flatBonus: 0 }, refs: { dice: 3 } }
+  - { rank: "C+", cooldown: "5◈+⅓◈", damage: { multiplier: 3, flatBonus: 100 }, refs: { dice: 3 } }
+  - { rank: "C++", cooldown: "5◈+⅔◈", damage: { multiplier: 3, flatBonus: 200 }, refs: { dice: 3 } }
+  - { rank: "B", cooldown: "6◈", damage: { multiplier: 3.5, flatBonus: 0 }, refs: { dice: 4 } }
+  - { rank: "B+", cooldown: "6◈+⅓◈", damage: { multiplier: 3.5, flatBonus: 100 }, refs: { dice: 4 } }
+  - { rank: "B++", cooldown: "6◈+⅔◈", damage: { multiplier: 3.5, flatBonus: 200 }, refs: { dice: 4 } }
+  - { rank: "A", cooldown: "7◈", damage: { multiplier: 4, flatBonus: 0 }, refs: { dice: 5 } }
+  - { rank: "A+", cooldown: "7◈+⅓◈", damage: { multiplier: 4, flatBonus: 100 }, refs: { dice: 5 } }
+  - { rank: "A++", cooldown: "7◈+⅔◈", damage: { multiplier: 4, flatBonus: 200 }, refs: { dice: 5 } }
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 5, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 2
+  flatBonus: 0
+phases:
+  - kind: damage
+    target: reuse
+  - kind: rollTable
+    target: reuse
+    relations: [enemy]
+    count: "@tier.dice"
+    faces: 20
+    entries:
+      1: { effects: [{ id: curse }] }
+      2: { effects: [{ id: burn, duration: "2◈", stacking: noneExtend }] }
+      3: { effects: [{ id: shock, duration: "2◈", stacking: noneExtend }] }
+      4: { effects: [{ id: poison }] }
+      5: { effects: [{ id: stun, duration: "1◈", stacking: noneExtend }] }
+      6:
+        effects: [{ id: freeze, duration: "1◈", stacking: noneExtend }]
+        upgrade: { at: 3, effects: [{ id: crystalfreeze, duration: "1◈", stacking: noneExtend }] }
+      7: { effects: [{ id: slow, duration: "1◈", stacking: noneExtend }] }
+      8: { effects: [{ id: immobilize, duration: "1◈", stacking: noneExtend }] }
+      9: { effects: [{ id: disable, duration: "1◈", stacking: noneExtend }] }
+      10: { effects: [{ id: npSeal, duration: "1◈", stacking: noneExtend }] }
+      11: { effects: [{ id: bleed, duration: "1◈", stacking: noneExtend }] }
+      12:
+        effects: [{ id: sleep, duration: "1◈", stacking: noneExtend }]
+        upgrade: { at: 3, effects: [{ id: nightmare, duration: "1◈", stacking: noneExtend }] }
+      13: { effects: [{ id: seal, duration: "1◈", stacking: noneExtend }] }
+      14: { effects: [{ id: blind, duration: "1◈", stacking: noneExtend }] }
+      15: { effects: [{ id: silence, duration: "1◈", stacking: noneExtend }] }
+      16: { effects: [{ id: addle, duration: "1◈", stacking: noneExtend }] }
+      17: { effects: [{ id: gashed, duration: "1◈", stacking: noneExtend }] }
+      18: { magnitudeIsCount: true, effects: [{ id: deafenY, duration: "1◈" }] }
+      19: { effects: [{ id: dragonblight, duration: "1◈", stacking: noneExtend }] }
+      20: { effects: [{ id: crystallize, duration: "1◈", stacking: noneExtend }] }

@@ -194,6 +194,15 @@ function abilityCommon() {
     // standing for every `"@tier.<key>"` in its phases. Read by
     // `engine/skill-use.mjs#useSkill` through `tierView`.
     tiers: new fields.ArrayField(new fields.ObjectField()),
+    // The tiers are CHOSEN at the declaration, never bought: Gate of Babylon's
+    // *"Gilgamesh can choose the Rank of this NP"* (#374). Read by
+    // `rules/tiers.mjs#chosenTierView`, from the attack path; asked by
+    // `apps/tier-dialog.mjs`.
+    tierChoice: new fields.BooleanField({ initial: false }),
+    // The areas this ability ends when its user stands in one at the declaration,
+    // `{abilities, tags}`: Enuma Elish (#374). Read by
+    // `rules/listed-abilities.mjs#fieldsEndedBy`, from `engine/attack.mjs`.
+    endsFieldsInside: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
     // "Requires 3 [Semiramis' Poison] to use" -- a cost on USING the ability,
     // spent by `engine/skill-use.mjs`'s `itemCostIntents` once the matching
@@ -775,6 +784,9 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // An Effect whose instances are spent to buy a Skill's tier: Mermaid
       // Tokens, `{max, except, kinds}` (#372). Read by `rules/tiers.mjs#tierSpend`.
       spentForTier: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // Any damage from an attack removes it and bars that phase's Counter: Sleep
+      // and what derives from it (#374). Read by `engine/attack.mjs#wokenBy`.
+      wokenByAttackDamage: new fields.BooleanField({ required: false, initial: false }),
       // What a barrier effect absorbs, and where its pool lives (§A.3's
       // barrier tier). EMIYA's Rho Aias is the only instance.
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),

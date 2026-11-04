@@ -246,10 +246,19 @@ export const PHASE_DESCRIPTORS = describeTable([
     // (#253 reading 9). Rows may carry `all: true` and `target: self`
     // (`rules/roll-table.mjs`).
     { key: "duplicates", type: "select", choices: ["twice", "reroll"] },
+    // Who rolls at all: *"all affected enemy Units roll"* (#374 reading 5). Rows
+    // may carry `upgrade: {at, effects}` and `magnitudeIsCount`.
+    { key: "relations", type: "tokenList" },
     // After the dice, one more row of its user's choice that no die chose,
     // or none: Rune Magic's *"then, you can apply one more effect of your
     // choice other than the one selected by the die"* (#339 ruling 4). Skill path.
     { key: "thenChoose", type: "checkbox" },
+  ]),
+  // Enuma Elish's lists (#374, `rules/listed-abilities.mjs`). Attack path.
+  entry("strikeListedAbilities", 20, "Seals the listed abilities a Unit it hit carries, and removes what they caused.", [
+    { key: "seal", type: "text" },
+    { key: "duration", type: "text" },
+    { key: "rows", type: "raw" },
   ]),
   entry("itemGrant", 20, "Hands over a quantity of an item, possibly rolled.", [
     { key: "contentId", type: "text" },

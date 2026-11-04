@@ -1,0 +1,46 @@
+# The One Who Saw It All, Rank EX (#374). Arturia's Knight of Utopia: every ally
+# within 2 of himself, him included, its Atk Up the Charisma one because the Skill is
+# "categorized as 'Charisma'" (#230 reading 23), so his own +27 is off while he holds
+# it (reading 25). The second phase is filtered on [Sky], her Round Table phase.
+schema: 1
+id: gilgamesh-one-who-saw-it-all
+name: "The One Who Saw It All"
+rank: EX
+kind: skill
+slug: oneWhoSawItAll
+categorizedAs: [charisma]
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Affects all allies within a 2 panel area of himself. Has the following effects-
+  1. Applies @effect[atkUpCharismaUnit]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  2. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns to all affected Units with the [Sky] Attribute, NP Damage dealt is
+     increased by 20%.
+  3. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns, Crit Chance is increased by 10%.
+  Cooldown: 4◈ Turns. This Skill is categorized as 'Charisma'.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUpCharismaUnit, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: ["target:attribute:sky"]
+    effects:
+      - { id: npDmUp, magnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: sCritUp, magnitude: 10, duration: "⅓◈" }

@@ -101,222 +101,243 @@ added after everything (#232 reading 16) · a number rolled twice lands twice; a
 hurt (§46.4-LI) · every ◈ span rounds down, never to 0, and sums convert once (Gray readings 30–32) · a sheet binds
 only its owner · a shared file's Clause is pressed on the Servant under audit.
 
+**Live, 2026-11-04.** A War of his own (*Gilgamesh Audit*), pressed as Player1: the bar, the Rank dialog and the targeting once, then
+the same socket call for each row. Fixed dice were staged on the GM page. **144 Clauses closed, 5 left to Kazuradrop.**
+
+Found pressing, each fixed: the preview under the cursor read Rank E after A++ was chosen; Nameless Forest's Token pool stayed at its count
+when its marker left; a Sleep woken left no line; Gashed's line named its id. **An Enuma Elish with no Unit in its area is refused today**, as every damaging area is, so he
+cannot yet end an area with an empty swing. **Ruled 2026-11-04:** the sheet says *"uses"*, where its seals say *"affected"*, and the rule is
+general, the Empty Aim of `CONTEXT.md`: its own issue and branch, where his empty Enuma Elish is pressed.
+
 ## Readings
 
-To be grilled.
+Ruled by the user 2026-11-04, every one as recommended but 7, 13 and 22. Readings 29 to 32 came from the second round,
+when the names were run against the corpus.
 
-| # | Reading (recommended) | Clauses |
+| # | Ruling | Clauses |
 |---|---|---|
-| 1 | Gate of Babylon's passive is **+50%** on his Normal Attack damage. *"(100%?)"* is the author's doubt, and Ko-Gil prints the same passive as 50% with none. Added like an Atk Up, NP Seal switching it off. The other reading: +100%. | GB.p |
-| 2 | The Rank is chosen when he declares the Active, before the area, from E, D, C, B, A, each with none, one or two +: fifteen choices. The choice sets the multiplier, the flat sum, the dice, the Cooldown and the NP's Rank for that use (Kiara reading 10: the Rank in force). The sheet and the bar show *"E~A++"*. | GB.rank, GB.plus, GB.cd.* |
-| 3 | A + adds 100 damage and ⅓◈ Cooldown and **no die**: *"a twenty-sided die for each Rank of NP used"* counts the grade, E 1 to A 5. Ko-Gil's B++ (3.5x + 200, 6◈+⅔◈) agrees on the damage and the Cooldown. The other reading: each + is a Rank too, A++ rolling 7. | GB.dice, GB.plus |
-| 4 | His Master pays the NP cost of the chosen Rank, + included, as `npCostAt` prices *"B++"*. The sheet says nothing of the cost, so the normal NP rule applies at the Rank in force. The other reading: always the top Rank, A++. | GB.cost |
-| 5 | The 5x3 names no relation: every Unit in it is hit, allies too. Only *"affected enemy Units"* roll the dice; an ally hit rolls none. | GB.who, GB.enemy |
-| 6 | Each affected enemy rolls its own dice, as Bab-ilu's DUs do. | GB.dice |
-| 7 | Rows that print no Turns (Curse, Poison, Freeze, Sleep, and Crystalfreeze or Nightmare in their place) last until their own rule ends them: Curse and Poison stages until removed, Freeze until broken, Sleep until a hit wakes it. The other reading: 1◈ like the rows around them. | GB.1, GB.4, GB.6, GB.12 |
-| 8 | Three or more 6s land **Crystalfreeze in place of Freeze**, once a 6, so the extra 6s extend it as a non-stacking debuff; no Freeze lands. The same for three or more 12s: Nightmare in place of Sleep. Two 6s are two Freezes (one, extended). | GB.6.cf, GB.12.nm, GB.same.ext |
-| 9 | Gate of Babylon's Deafen is Appendix A's **Deafen(Y)** (*"Own Evade rolls +Y; enemies evading this unit's attacks roll −Y"*), Y the number of 18s rolled, for 1◈. It is a new effect beside Nemo's fixed Deafen, which stays as his sheet states it (Appendix A's Deafen note: *"the two are different effects and want different ids"*). The other reading: Nemo's Deafen, its magnitude ignored. | GB.18, GB.18.mag |
-| 10 | *"Seal (1◈ Turns)"* is the Bind-family `seal` (no Normal Attack with BA(STR), no Skill, no NP; Spells still usable), not Skill Seal or NP Seal. | GB.13 |
-| 11 | The five debuffs nobody inflicts yet are built **in full, as Appendix A's rows**: Sleep (cannot Act; a hit's damage +100% Total, then it ends, and that hit cannot be Countered), Nightmare (Sleep's effects and −10% of current Health at the end of its Turn, a derivative that replaces Sleep), Addle (no Active Skills or Spells; every automatically-activating Skill and effect negated), Gashed (Health and Agility cannot be restored), Crystallize (MOV −3, Agility Checks +1d6, 50 Fixed damage at the end of any Turn it Acts, all damage taken −10% including NP). Each is pressed live once from the table. | GB.12, GB.12.nm, GB.16, GB.17, GB.20 |
-| 12 | The Note is EMIYA's `sameRoundExclusive`: Gate of Babylon's **Active** and Enuma Elish are never both used in one Round. The passive is untouched. The struck *"on Cooldown"* wording is not a rule. | GB.round, EE.round |
-| 13 | Enuma Elish's 3x6 is **beside him**, turnable, as Excalibur's and Ko-Gil's *"next to"* areas are. The sheet leaves *"next to Gilgamesh"* out, and every other area of his says it. | EE.area |
-| 14 | *"Damage dealt to Servants … is further increased by 100%"* is a **factor of 2** on a DU that is a Servant, Rama's shape: 5x becomes 10x. Masters, Summons that are not Servants, and Civilians take 5x. A summoned Servant (Sita) is a Servant. The other reading: +100% added like an Atk Up. | EE.servant |
-| 15 | The exempt list lives on Enuma Elish and is matched on the **Servant's name as its sheet titles it**. *"(both)"* and *"(all)"* reach every sheet of that name; *"Romulus (normal)"* is `Romulus.md`, not Romulus Quirinus. Each name is checked by the build against a sheet in `char_orig_sheets`, so a misspelling fails the build. Two are built today: Francis Drake and U-Olga Marie. | EE.except |
-| 16 | The struck *"Karl der Große"* is **not exempt**: Karl de Große takes the +100%. | EE.except.karl |
-| 17 | *"Affected by Enuma Elish"* means **hit** by it: a DU who Evades is not affected; one who Blocks is. Its seal and removals land at the end of the Damage Step. | EE.rm.when, EE.np.*, EE.bug.*, EE.nf.*, EE.other.seal |
-| 18 | *"Used within"* an area means he **stands inside it when he declares** Enuma Elish. The area ends at the end of the Damage Step, as its own end does, with what that end does (Units inside are returned). The damage lands first. | EE.rm.end.* |
-| 19 | Seal (Ea) is **one new effect**, `sealEa`, with the ability it seals as its parameter: Skill Seal (Ea) and NP Seal (Ea) are its two names. That ability cannot be used, and every passive rule it carries is negated. It is Unremovable, lands whatever the DU's Debuff Immune, and Debuff Resist cannot lower it. 3◈. | EE.ea.* |
-| 20 | *"Remove all effects caused by this Skill/NP from all Units on the field"* removes **every effect instance whose source is that ability**, on any Unit, either side, buffs and debuffs alike, and any area or Token it placed. A card line names each. | EE.bug.remove, EE.np.remove, EE.muryan.remove |
-| 21 | **Unbuilt bearers.** Enuma Elish's lists are built generic and keyed by name. Each list is pressed live on its built members: Unlimited Blade Works (EMIYA), Chaos Labyrinthos (Asterios), Diatrekhōn Astēr Lonkhē (Achilles), Ramesseum Tentyris (Ozymandias), Airavata King Size (Kingprotea), De Sterrennacht (Van Gogh) and Nameless Forest (Nursery Rhyme). The members with no built bearer are pressed with a stand-in ability of that name on a test Unit, as Noah was for Enki (#232 reading 21): Bug Space, an NP from the NP list, and an area and a non-area *"Reality Marble"*. | EE.rm.end.rest, EE.np.rest, EE.bug.*, EE.other.* |
-| 22 | **Gully Trap Funny Muryan** is moved to Kazuradrop's audit. Its five Clauses need her Bug Space, which captures Units as Special Items, pauses their clocks and releases them; none of that exists, and it is her sheet's mechanism. Gilgamesh's side is kept and keyed (EE seals a DU who carries it), and his audit closes without it. The other reading: build Bug Space's capture now, from her sheet, to press these five. | EE.muryan.* |
-| 23 | Nameless Forest's *"remove all Nameless Forest Tokens from all Units on the board"* removes the Token effect from every Unit, either side, then NP Seal (Ea) lands on Nursery Rhyme. | EE.nf.* |
-| 24 | *"Other abilities with Reality Marble in its name"*: an ability **whose name holds the words "Reality Marble"**. One that deploys an area ends as reading 18. One that does not seals its bearer, with Skill Seal (Ea) for a Skill and NP Seal (Ea) for an NP. Unlimited Blade Works is on the first list by name and is not read again here. | EE.other.* |
-| 25 | **The One Who Saw It All** reaches him (*"all allies"*, no *"other"*), so its Atk Up (Charisma) switches his own Charisma passive off for 1◈. It reaches every ally within 2, Servants or not. NP DmUp reaches only those with the Sky Attribute, him included. | OS.who, OS.atk, OS.sky, CH.neg.atk |
-| 26 | Golden Rule's fallback cuts Treasury of Babylon's Cooldown by 1 Turn only while **none of his three NPs** is on Cooldown (Gate of Babylon, Enuma Elish, Enkidu), once a Crit. With Treasury off its Cooldown too, it cuts nothing and says so. | GR.p, GR.p.tb |
-| 27 | **Gilgamesh refs Proto Gil's files** for Treasury of Babylon and Enkidu as they stand, and a new passive-only Charisma template takes Arturia's and his (`charisma-passive`, `rank` and `flat`). Renaming Enkidu and Treasury to shared ids waits for Ko-Gil, the third copy. The other reading: rename them now. | TB.*, EC.*, CH.* |
-| 28 | Golden Armor is a Skill, not part of Gate of Babylon the NP: **NP Seal does not touch it**, and Skill Seal does not either, since it is passive. Magic Resistance stays at C in every case the board offers, so the E block is never in force; MR.rank is read off the sheet. | GA.*, MR.rank |
+| 1 | Gate of Babylon's passive is **+50%** on his Normal Attack damage, added like an Atk Up. NP Seal switches it off. *"(100%?)"* is the author's doubt. | GB.p |
+| 2 | He chooses the Rank when he declares the Active: E, D, C, B or A, each with none, one or two +. That is fifteen choices, and the choice is the Rank in force for that use. | GB.rank, GB.plus, GB.cd.* |
+| 3 | A + adds 100 damage and ⅓◈ Cooldown and **no die**. E rolls 1, A and A++ roll 5. | GB.dice, GB.plus |
+| 4 | His Master pays at the chosen Rank, + included, through `npCostAt`: E 10 or 20, A++ 56 or 66. | GB.cost |
+| 5 | Every Unit in the 5x3 is hit, allies too. Only *"affected enemy Units"* roll. | GB.who, GB.enemy |
+| 6 | Each affected enemy rolls its own dice, and every die is on the card. | GB.dice |
+| 7 | **Freeze and Sleep last 1◈.** The sheet leaving their Turns out is a typo. Crystalfreeze and Nightmare in their place last 1◈ too. Curse and Poison stay untimed stages. | GB.1, GB.4, GB.6, GB.12 |
+| 8 | Three or more 6s in one target's roll land Crystalfreeze **instead of** Freeze, and three or more 12s Nightmare instead of Sleep. Each such die is one application, extended. Two 6s are one Freeze for 2◈. | GB.6.cf, GB.12.nm, GB.same.ext |
+| 9 | Row 18 is a new effect, Appendix A's **Deafen(Y)**, Y the number of 18s. Extra 18s raise Y and do not extend its 1◈. Nemo's Deafen is unchanged. | GB.18, GB.18.mag |
+| 10 | Row 13 is the Bind-family `seal`. | GB.13 |
+| 11 | Sleep, Nightmare, Addle, Gashed and Crystallize are built in full from Appendix A. Addle negates anything authored `automatic: true`. | GB.12, GB.12.nm, GB.16, GB.17, GB.20 |
+| 12 | `sameRoundExclusive` on the Active and Enuma Elish. The passive is untouched, and the struck words are no rule. | GB.round, EE.round |
+| 13 | **The missing *"next to"* is a typo.** Enuma Elish's 3x6 sits beside him and turns. | EE.area |
+| 14 | *"Further increased by 100%"* is a factor of 2, Rama's shape: 5x becomes 10x. Masters, Civilians and Summons that are not Servants take 5x. | EE.servant |
+| 15 | The exempt list lives on Enuma Elish as a map from the printed name to its sheet. The build checks each mapped sheet exists. A name with no sheet stays recorded as one. | EE.except |
+| 16 | The struck Karl der Große is not exempt: Karl de Große takes 10x. | EE.except.karl |
+| 17 | Affected means hit: an Evade is not affected, a Block is. Seals land at the end of the Damage Step, on any bearer hit, ally or enemy. | EE.rm.when, EE.np.*, EE.bug.*, EE.nf.*, EE.other.seal |
+| 18 | He stands inside at declaration. The damage lands first, then `endField` runs at the end of the Damage Step, whoever owns the area. Units stay where they stand. `endField` moves no Unit. | EE.rm.end.* |
+| 19 | One effect, `sealEa`, naming its ability, for 3◈. Unremovable. It ignores Debuff Immune and Resist, Magic Resistance included. | EE.ea.* |
+| 20 | Removal takes every instance on a Unit sourced from that ability, Tokens included, on either side, each a card line. Areas fall outside *"from all Units"*: they stay, and do nothing while the seal holds. | EE.bug.remove, EE.np.remove, EE.muryan.remove |
+| 21 | Every built bearer is pressed. One stand-in on a test Unit presses each unbuilt group, as Noah did for Enki (#232 reading 21). Each Servant's own audit presses its own later. | EE.rm.end.rest, EE.np.rest, EE.bug.*, EE.other.* |
+| 22 | **Gully Trap Funny Muryan's five Clauses stay unpressed.** They are tested when Kazuradrop is built. | EE.muryan.* |
+| 23 | All Nameless Forest Tokens leave all Units, then the seal lands, as a Luck Check takes them: the marker and the pool. **Ruled again 2026-11-04, the first ruling having rested on a false sentence:** nothing comes back. Max Health, Base Attack and Max Luck stay lowered (#247 reading 5, *"the lowered maximum is what is not restored"*). A Unit that loses its Tokens this way gets no 10% off gaining them again: only *"successfully removes … from itself"* earns that. | EE.nf.* |
+| 24 | *"Reality Marble in its name"* counts the printed tag, since no ability's name holds the words. Bradamante's *Angelica Cathay* `[Anti-Unit/Reality Marble]` is the one member today, and it takes NP Seal (Ea) if hit. A stand-in presses it. | EE.other.* |
+| 25 | The One Who Saw It All reaches him and every ally within 2. Its Atk Up (Charisma) switches his own +27 off for 1◈, and another ally's Charisma passive too (#230 reading 23). NP DmUp reaches Sky Units only. | OS.who, OS.atk, OS.sky, CH.neg.atk |
+| 26 | Golden Rule's fallback fires only when Gate of Babylon, Enuma Elish and Enkidu are all clear, once per Crit. If Treasury is clear too, the card says it cut nothing. | GR.p, GR.p.tb |
+| 27 | He refs Proto Gil's Treasury and Enkidu as they stand. A new `charisma-passive` template serves Arturia and him. Renames wait for Ko-Gil. | TB.*, EC.*, CH.* |
+| 28 | Golden Armor is no NP and is passive, so no Seal touches it and C is always in force. The E block's Instakill, Death and Erase lines still apply at C. | GA.*, MR.rank |
+| 29 | The exempt map is below. An unmarked name reaches one sheet, so Altera (Saber), Gyokuto and Ecchan are not exempt. Aoko is exempt only once she has transformed. | EE.except |
+| 30 | Ability names are matched by listed ability id, never by words inside a name. Papiyas is Nobunaga's NP alone, Lai Rhyme is Oberon's Wry Rhyme, Overload ends nothing today and a stand-in presses it. Babbage's Note waits for his audit. | EE.rm.end.rest, EE.np.rest |
+| 31 | No Skill is headed Bug Space. Two Clauses are pressed on a stand-in Skill of that name, so Skill Seal (Ea) is pressed live. Kazuradrop's audit decides what having it means for her. | EE.bug.* |
+| 32 | EMIYA's Unlimited Blade Works charges Rank B where his sheet strikes B for A. A separate issue, out of this branch. | none |
+
+**The exempt map (29).** Printed name, then its sheet, where the two differ: 「 」 `「　」`, Nikola Tesla `Tesla`, Altera the
+San(ta) `Attila the San(ta)`, Asagami Fujino `Fujino`, Ryougi Shiki `Ryougi`, Shizuki Soujuurou `Soujuurou`, Sherlock
+Holmes `Holmes`, Ranmaru X `Mysterious Ranmaru X`, Archetype:Earth `Archetype_Earth`, Sodom's Beast/Draco/Harlot `Draco`,
+Space Ereshkigal `Summer Ereshkigal`, Beast III/R `Rapture`, Beast III/L `Lapse`, Beast IV/L `Yaskaya`, Beast VII
+`President`, Melusine (both) `Melusine` and `Melusine Ondine`, Tiamat (both) `Tiamat` and `Larva_Tiamat`, Abigail Williams
+(all) `Abigail` and `Abby (Summer)`, Leonardo da Vinci (Young) `da Vinci (Summer)`, Mysterious Heroine X (both) `MHX` and
+`MHXX`, Super Aoko `Aozaki Aoko` once transformed. **No sheet yet:** Demeter (Erinyes), BB Dubai, Azumi no Isora.
 
 ## Statblock
 
-- [ ] **ST.name** · True Name: Gilgamesh · *Untouched*
-- [ ] **ST.class** · Class: Archer (the sheet's folder; no Class line is printed) · *Untouched*
-- [ ] **ST.region** · Region: Ancient Mesopotamia, Middle East · *Untouched*
-- [ ] **ST.align** · Alignment: Chaotic Good · *Untouched*
-- [ ] **ST.param** · STR B, END C, AGI C, MAG B, LUC A · *Untouched*
-- [ ] **ST.attr** · Attributes: Male, Servant, [Sky], King, Humanoid (Divine from Divinity) · *Untouched*
-- [ ] **ST.hp** · Base Health 1000 (END C, the table agrees) · *Untouched*
-- [ ] **ST.mov** · MOV 4 · *Untouched*
-- [ ] **ST.range** · Range 4 panels, 1 target · *Untouched*
-- [ ] **ST.ba** · Base Attack STR 125, MAG 175 (the tables agree) · *Untouched*
-- [ ] **ST.sus** · Sustainability: N/A · *Untouched*
-- [ ] **ST.items** · Items held: none · *Untouched*
+- [x] **ST.name** · True Name: Gilgamesh · *Observed: Sheet, as Player1*
+- [x] **ST.class** · Class: Archer (the sheet's folder; no Class line is printed) · *Observed: Sheet*
+- [x] **ST.region** · Region: Ancient Mesopotamia, Middle East · *Observed: Sheet*
+- [x] **ST.align** · Alignment: Chaotic Good · *Observed: Sheet*
+- [x] **ST.param** · STR B, END C, AGI C, MAG B, LUC A · *Observed: Sheet*
+- [x] **ST.attr** · Attributes: Male, Servant, [Sky], King, Humanoid (Divine from Divinity) · *Observed: Board: Divine from Divinity*
+- [x] **ST.hp** · Base Health 1000 (END C, the table agrees) · *Observed: Sheet*
+- [x] **ST.mov** · MOV 4 · *Observed: Sheet*
+- [x] **ST.range** · Range 4 panels, 1 target · *Observed: Sheet*
+- [x] **ST.ba** · Base Attack STR 125, MAG 175 (the tables agree) · *Observed: Sheet*
+- [x] **ST.sus** · Sustainability: N/A · *Observed: Board: null*
+- [x] **ST.items** · Items held: none · *Observed: Sheet*
 
 ## Independent Action — Class Skill, Rank A+ *(Passive 1–3)*
 
-- [ ] **IA.1** · *(Passive 1)* Sustainability does not apply · *Untouched*
-- [ ] **IA.2** · *(Passive 2)* His Master's ZON is increased by 3 panels · *Untouched*
-- [ ] **IA.3** · *(Passive 3)* He cannot be contracted by enemy Casters and Masters · *Untouched*
+- [x] **IA.1** · *(Passive 1)* Sustainability does not apply · *Observed: Board: no Sustainability*
+- [x] **IA.2** · *(Passive 2)* His Master's ZON is increased by 3 panels · *Observed: Board: ZON 6*
+- [x] **IA.3** · *(Passive 3)* He cannot be contracted by enemy Casters and Masters · *Pressed: Enemy Master and enemy Caster: `immune`; his own Master passes*
 
 ## Magic Resistance — Class Skill, Rank E *(Passive 1 + 2)*
 
-- [ ] **MR.rank** · Rank E: MAG damage up to MAG E negated, otherwise −10%; debuffs −5%. Raised to C by GA.3 (Q) · *Untouched*
-- [ ] **MR.2.death** · The debuff reduction also affects Instakill and Death · *Untouched*
-- [ ] **MR.2.str** · …unless the Instakill or Death is from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance · *Untouched*
-- [ ] **MR.2.erase** · Erase is completely unaffected · *Untouched*
-- [ ] **MR.2.other** · Other debuffs from STR or *"not affected"* sources still have their chance reduced · *Untouched*
+- [x] **MR.rank** · Rank E: MAG damage up to MAG E negated, otherwise −10%; debuffs −5%. Raised to C by GA.3 (Q) · *Observed: Board: E shifted to C*
+- [x] **MR.2.death** · The debuff reduction also affects Instakill and Death · *Pressed: Test Bolt (MAG): Instakill 40 → 25*
+- [x] **MR.2.str** · …unless the Instakill or Death is from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance · *Pressed: Test Bolt (STR): Instakill stays 40*
+- [x] **MR.2.erase** · Erase is completely unaffected · *Pressed: Erase stays 40 on both*
+- [x] **MR.2.other** · Other debuffs from STR or *"not affected"* sources still have their chance reduced · *Pressed: Test Bolt (STR): Stun 40 → 25*
 
 ## Divinity — Rank B *(Passive)*
 
-- [ ] **DI.1** · All damage he deals is increased by 40 · *Untouched*
-- [ ] **DI.1.np** · …including NP · *Untouched*
-- [ ] **DI.fixed** · The extra damage is dealt as Fixed Divine Damage · *Untouched*
-- [ ] **DI.injury** · …and does not count towards the amount required for an Injury Roll · *Untouched*
+- [x] **DI.1** · All damage he deals is increased by 40 · *Pressed: +40 on his Normal Attack*
+- [x] **DI.1.np** · …including NP · *Pressed: +40 on Gate of Babylon and Enuma Elish*
+- [x] **DI.fixed** · The extra damage is dealt as Fixed Divine Damage · *Pressed: Added after every modifier*
+- [x] **DI.injury** · …and does not count towards the amount required for an Injury Roll · *Pressed: Total 133, 93 without the 40: no Injury Roll*
 
 ## Gate of Babylon: Golden Armor *(Passive 1–3)*
 
-- [ ] **GA.1** · *(Passive 1)* All damage taken is reduced by 50% · *Untouched*
-- [ ] **GA.1.np** · …if NP, 30% · *Untouched*
-- [ ] **GA.2** · *(Passive 2)* He is Immune to Petrify · *Untouched*
-- [ ] **GA.3** · *(Passive 3)* His Magic Resistance Rank is increased from E to C (Q) · *Untouched*
-- [ ] **GA.mr.neg** · MAG damage from a MAG Rank of up to C is negated · *Untouched*
-- [ ] **GA.mr.over** · …otherwise MAG damage taken is reduced by 30% · *Untouched*
-- [ ] **GA.mr.np** · …also affects NP · *Untouched*
-- [ ] **GA.mr.debuff** · Chance of being inflicted by debuffs is reduced by 15% · *Untouched*
+- [x] **GA.1** · *(Passive 1)* All damage taken is reduced by 50% · *Pressed: Drake's Normal Attack: −50%*
+- [x] **GA.1.np** · …if NP, 30% · *Pressed: An NP from Drake: −30%*
+- [x] **GA.2** · *(Passive 2)* He is Immune to Petrify · *Pressed: Petrify does not land*
+- [x] **GA.3** · *(Passive 3)* His Magic Resistance Rank is increased from E to C (Q) · *Observed: Board: Magic Resistance at C*
+- [x] **GA.mr.neg** · MAG damage from a MAG Rank of up to C is negated · *Pressed: MAG E NP: 0, a Fixed Divine aside*
+- [x] **GA.mr.over** · …otherwise MAG damage taken is reduced by 30% · *Pressed: Ozymandias's MAG A: ×0.7*
+- [x] **GA.mr.np** · …also affects NP · *Pressed: The MAG NP is negated too*
+- [x] **GA.mr.debuff** · Chance of being inflicted by debuffs is reduced by 15% · *Pressed: Stun 40 → 25*
 
 ## Charisma — Rank A+ *(Passive)*
 
-- [ ] **CH.1** · All damage dealt by other allied Units within a 2 panel area of himself is increased by 27 · *Untouched*
-- [ ] **CH.1.np** · …including NP · *Untouched*
-- [ ] **CH.1.self** · …not his own damage (*"other"*) · *Untouched*
-- [ ] **CH.neg.atk** · Negated while he has Atk Up (Charisma) (Q) · *Untouched*
-- [ ] **CH.neg.seal** · Negated while he is inflicted with Skill Seal · *Untouched*
+- [x] **CH.1** · All damage dealt by other allied Units within a 2 panel area of himself is increased by 27 · *Pressed: Arturia's Normal Attack: +27*
+- [x] **CH.1.np** · …including NP · *Pressed: Proto Gil's Bab-ilu: +27*
+- [x] **CH.1.self** · …not his own damage (*"other"*) · *Pressed: His own attack: no +27 from himself*
+- [x] **CH.neg.atk** · Negated while he has Atk Up (Charisma) (Q) · *Pressed: He holds Atk Up (Charisma): none*
+- [x] **CH.neg.seal** · Negated while he is inflicted with Skill Seal · *Pressed: He holds Skill Seal: none*
 
 ## The One Who Saw It All — Rank EX *(Active)*
 
-- [ ] **OS.when** · Used during his Turn · *Untouched*
-- [ ] **OS.who** · Affects all allies within a 2 panel area of himself, him included (Q) · *Untouched*
-- [ ] **OS.atk** · 1. Atk Up for 1◈: all damage dealt +20% · *Untouched*
-- [ ] **OS.atk.np** · …if NP, 10% · *Untouched*
-- [ ] **OS.sky** · 2. NP DmUp for 1◈ to affected Units with the [Sky] Attribute: NP damage dealt +20% (Q) · *Untouched*
-- [ ] **OS.sky.only** · …an affected Unit without [Sky] gets none · *Untouched*
-- [ ] **OS.scrit** · 3. S.Crit Up for ⅓◈: Crit Chance +10% · *Untouched*
-- [ ] **OS.cd** · Cooldown 4◈ · *Untouched*
-- [ ] **OS.cat** · Categorized as 'Charisma': its Atk Up is Atk Up (Charisma) (Q) · *Untouched*
+- [x] **OS.when** · Used during his Turn · *Pressed: Off his Turn: `notOwnTurn`*
+- [x] **OS.who** · Affects all allies within a 2 panel area of himself, him included (Q) · *Pressed: Him, Proto Gil, Arturia*
+- [x] **OS.atk** · 1. Atk Up for 1◈: all damage dealt +20% · *Pressed: +20% on his Normal Attack*
+- [x] **OS.atk.np** · …if NP, 10% · *Pressed: +10% on Gate of Babylon*
+- [x] **OS.sky** · 2. NP DmUp for 1◈ to affected Units with the [Sky] Attribute: NP damage dealt +20% (Q) · *Pressed: Him and Proto Gil, +20% on Gate of Babylon*
+- [x] **OS.sky.only** · …an affected Unit without [Sky] gets none · *Pressed: Arturia gets none*
+- [x] **OS.scrit** · 3. S.Crit Up for ⅓◈: Crit Chance +10% · *Pressed: Tick 4 → 5*
+- [x] **OS.cd** · Cooldown 4◈ · *Pressed: 12*
+- [x] **OS.cat** · Categorized as 'Charisma': its Atk Up is Atk Up (Charisma) (Q) · *Pressed: Proto Gil's +27 off him while held*
 
 ## Golden Rule — Rank A *(Passive + Active)*
 
-- [ ] **GR.p** · Whenever he performs a Crit, his NP Cooldown is reduced by 1 Turn · *Untouched*
-- [ ] **GR.p.tb** · …if none of his NPs is on Cooldown, Treasury of Babylon's Cooldown is reduced by 1 Turn instead (Q) · *Untouched*
-- [ ] **GR.when** · The Active is used during his Turn · *Untouched*
-- [ ] **GR.a** · NP Regen for 1◈: NP Cooldown −2 Turns at the end of every Turn · *Untouched*
-- [ ] **GR.cd** · Cooldown 4◈ · *Untouched*
+- [x] **GR.p** · Whenever he performs a Crit, his NP Cooldown is reduced by 1 Turn · *Pressed: Crit with Enkidu cooling: 9 → 8; no Crit, no cut*
+- [x] **GR.p.tb** · …if none of his NPs is on Cooldown, Treasury of Babylon's Cooldown is reduced by 1 Turn instead (Q) · *Pressed: Crit, no NP cooling: Treasury 9 → 8; Treasury clear: the card says so*
+- [x] **GR.when** · The Active is used during his Turn · *Pressed: Off his Turn: `notOwnTurn`*
+- [x] **GR.a** · NP Regen for 1◈: NP Cooldown −2 Turns at the end of every Turn · *Pressed: End of his Turn: 20 → 17, natural 1 and Regen 2*
+- [x] **GR.cd** · Cooldown 4◈ · *Pressed: 12*
 
 ## Treasury of Babylon — Rank EX *(Active)*
 
-- [ ] **TB.when** · Used during his Turn · *Untouched*
-- [ ] **TB.1** · His NP Cooldown is reduced by 1◈ · *Untouched*
-- [ ] **TB.2** · …then Crit Up for 1◈ on himself: Crit Chance +60% · *Untouched*
-- [ ] **TB.cd** · Cooldown 4◈ · *Untouched*
+- [x] **TB.when** · Used during his Turn · *Pressed: Off his Turn: `notOwnTurn`*
+- [x] **TB.1** · His NP Cooldown is reduced by 1◈ · *Pressed: Gate of Babylon 20 → 17, Enkidu 10 → 7*
+- [x] **TB.2** · …then Crit Up for 1◈ on himself: Crit Chance +60% · *Pressed: Crit Up 60*
+- [x] **TB.cd** · Cooldown 4◈ · *Pressed: 12*
 
 ## Gate of Babylon: King's Treasure — Rank E~A++, NP, Anti-Unit *(Passive + Active)*
 
-- [ ] **GB.tag** · [Anti-Unit] · *Untouched*
-- [ ] **GB.p** · *(Passive)* Normal Attack damage dealt is increased by 50% (Q) · *Untouched*
-- [ ] **GB.p.seal** · …negated while he is inflicted with NP Seal · *Untouched*
-- [ ] **GB.dmg** · *(Active)* Base Attack (STR) is used · *Untouched*
-- [ ] **GB.area** · Hits a 5x3 or 3x5 panel area in any non-diagonal direction next to him · *Untouched*
-- [ ] **GB.who** · Every Unit in the area is hit, allies too (Q) · *Untouched*
-- [ ] **GB.rank** · He chooses the NP's Rank (Q) · *Untouched*
-- [ ] **GB.A** · Rank A: 4x · *Untouched*
-- [ ] **GB.B** · Rank B: 3.5x · *Untouched*
-- [ ] **GB.C** · Rank C: 3x · *Untouched*
-- [ ] **GB.D** · Rank D: 2.5x · *Untouched*
-- [ ] **GB.E** · Rank E: 2x · *Untouched*
-- [ ] **GB.plus** · He can add up to two + to the Rank: +100 damage for each (Q) · *Untouched*
-- [ ] **GB.cost** · His Master pays the NP cost at the chosen Rank (Q) · *Untouched*
-- [ ] **GB.dice** · Each affected enemy rolls a d20 for each Rank of NP used (Q) · *Untouched*
-- [ ] **GB.enemy** · …only enemies roll; an ally hit rolls none (Q) · *Untouched*
-- [ ] **GB.1** · 1: Curse (Q) · *Untouched*
-- [ ] **GB.2** · 2: Burn for 2◈ · *Untouched*
-- [ ] **GB.3** · 3: Shock for 2◈ · *Untouched*
-- [ ] **GB.4** · 4: Poison (Q) · *Untouched*
-- [ ] **GB.5** · 5: Stun for 1◈ · *Untouched*
-- [ ] **GB.6** · 6: Freeze (Q) · *Untouched*
-- [ ] **GB.6.cf** · …three or more 6s: Crystalfreeze instead (Q) · *Untouched*
-- [ ] **GB.7** · 7: Slow for 1◈ · *Untouched*
-- [ ] **GB.8** · 8: Immobilize for 1◈ · *Untouched*
-- [ ] **GB.9** · 9: Disable for 1◈ · *Untouched*
-- [ ] **GB.10** · 10: NP Seal for 1◈ · *Untouched*
-- [ ] **GB.11** · 11: Bleed for 1◈ · *Untouched*
-- [ ] **GB.12** · 12: Sleep (Q) · *Untouched*
-- [ ] **GB.12.nm** · …three or more 12s: Nightmare instead (Q) · *Untouched*
-- [ ] **GB.13** · 13: Seal for 1◈ (Q) · *Untouched*
-- [ ] **GB.14** · 14: Blind for 1◈ · *Untouched*
-- [ ] **GB.15** · 15: Silence for 1◈ · *Untouched*
-- [ ] **GB.16** · 16: Addle for 1◈ (Q) · *Untouched*
-- [ ] **GB.17** · 17: Gashed for 1◈ (Q) · *Untouched*
-- [ ] **GB.18** · 18: Deafen for 1◈ (Q) · *Untouched*
-- [ ] **GB.18.mag** · …its magnitude starts at 1 and rises by 1 for every extra 18 (Q) · *Untouched*
-- [ ] **GB.19** · 19: Dragonblight for 1◈ · *Untouched*
-- [ ] **GB.20** · 20: Crystallize for 1◈ (Q) · *Untouched*
-- [ ] **GB.same** · A number rolled more than once lands its debuff that many times · *Untouched*
-- [ ] **GB.same.ext** · …a debuff that does not stack has its duration extended instead · *Untouched*
-- [ ] **GB.cd** · Cooldown 3◈ at Rank E · *Untouched*
-- [ ] **GB.cd.rank** · …+1◈ for every increase in Rank (Q) · *Untouched*
-- [ ] **GB.cd.plus** · …+⅓◈ for every + added (Q) · *Untouched*
-- [ ] **GB.round** · The Active cannot be used on the same Round as Enuma Elish (Q) · *Untouched*
+- [x] **GB.tag** · [Anti-Unit] · *Observed: Document*
+- [x] **GB.p** · *(Passive)* Normal Attack damage dealt is increased by 50% (Q) · *Pressed: Normal Attack: +50%*
+- [x] **GB.p.seal** · …negated while he is inflicted with NP Seal · *Pressed: Under NP Seal: 197 → 148, no row*
+- [x] **GB.dmg** · *(Active)* Base Attack (STR) is used · *Pressed: BA(STR)*
+- [x] **GB.area** · Hits a 5x3 or 3x5 panel area in any non-diagonal direction next to him · *Pressed: East 3 wide 5 deep, and turned 5 wide 3 deep; (12,18) out of it*
+- [x] **GB.who** · Every Unit in the area is hit, allies too (Q) · *Pressed: Proto Gil hit in the area*
+- [x] **GB.rank** · He chooses the NP's Rank (Q) · *Pressed: The bar dialog, fifteen choices*
+- [x] **GB.A** · Rank A: 4x · *Pressed: 4x*
+- [x] **GB.B** · Rank B: 3.5x · *Pressed: 3.5x*
+- [x] **GB.C** · Rank C: 3x · *Pressed: 3x*
+- [x] **GB.D** · Rank D: 2.5x · *Pressed: 2.5x*
+- [x] **GB.E** · Rank E: 2x · *Pressed: 2x*
+- [x] **GB.plus** · He can add up to two + to the Rank: +100 damage for each (Q) · *Pressed: +100, +200 on the card*
+- [x] **GB.cost** · His Master pays the NP cost at the chosen Rank (Q) · *Pressed: E 10, D 20, C 30, B 40, A 50, A++ 56, each read off his Master*
+- [x] **GB.dice** · Each affected enemy rolls a d20 for each Rank of NP used (Q) · *Pressed: E 1, D 2, C 3, B 4, A and A++ 5, each its own roll*
+- [x] **GB.enemy** · …only enemies roll; an ally hit rolls none (Q) · *Pressed: Proto Gil: "rolls no dice"*
+- [x] **GB.1** · 1: Curse (Q) · *Pressed: Curse stage*
+- [x] **GB.2** · 2: Burn for 2◈ · *Pressed: 2◈*
+- [x] **GB.3** · 3: Shock for 2◈ · *Pressed: 2◈*
+- [x] **GB.4** · 4: Poison (Q) · *Pressed: Poison stage*
+- [x] **GB.5** · 5: Stun for 1◈ · *Pressed: Stun*
+- [x] **GB.6** · 6: Freeze (Q) · *Pressed: Freeze 1◈ each*
+- [x] **GB.6.cf** · …three or more 6s: Crystalfreeze instead (Q) · *Pressed: Three 6s: Crystalfreeze, tick 4 → 13*
+- [x] **GB.7** · 7: Slow for 1◈ · *Pressed: Slow*
+- [x] **GB.8** · 8: Immobilize for 1◈ · *Pressed: Immobilize*
+- [x] **GB.9** · 9: Disable for 1◈ · *Pressed: Disable*
+- [x] **GB.10** · 10: NP Seal for 1◈ · *Pressed: NP Seal*
+- [x] **GB.11** · 11: Bleed for 1◈ · *Pressed: Bleed*
+- [x] **GB.12** · 12: Sleep (Q) · *Pressed: Sleep; damage ×2, then off, no Counter*
+- [x] **GB.12.nm** · …three or more 12s: Nightmare instead (Q) · *Pressed: Three 12s: Nightmare; −10% on its own Turn*
+- [x] **GB.13** · 13: Seal for 1◈ (Q) · *Pressed: Seal*
+- [x] **GB.14** · 14: Blind for 1◈ · *Pressed: Blind*
+- [x] **GB.15** · 15: Silence for 1◈ · *Pressed: Silence*
+- [x] **GB.16** · 16: Addle for 1◈ (Q) · *Pressed: Addle: Treasury refused; an automatic Golden Rule held, with a line*
+- [x] **GB.17** · 17: Gashed for 1◈ (Q) · *Pressed: Gashed: a heal and Agility held, with a line*
+- [x] **GB.18** · 18: Deafen for 1◈ (Q) · *Pressed: Deafen(Y): Evade +4 on the DU*
+- [x] **GB.18.mag** · …its magnitude starts at 1 and rises by 1 for every extra 18 (Q) · *Pressed: Three 18s: Y 3 at 1◈; an evader of the bearer rolls −3*
+- [x] **GB.19** · 19: Dragonblight for 1◈ · *Pressed: Dragonblight*
+- [x] **GB.20** · 20: Crystallize for 1◈ (Q) · *Pressed: Crystallize: Evade +d6, −10% taken, −50 on a Turn it Acts*
+- [x] **GB.same** · A number rolled more than once lands its debuff that many times · *Pressed: Curse to stage 2, Poison to stage 2*
+- [x] **GB.same.ext** · …a debuff that does not stack has its duration extended instead · *Pressed: Burn tick 16, Stun 2◈, Freeze 2◈*
+- [x] **GB.cd** · Cooldown 3◈ at Rank E · *Pressed: E 9*
+- [x] **GB.cd.rank** · …+1◈ for every increase in Rank (Q) · *Pressed: C 15, A 21*
+- [x] **GB.cd.plus** · …+⅓◈ for every + added (Q) · *Pressed: E+ 10, A+ 22, A++ 23*
+- [x] **GB.round** · The Active cannot be used on the same Round as Enuma Elish (Q) · *Pressed: Refused, by name, after Enuma Elish*
 
 ## Enuma Elish: The Star of Creation that Split Heaven and Earth — Rank EX, NP, Anti-World
 
-- [ ] **EE.tag** · [Anti-World] · *Untouched*
-- [ ] **EE.dmg** · Base Attack (MAG) is used · *Untouched*
-- [ ] **EE.area** · Hits a 3x6 or 6x3 panel area in any non-diagonal direction (Q) · *Untouched*
-- [ ] **EE.who** · Every Unit in the area is hit, allies too · *Untouched*
-- [ ] **EE.x5** · 5x damage · *Untouched*
-- [ ] **EE.servant** · Damage dealt to Servants is further increased by 100% (Q) · *Untouched*
-- [ ] **EE.except** · …except the Servants on the list (Q) · *Untouched*
-- [ ] **EE.except.karl** · …the struck Karl der Große is not exempt (Q) · *Untouched*
-- [ ] **EE.cd** · Cooldown 8◈ · *Untouched*
-- [ ] **EE.round** · Cannot be used on the same Round as Gate of Babylon's Active (Q) · *Untouched*
-- [ ] **EE.rm.when** · Its Reality Marble effects land at the end of the Damage Step (Q) · *Untouched*
-- [ ] **EE.rm.end.ubw** · Used while he is inside Unlimited Blade Works: it is forcefully ended (Q) · *Untouched*
-- [ ] **EE.rm.end.chaos** · …inside Chaos Labyrinthos · *Untouched*
-- [ ] **EE.rm.end.duel** · …inside Diatrekhōn Astēr Lonkhē: Duel Field · *Untouched*
-- [ ] **EE.rm.end.ramesseum** · …inside Ramesseum Tentyris · *Untouched*
-- [ ] **EE.rm.end.rest** · …inside Depletion Garden, Golem Keter Malkuth, Ionioi Hetairoi, Papiyas, Puppet Playground, Shimabara Jigoku, Overload, Aestus Domus Aurea or Hakuro Jyou no Hyakki Hachitendou-sama (Q) · *Untouched*
-- [ ] **EE.bug.seal** · A DU with Bug Space who is affected: Skill Seal (Ea) for 3◈ (Q) · *Untouched*
-- [ ] **EE.bug.remove** · …and every effect Bug Space caused is removed from all Units (Q) · *Untouched*
-- [ ] **EE.ea.unremovable** · Skill Seal (Ea) and NP Seal (Ea) are Unremovable (Q) · *Untouched*
-- [ ] **EE.ea.ignores** · …ignore Debuff Immune and Resist effects on the DU (Q) · *Untouched*
-- [ ] **EE.ea.only** · …affect only the ability listed; the DU's other Skills and NPs stay usable (Q) · *Untouched*
-- [ ] **EE.ea.passive** · …negate all its effects, its Passive effects included (Q) · *Untouched*
-- [ ] **EE.np.airavata** · A DU with Airavata King Size who is affected: NP Seal (Ea) for 3◈ (Q) · *Untouched*
-- [ ] **EE.np.sterrennacht** · …with De Sterrennacht · *Untouched*
-- [ ] **EE.np.rest** · …with Alf Layla wa-Layla, Chariot My Love, Cursed Cupid Cleanser, Dimension of Steam, Emotional Engine - Full Drive, Metabole Piglets, Tsumukari Muramasa, Unlimited Lost Works or Lai Rhyme Goodfellow (Q) · *Untouched*
-- [ ] **EE.np.remove** · …and every effect that NP caused is removed from all Units (Q) · *Untouched*
-- [ ] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Untouched*
-- [ ] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Untouched*
-- [ ] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Untouched*
-- [ ] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Untouched*
-- [ ] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Untouched*
-- [ ] **EE.nf.tokens** · A DU with Nameless Forest who is affected: every Nameless Forest Token is removed from all Units (Q) · *Untouched*
-- [ ] **EE.nf.seal** · …then the DU is inflicted with NP Seal (Ea) for 3◈ · *Untouched*
-- [ ] **EE.other.area** · Another ability with "Reality Marble" in its name that deploys an area: ended if he uses Enuma Elish within it (Q) · *Untouched*
-- [ ] **EE.other.seal** · …one that does not: its bearer, if affected, gets Skill Seal (Ea) and/or NP Seal (Ea) for 3◈ (Q) · *Untouched*
+- [x] **EE.tag** · [Anti-World] · *Observed: Document*
+- [x] **EE.dmg** · Base Attack (MAG) is used · *Pressed: BA(MAG)*
+- [x] **EE.area** · Hits a 3x6 or 6x3 panel area in any non-diagonal direction (Q) · *Pressed: East 3 wide 6 deep: (12,18) and the panel beside him*
+- [x] **EE.who** · Every Unit in the area is hit, allies too · *Pressed: Arturia, an ally, hit*
+- [x] **EE.x5** · 5x damage · *Pressed: 5× row*
+- [x] **EE.servant** · Damage dealt to Servants is further increased by 100% (Q) · *Pressed: Kingprotea: ×2 row*
+- [x] **EE.except** · …except the Servants on the list (Q) · *Pressed: Drake, U-Olga Marie: "not against"*
+- [x] **EE.except.karl** · …the struck Karl der Große is not exempt (Q) · *Pressed: Karl de Große: ×2 row*
+- [x] **EE.cd** · Cooldown 8◈ · *Pressed: 24*
+- [x] **EE.round** · Cannot be used on the same Round as Gate of Babylon's Active (Q) · *Pressed: Refused, by name, after Gate of Babylon*
+- [x] **EE.rm.when** · Its Reality Marble effects land at the end of the Damage Step (Q) · *Pressed: Damage first, then the closing card*
+- [x] **EE.rm.end.ubw** · Used while he is inside Unlimited Blade Works: it is forcefully ended (Q) · *Pressed: Forcefully ended*
+- [x] **EE.rm.end.chaos** · …inside Chaos Labyrinthos · *Pressed: Ended, its 8◈ started, Units in place*
+- [x] **EE.rm.end.duel** · …inside Diatrekhōn Astēr Lonkhē: Duel Field · *Pressed: Ended*
+- [x] **EE.rm.end.ramesseum** · …inside Ramesseum Tentyris · *Pressed: Ended, Sphinxes gone*
+- [x] **EE.rm.end.rest** · …inside Depletion Garden, Golem Keter Malkuth, Ionioi Hetairoi, Papiyas/Dairokuten Maou Hajun, Puppet Playground/Kugutsu Yūen, Shimabara Jigoku, Overload, Aestus/Nuptiae Domus Aurea or Hakuro Jyou no Hyakki Hachitendou-sama (Q) · *Pressed: Stand-in `iskandar-ionioi-hetairoi`*
+- [x] **EE.bug.seal** · A DU with Bug Space who is affected: Skill Seal (Ea) for 3◈ (Q) · *Pressed: Stand-in: Skill Seal (Ea), its passive MOV gone*
+- [x] **EE.bug.remove** · …and every effect Bug Space caused is removed from all Units (Q) · *Pressed: Stand-in: Def Dwn off Arturia, a line*
+- [x] **EE.ea.unremovable** · Skill Seal (Ea) and NP Seal (Ea) are Unremovable (Q) · *Pressed: Cure Servant took Def Dwn and left the seal*
+- [x] **EE.ea.ignores** · …ignore Debuff Immune and Resist effects on the DU (Q) · *Pressed: Debuff Immune held: no die, no use spent*
+- [x] **EE.ea.only** · …affect only the ability listed; the DU's other Skills and NPs stay usable (Q) · *Pressed: Golden Hind still gated by the Turn alone*
+- [x] **EE.ea.passive** · …negate all its effects, its Passive effects included (Q) · *Pressed: Stand-in passive Base Attack +77 gone*
+- [x] **EE.np.airavata** · A DU with Airavata King Size who is affected: NP Seal (Ea) for 3◈ (Q) · *Pressed: NP Seal (Ea); on a Block too, not on an Evade*
+- [x] **EE.np.sterrennacht** · …with De Sterrennacht · *Pressed: NP Seal (Ea)*
+- [x] **EE.np.rest** · …with Alf Layla wa-Layla, Chariot My Love, Cursed Cupid Cleanser, Dimension of Steam, Emotional Engine - Full Drive, Metabole Piglets, Tsumukari Muramasa, Unlimited Lost Works or Lai Rhyme Goodfellow (Q) · *Pressed: Stand-ins `babbage-dimension-of-steam`, `medb-chariot-my-love` on an ally*
+- [x] **EE.np.remove** · …and every effect that NP caused is removed from all Units (Q) · *Pressed: Terror and Crit DmUp off both sides; Insanity's Atk Up stays*
+- [ ] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [ ] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [ ] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [ ] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [ ] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [x] **EE.nf.tokens** · A DU with Nameless Forest who is affected: every Nameless Forest Token is removed from all Units (Q) · *Pressed: Marker and pool off Proto Gil and Arturia; maxima stay*
+- [x] **EE.nf.seal** · …then the DU is inflicted with NP Seal (Ea) for 3◈ · *Pressed: NP Seal (Ea), after the Tokens*
+- [x] **EE.other.area** · Another ability with "Reality Marble" in its name that deploys an area: ended if he uses Enuma Elish within it (Q) · *Pressed: Stand-in with the tag: ended*
+- [x] **EE.other.seal** · …one that does not: its bearer, if affected, gets Skill Seal (Ea) and/or NP Seal (Ea) for 3◈ (Q) · *Pressed: Stand-in with the tag: NP Seal (Ea)*
 
 ## Enkidu: Chains of Heaven — Rank ???, Anti-Unit/Anti-Divine
 
-- [ ] **EC.target** · Range 3, one DU · *Untouched*
-- [ ] **EC.dmg** · Base Attack (STR), normal damage · *Untouched*
-- [ ] **EC.stun** · 50% chance of Stun for 1◈ · *Untouched*
-- [ ] **EC.EX** · Against a DU with Divinity EX: damage +150%, Stun chance +100% · *Untouched*
-- [ ] **EC.A** · …Divinity A: damage +100%, Stun chance +50% · *Untouched*
-- [ ] **EC.B** · …Divinity B: damage +80%, Stun chance +40% · *Untouched*
-- [ ] **EC.C** · …Divinity C: damage +60%, Stun chance +30% · *Untouched*
-- [ ] **EC.D** · …Divinity D: damage +40%, Stun chance +20% · *Untouched*
-- [ ] **EC.E** · …Divinity E: damage +20%, Stun chance +10% · *Untouched*
-- [ ] **EC.divine** · A DU with the 'Divine' Attribute but no Divinity Skill counts as Rank A · *Untouched*
-- [ ] **EC.immune** · Against a 'Divine' DU, Debuff Immune effects cannot prevent the Stun, even Stun-specific ones · *Untouched*
-- [ ] **EC.resist** · …Debuff Resist still reduces its chance · *Untouched*
-- [ ] **EC.free** · Does not decrease his Master's Health · *Untouched*
-- [ ] **EC.cd** · Cooldown 5◈ · *Untouched*
+- [x] **EC.target** · Range 3, one DU · *Pressed: Distance 4 refused, 3 lands*
+- [x] **EC.dmg** · Base Attack (STR), normal damage · *Pressed: BA(STR)*
+- [x] **EC.stun** · 50% chance of Stun for 1◈ · *Pressed: 50 less his Resist: 40*
+- [x] **EC.EX** · Against a DU with Divinity EX: damage +150%, Stun chance +100% · *Pressed: Damage and a certain Stun*
+- [x] **EC.A** · …Divinity A: damage +100%, Stun chance +50% · *Pressed: +50 points*
+- [x] **EC.B** · …Divinity B: damage +80%, Stun chance +40% · *Pressed: +40*
+- [x] **EC.C** · …Divinity C: damage +60%, Stun chance +30% · *Pressed: +30*
+- [x] **EC.D** · …Divinity D: damage +40%, Stun chance +20% · *Pressed: +20*
+- [x] **EC.E** · …Divinity E: damage +20%, Stun chance +10% · *Pressed: +10*
+- [x] **EC.divine** · A DU with the 'Divine' Attribute but no Divinity Skill counts as Rank A · *Pressed: Divine, no Skill: "as A"*
+- [x] **EC.immune** · Against a 'Divine' DU, Debuff Immune effects cannot prevent the Stun, even Stun-specific ones · *Pressed: Debuff Immune did not stop it; not Divine, it did*
+- [x] **EC.resist** · …Debuff Resist still reduces its chance · *Pressed: Drake 90 for 100*
+- [x] **EC.free** · Does not decrease his Master's Health · *Pressed: His Master unchanged*
+- [x] **EC.cd** · Cooldown 5◈ · *Pressed: 15*

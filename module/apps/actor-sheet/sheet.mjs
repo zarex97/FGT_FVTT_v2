@@ -28,6 +28,7 @@ import { veiledSpec } from "../../rules/concealment.mjs";
 import { paintCircles } from "../ornament.mjs";
 import { isClassicUI } from "../ui-style.mjs";
 import { fittedPosition, overflowOf } from "./fit.mjs";
+import { tierView } from "../../rules/tiers.mjs";
 
 /** The partials the sheet's parts render (`fgt.mjs`'s `setup`). */
 const SHEET_PARTIALS = Object.freeze(["fgt-ability-card", "fgt-effect-row"]);
@@ -440,10 +441,20 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return rideFrom(actor, { ability });
     }
 
-    const placement = await pickPlacement(actor, ability);
+    // The Rank its user chooses, before anything is aimed (#374 reading 2).
+    let tier = null;
+    if (ability?.system?.tierChoice) {
+      const { pickTier } = await import("../tier-dialog.mjs");
+      tier = await pickTier(actor, ability);
+      if (tier === null) return;
+    }
+
+    // Aimed as that Rank reads: the preview under the cursor is its damage (#374).
+    const aimed = await pickPlacement(actor, tier === null ? ability : tierView(ability, tier));
     // `null` is a cancellation, which is the most common outcome of opening a
     // targeting session and is not an error.
-    if (!placement) return;
+    if (!aimed) return;
+    const placement = tier === null ? aimed : { ...aimed, tier };
 
     const { FGTSocket } = await import("../../net/socket.mjs");
     try {

@@ -377,6 +377,8 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > `Def Dwn (MAG)` it plants raises MAG damage taken by 60%. Aimed at an ally it
 > would buff somebody else's kit and do nothing for hers.
 
+> **`Sleep`, `Nightmare`, `Addle`, `Gashed`, `Crystallize`, `Deafen(Y)` — built 2026-11-04 for Gate of Babylon's die table (#374).** Sleep and Nightmare carry `wokenByAttackDamage` (`engine/attack.mjs#wokenBy`), which also closes that phase's Counter, and a Total rise read at stage 15. Nightmare's tick is `periodic.percentOfCurrent` with `ownTurnOnly`. Addle's clause 2 is `engine/scheduler.mjs#fireEvent`: a handler authored `automatic: true` is held, with a line. Gashed is `HealingReceived` −100 and `BarsRestore` for Agility, at the one door (`engine/applier.mjs#resolveHealing`). Crystallize's d6 is rolled on an Evade and an Agility Check, Goddess of War's rolled shape. `deafenY` is the parameterized row; its second clause is `direction: imposed`. Nemo's `deafen` is unchanged.
+
 > **`Deafen` — built 2026-09-11, and the catalogue and the sheet disagree.**
 >
 > Nemo's *Triton's Conch* is the only source of `Deafen` in either roster, and it defines the

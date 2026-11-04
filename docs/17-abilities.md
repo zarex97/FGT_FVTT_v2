@@ -467,6 +467,27 @@ asked.
 
 ### Sessyoin Kiara (Summer)'s pieces (#372)
 
+**Tiers chosen at the declaration** (`tierChoice`, `rules/tiers.mjs#chosenTierView`). Gate of Babylon: *"Gilgamesh can
+choose the Rank of this NP"* (#374). `apps/tier-dialog.mjs` asks in `FGTActorSheet.declareAttack`, before the targeting,
+each choice priced by the press gate; the index travels as `placement.tier`, is refused if no tier holds it, and is
+stored on the Process as `attack.tier`. `engine/attack.mjs#declaredAbility` is the one door from a Process to its ability,
+so the damage, the riders and the die table read the Rank in force, and the preview under the cursor reads it too. A tier
+may set `damage` beside `rank`, `cooldown` and `refs`.
+
+**A die table's rows** (`rules/roll-table.mjs`). `relations` says who rolls: *"all affected enemy Units"*, in an area that
+hits every Unit, the rest saying so on the card. A row's `upgrade: {at, effects}` lands instead at that many of its face
+in one target's roll, each such die an application. `magnitudeIsCount` lands once, its magnitude the number of its face.
+`count` may be a `"@tier.<key>"`.
+
+**Abilities listed by name** (`rules/listed-abilities.mjs`). Enuma Elish names other Servants' abilities, by content id,
+never words inside a name. `endsFieldsInside: {abilities, tags}` is read where its user stands at the declaration, and
+`fireAttackPerformed` ends those areas through `deactivateField` once every Process is over, whoever owns them. A
+`strikeListedAbilities` phase rides each hit: every row's listed ability on the DU takes `sealEa`, which names it in
+`params.sealsAbility` and which `rules/snapshot.mjs#negatingEffectOf` reads, so that ability alone is refused and its
+passives stop; its area stands and does nothing (`fieldSealed`). `removesCaused` takes every instance it placed, on any
+Unit, each a line. `removesEffects` and `clearsResources` take a named marker and its pool, as Nameless Forest's Luck Check
+does, no stat written back. A `tags` row reaches an ability that deploys no area; an area with the tag ends instead.
+
 **Tiers bought with tokens** (`rules/tiers.mjs`). Her Skills print their boosted figures in brackets, *"Rank: B (B+)
 (A)"*, *"20% (25%) (30%)"*, *"Cooldown: 4◈ Turns (4◈-⅓◈ Turns) (4◈-⅔◈ Turns)"*, the first for one Mermaid Token
 spent, the second for two. A Skill states `tiers: [base, one, two]`, each `{rank?, cooldown?, refs}`, and its phases

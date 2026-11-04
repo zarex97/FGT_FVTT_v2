@@ -1,0 +1,25 @@
+# Skill Seal (Ea) and NP Seal (Ea), Enuma Elish's lists (#374 reading 19).
+#
+# > "Skill Seal (Ea) is Unremovable and ignores Debuff Immune/Resist effects on the
+# > DU, but only affects the Skill listed here, negating all its effects including
+# > Passive effects (i.e. if the affected Unit has other Skills not listed here,
+# > they can still be used)."
+#
+# One effect, naming its one ability in `params.sealsAbility`. A bearer may hold
+# several, one per listed ability, so each is its own instance. No rule elements:
+# `rules/snapshot.mjs#negatingEffectOf` negates that ability whole, the use gate
+# and its passives alike, and `rules/listed-abilities.mjs#fieldSealed` does the
+# same for an area it left standing.
+schema: 1
+id: sealEa
+name: "Seal (Ea)"
+description: "One named Skill or Noble Phantasm cannot be used and all its effects are negated, its Passive effects included. Unremovable."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+unremovable: true
+bypassesImmunity: true
+bypassesResistance: true
+rules: []

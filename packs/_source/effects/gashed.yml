@@ -1,0 +1,19 @@
+# Appendix A §A.14
+# "Health and Agility cannot be restored."
+#
+# Health is Drowning's `HealingReceived` at -100. Agility has no heal to scale, so
+# `BarsRestore` holds the write at the same door, with a line (#374 reading 11). A
+# revival is no restoration, as for Drowning.
+schema: 1
+id: gashed
+name: "Gashed"
+description: "Health and Agility cannot be restored."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  - { key: HealingReceived, value: -100 }
+  - { key: BarsRestore, stat: agility }

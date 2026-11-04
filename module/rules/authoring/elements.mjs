@@ -321,6 +321,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "exceptSources", type: "tokenList" },
   ]),
+  entry("BarsRestore", "A pool this Unit cannot regain: Gashed's Agility.", [
+    { key: "stat", type: "text" },
+  ]),
   entry("CooldownCutBonus", "Every cut to this Unit's named Cooldowns cuts more: any cut, or the natural Turn only.", [
     { key: "kinds", type: "tokenList" },
     { key: "extra", type: "number" },

@@ -1,0 +1,23 @@
+# Appendix A §A.12
+# "Sleep effects, plus -10% of current Health at the end of its turn."
+#
+# A derivative of Sleep: it replaces Sleep, using its own duration, and it cannot be
+# replaced by another (`engine/effect-applier.mjs#findExclusion`). Gate of Babylon's
+# three or more 12s are the first to inflict it (#374).
+schema: 1
+id: nightmare
+name: "Nightmare"
+description: |
+  Cannot Act. Damage from an attack is increased by 100% of Total Damage, then Nightmare is removed, and this Unit
+  cannot Counter that phase. Loses 10% of its current Health at the end of its Turn.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+preventsAction: true
+wokenByAttackDamage: true
+periodic: { when: turnEnd, amount: 0, percentOfCurrent: 10, ownTurnOnly: true, bypassModifiers: true }
+rules:
+  - { key: DamageModifier, modifierKey: totalDefDwn, direction: taken, value: 100 }

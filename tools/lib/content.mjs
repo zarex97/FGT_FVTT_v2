@@ -69,7 +69,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward", "AlignmentOverride",
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
   // additional Normal Attack.
-  "HealingReceived", "FollowUpAttack", "CooldownCutBonus", "UseFailure", "LearnsTrueNames",
+  "HealingReceived", "BarsRestore", "FollowUpAttack", "CooldownCutBonus", "UseFailure", "LearnsTrueNames",
   // U-Olga Marie (#328): Unparalleled's three Attacks and its bar on her
   // allied Servants, Gravity Manipulation's distant STR Attacks, Four Elements.
   "AttacksPerTurn", "BanAlliedServantAttacks", "NullifiesAttacks", "AttackRider",
