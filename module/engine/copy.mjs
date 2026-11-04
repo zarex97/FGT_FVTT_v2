@@ -332,7 +332,7 @@ function abilitySpec(item) {
   const sys = item.system ?? {};
   return {
     id: sys.contentId || item.id,
-    name: item.name,
+    name: item.name, // fgt-name-ok: the copy's own record, the bearer's sheet
     rank: sys.rank,
     // `kind` and `passive` were read here against a schema that declared
     // neither, so `canCopy`'s "excluding Class Skills" and "must have an

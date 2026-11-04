@@ -110,6 +110,7 @@ import { historyOf } from "./state-history.mjs";
 import { chosenTierView } from "../rules/tiers.mjs";
 import { fieldsEndedBy, struckAbilities, causedBy } from "../rules/listed-abilities.mjs";
 import { warRule, currentWar, isWarGM, warOfScene } from "./war.mjs";
+import { shownAbility, shownAbilityRank } from "./public-ability.mjs";
 
 /**
  * The ability a Process was declared with, as the Rank its user chose reads.
@@ -1693,7 +1694,7 @@ async function declareProcesses({
   // target of an area NP. Not for damage only measured as an attack.
   const { openDeclarationWindow, carryDeclarationBoosts } = await import("./declaration-window.mjs");
   const boostWindow = placement?.plainDamage ? null : await openDeclarationWindow({
-    attackerId, attack: spec, abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
+    attackerId, attack: spec, abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"), // fgt-name-ok: the attacker's own Masters' window
   });
 
   // AN EMPTY AIM (#381). Said alike whether the area holds nobody or a Unit its
@@ -1889,7 +1890,7 @@ async function declareProcesses({
     const hit = (batch[0].attack?.instanceIndex ?? 0) + 1;
     await ChatMessage.create({
       content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Card.DrawnNone", {
-        ability: foundry.utils.escapeHTML(ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack")),
+        ability: foundry.utils.escapeHTML(ability ? shownAbility(ability) : game.i18n.localize("FGT.Chat.NormalAttack")),
         hit,
       })}</p></div>`,
     });
@@ -2776,7 +2777,7 @@ async function rollDiceCount(ability, options, { attacker, defender, facts }, st
     raw: faces.join(", "),
     total: threshold.threshold,
     modifiers: thresholdModifiers(threshold, ctx, explainPredicate),
-    purpose: `${ability.name}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
+    purpose: `${shownAbility(ability)}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
     actorId: state.attackerId,
   });
   state.rollLog = [...(state.rollLog ?? []), record];
@@ -4070,7 +4071,7 @@ async function refundPlainMiss(states) {
   if (!item || !((item.system?.cooldown?.remaining ?? 0) > 0)) return;
   await applyBatch([{ ...I.cooldown(attackerId, abilityId, 0, "set"), source: "Drowning" }], "plainMiss:refund");
   await ChatMessage.create({
-    content: `<p>${game.i18n.format("FGT.Miss.Refunded", { name: item.name })}</p>`,
+    content: `<p>${game.i18n.format("FGT.Miss.Refunded", { name: shownAbility(item) })}</p>`,
     speaker: publicSpeakerFor(unitActor(attackerId)),
   });
 }
@@ -4418,7 +4419,7 @@ async function payLegionPriceOf(state, siblings) {
   const formula = ability?.system?.legionCost ?? null;
   if (!formula) return;
   const { payLegionPrice } = await import("./legion.mjs");
-  await payLegionPrice(attacker, formula, ability.name);
+  await payLegionPrice(attacker, formula, shownAbility(ability));
 }
 
 /**
@@ -5344,7 +5345,7 @@ function totalModifiersFor(ability, options, self, block = undefined, { areaCoun
     out.push({
       key: m.key ?? "totalDamage",
       factor: 1 + percent / 100,
-      source: m.source ?? ability?.name ?? "Total Damage",
+      source: m.source ?? (ability ? shownAbility(ability) : "Total Damage"),
     });
   }
   return out;
@@ -7443,7 +7444,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // (`skill-use.mjs#runRollTable`) rolled here and this loop skipped it.
     if (phase.kind === "rollTable") {
       if (heldOnly) continue;
-      if (holding) { keep("rollTable", ability.name); continue; }
+      if (holding) { keep("rollTable", shownAbility(ability)); continue; }
       applied.push(...await rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
       continue;
     }
@@ -7452,7 +7453,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // Block does; once per Process, so once per DU.
     if (phase.kind === "strikeListedAbilities") {
       if (heldOnly) continue;
-      if (holding) { keep("strikeListedAbilities", ability.name); continue; }
+      if (holding) { keep("strikeListedAbilities", shownAbility(ability)); continue; }
       applied.push(...await strikeListedAbilities(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
       continue;
     }
@@ -7600,7 +7601,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
   if (!rollsTable(phase, relation)) {
     return [{ summary: {
       id: "rollTable",
-      name: game.i18n.format("FGT.RollTable.NotRolled", { name: ability.name, unit: shownName(defender) }),
+      name: game.i18n.format("FGT.RollTable.NotRolled", { name: shownAbility(ability), unit: shownName(defender) }),
       outcome: "blocked", reason: null, chance: null,
     } }];
   }
@@ -7646,7 +7647,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
   }
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.RollTable.Rolled", {
-      name: ability.name, unit: shownName(defender), results: results.join(", "),
+      name: shownAbility(ability), unit: shownName(defender), results: results.join(", "),
     })}</p>`,
     speaker: publicSpeakerFor(attackerDoc),
   });
@@ -7700,7 +7701,7 @@ async function strikeListedAbilities(phase, ability, state, attackerDoc, attacke
       .filter((e) => e.defId === phase.seal && e.params?.sealsAbility === sealedId);
     if (prior.length > 0) await applyBatch(prior.map((e) => I.removeEffect(defenderDoc.id, e.id, "refreshed")), "abilityEffect:strikeListed");
     const isNP = Boolean(item.system?.isNP || item.system?.categorizedAsNP || item.type === "noblePhantasm");
-    const seal = game.i18n.format(isNP ? "FGT.Effect.NpSealNamed" : "FGT.Effect.SkillSealNamed", { ability: item.name });
+    const seal = game.i18n.format(isNP ? "FGT.Effect.NpSealNamed" : "FGT.Effect.SkillSealNamed", { ability: shownAbility(item) });
     out.push(...await landEntry(entryOf({
       id: phase.seal,
       duration: phase.duration,
@@ -9400,7 +9401,7 @@ async function askAttackerWindow(state, window, message) {
       I.recordUse(actor.id, id, item?.system?.contentId ?? null),
       I.log({
         kind: "ability", event: "windowUsed", window,
-        unitId: actor.id, abilityId: id, name: item?.name ?? id,
+        unitId: actor.id, abilityId: id, name: item?.name ?? id, // fgt-name-ok: the GM's log
       }),
     ];
   });
@@ -9583,7 +9584,7 @@ async function runMissCheck(state, attacker, board) {
  */
 function nullifierName(source, doc) {
   const item = doc?.items?.find((i) => i.id === source || i.system?.contentId === source || i.system?.slug === source);
-  return item?.name ?? EffectRegistry.get(source)?.name ?? String(source ?? "");
+  return (item ? shownAbility(item) : null) ?? EffectRegistry.get(source)?.name ?? String(source ?? "");
 }
 
 /**
@@ -9796,7 +9797,7 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
     id: a.ability.id,
     // Its owner as the table knows them: the card is public, and it read
     // "Avalon: The Everdistant Utopia (Arturia)" under a concealed Saber (#230).
-    name: `${a.ability.name} (${shownName(board.units.find((u) => u.id === a.ownerId) ?? { id: a.ownerId, name: a.ownerName })})`,
+    name: `${shownAbility(unitActor(a.ownerId)?.items?.get?.(a.ability.id)) || a.ability.name} (${shownName(board.units.find((u) => u.id === a.ownerId) ?? { id: a.ownerId, name: a.ownerName })})`, // fgt-name-ok: the name when its owner is gone
     ownerId: a.ownerId,
   }));
 
@@ -10210,13 +10211,13 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
     const item = usable[0];
     const picked = await askOwner(defenderDoc, {
       kind: "choose",
-      title: item.name,
+      title: item.name, // fgt-name-ok: the canceller's own prompt
       hint: game.i18n.format("FGT.CancelNP.Hint", {
-        name: defenderDoc.name, attacker: shownName(attacker), np: ability.name,
+        name: defenderDoc.name, attacker: shownName(attacker), np: shownAbility(ability),
       }),
       min: 0,
       count: 1,
-      options: [{ id: "cancel", name: game.i18n.localize("FGT.CancelNP.Take"), detail: item.name }],
+      options: [{ id: "cancel", name: game.i18n.localize("FGT.CancelNP.Take"), detail: item.name }], // fgt-name-ok: the canceller's own prompt
     });
     if (!(picked ?? []).includes("cancel")) continue;
 
@@ -10280,7 +10281,7 @@ async function resolveNPCancellation({
   /** @type {object[]} */
   const intents = [I.log({
     kind: "npCancelled", unitId: attackerId, by: cancellerDoc.id,
-    ability: ability.name, source: cancelling.name, strongest,
+    ability: ability.name, source: cancelling.name, strongest, // fgt-name-ok: the GM's log
   })];
   let outcome = "";
 
@@ -10336,8 +10337,8 @@ async function resolveNPCancellation({
   await resolveEmptiedUnit(attackerId);
 
   const message = await ChatMessage.create({
-    content: `<p><strong>${cancelling.name}</strong> — ${cancellerDoc.name} cancels `
-      + `<em>${ability.name}</em>.</p><p>${outcome}</p>`
+    content: `<p><strong>${shownAbility(cancelling)}</strong> — ${cancellerDoc.name} cancels `
+      + `<em>${shownAbility(ability)}</em>.</p><p>${outcome}</p>`
       + `<p>${ranked.length} damaging Noble Phantasm(s) ranked; `
       + `${strongest ? "this was the strongest" : "this was not the strongest"}.</p>`,
     speaker: publicSpeakerFor(cancellerDoc),
@@ -10591,7 +10592,7 @@ async function resolveEmptiedUnit(unitId) {
  */
 async function postEmptyAim(actor, ability, closed) {
   await ChatMessage.create({
-    content: `<p>${game.i18n.format("FGT.Attack.EmptyAim", { ability: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack") })}</p>`,
+    content: `<p>${game.i18n.format("FGT.Attack.EmptyAim", { ability: ability ? shownAbility(ability) : game.i18n.localize("FGT.Chat.NormalAttack") })}</p>`,
     speaker: publicSpeakerFor(actor),
     ...(closed ? { flags: { fgt: { process: process.serialize(closed) } } } : {}),
   });
@@ -10608,8 +10609,8 @@ async function postChosenTier(actor, ability) {
   const damage = ability.system.damage ?? {};
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.Tier.Chosen", {
-      ability: ability.name,
-      rank: ability.system.rank ?? "",
+      ability: shownAbility(ability),
+      rank: shownAbilityRank(ability) ?? "?",
       multiplier: damage.multiplier ?? 1,
       flat: damage.flatBonus ?? 0,
       cooldown: ability.system.cooldown?.max ?? "",
@@ -10620,7 +10621,7 @@ async function postChosenTier(actor, ability) {
 
 export async function postCriteriaCard(actor, ability, criteria) {
   await ChatMessage.create({
-    content: `<p>${criteriaLine((key, data) => game.i18n.format(key, data), ability, criteria)}</p>`,
+    content: `<p>${criteriaLine((key, data) => game.i18n.format(key, data), { name: shownAbility(ability) }, criteria)}</p>`,
     speaker: publicSpeakerFor(actor),
   });
 }
@@ -10635,7 +10636,7 @@ export async function postCriteriaCard(actor, ability, criteria) {
  */
 export function criteriaLine(t, ability, criteria) {
   return t("FGT.Criteria.Line", {
-    ability: ability?.name ?? "", met: criteria.met, total: criteria.total,
+    ability: ability?.name ?? "", met: criteria.met, total: criteria.total, // fgt-name-ok: its caller hands it the public name
     which: criteria.which.length > 0 ? criteria.which.join(", ") : "—",
   });
 }

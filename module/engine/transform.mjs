@@ -32,6 +32,7 @@ import { formOf } from "../rules/form.mjs";
 import { fractionTicks, parseTick, resolveTicks } from "../domain/tick.mjs";
 import { servantSetupPlan } from "../rules/setup-rolls.mjs";
 import { warRule } from "./war.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * May this Unit take the form this ability defines, here and now? Not twice,
@@ -92,7 +93,7 @@ export async function transformUnit(unitId, abilityContentId, { cause = null } =
   const rolled = (lasting?.lines ?? []).map((l) => `<p>${escape(l)}</p>`).join("");
   await ChatMessage.create({
     content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Transform.Took", {
-      name: escape(shownName(doc, board)), form: escape(item.name),
+      name: escape(shownName(doc, board)), form: escape(shownAbility(item)),
     })}</p>${rolled}</div>`,
     speaker: publicSpeakerFor(doc),
   });
@@ -256,7 +257,7 @@ export async function leaveForm(unitId, { tick = null } = {}) {
   const escape = foundry.utils.escapeHTML;
   await ChatMessage.create({
     content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Transform.Returned", {
-      name: escape(shownName(doc, board)), form: escape(item?.name ?? spec.id ?? ""), turns: gone,
+      name: escape(shownName(doc, board)), form: escape(shownAbility(item) || (spec.id ?? "")), turns: gone,
     })}</p><p>${game.i18n.format("FGT.Transform.Toll", { before, after: health })}</p></div>`,
     speaker: publicSpeakerFor(doc),
   });

@@ -675,7 +675,7 @@ export function usageSpecFor(ability) {
     slug: sys.slug ?? null,
     // Its name, for a refusal that says which ability it holds back: Fafnir's
     // lock read "undefined cannot be used while ... is Active" (#345, live).
-    name: ability.name ?? null,
+    name: ability.name ?? null, // fgt-name-ok: the owner's refusal
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
     // The availability gate covers `isNP || categorizedAsNP` (Ch. 04,

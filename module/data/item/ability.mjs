@@ -352,6 +352,10 @@ function abilityCommon() {
     schedule: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
+    // The ability whose public tag this one shares: one printed NP on two clocks
+    // is one tag (#387 ruling 60), read by `rules/public-ability.mjs#tagKey`.
+    publicTagAs: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
     // Whether Scáthach may copy this (Ch. 17). Authored per ability because
     // "Skills a Servant is physically born with" is a judgement the author
     // makes and the engine cannot infer -- there is no field on Natural Body

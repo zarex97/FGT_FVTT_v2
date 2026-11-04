@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { playAttack, castSkill } from "../helpers/process.mjs";
 import { fireEvent } from "../../module/engine/scheduler.mjs";
+import { shownAbility } from "../../module/engine/public-ability.mjs";
 import * as process from "../../module/engine/combat-process.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -364,7 +365,9 @@ describe("Avalon, Method 1 (AV.1.*; readings 14, 15, 24)", () => {
       const offered = process.deserialize(w.messages.get(declared.messageId).getFlag("fgt", "process")).reactionAbilities?.[ALLY] ?? [];
       const shown = publicIdentityOf(w.actor(ART), currentBoard()).name;
       expect(shown).not.toBe(w.actor(ART).name);
-      expect(offered.map((a) => a.name)).toContain(`${avalon.name} (${shown})`);
+      // Its name is concealed too (#387): the card is public.
+      expect(offered.map((a) => a.name)).toContain(`${shownAbility(avalon)} (${shown})`);
+      expect(offered.map((a) => a.name)).not.toContain(`${avalon.name} (${shown})`);
     }, { ...THEIRS, pack: PACK });
   });
 

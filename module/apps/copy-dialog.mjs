@@ -20,6 +20,8 @@
 
 import { offerCopies, grantCopies, copyGrantOf, copyGrantSpec } from "../engine/copy.mjs";
 import { unitActor } from "../engine/board.mjs";
+import { publicRow } from "../engine/public-ability.mjs";
+import { shownName } from "../engine/public-identity.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -244,12 +246,14 @@ async function askOwner(copierId, offered, slots, title) {
     title,
     hint: game.i18n.format("FGT.Copy.PickHint", { count: slots }),
     count: slots,
-    options: offered.map((c) => ({
-      id: c.ability.id,
-      name: c.ability.name,
-      subtitle: `${c.ability.rank ?? "—"} · ${c.unitName}`,
-      detail: c.ability.description ?? "",
-    })),
+    // The player's list is public (#387 ruling 55): a tag, a Rank, Active or
+    // Passive, and the text with its bearer's names removed. The GM's stage,
+    // before this, keeps the truth.
+    options: offered.map((c) => {
+      const owner = unitActor(c.unitId);
+      const row = publicRow(c.ability, owner);
+      return { id: c.ability.id, name: row.tag, subtitle: `${row.rank} · ${row.activity} · ${shownName(owner)}`, detail: row.detail };
+    }),
   };
 
   const owner = ownerOf(copierId);

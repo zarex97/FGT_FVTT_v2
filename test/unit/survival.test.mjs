@@ -142,6 +142,7 @@ export const ABILITY_ROUTES = {
   category: same("category"),
   contentId: same("contentId"),
   copyable: same("copyable"),
+  publicTagAs: doc("module/rules/public-ability.mjs", "one printed NP on two clocks is one public tag (#387)"),
   damage: same("damage"),
   exclusionSet: same("exclusionSet"),
   isNP: same("isNP"),

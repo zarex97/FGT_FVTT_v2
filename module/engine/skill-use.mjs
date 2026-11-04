@@ -78,6 +78,7 @@ import { warRule, currentWar } from "./war.mjs";
 import { phaseChance } from "../rules/phase-chance.mjs";
 import { durationChanges } from "../rules/effect-duration.mjs";
 import { tierSpend, tierIndex, tierView } from "../rules/tiers.mjs";
+import { shownAbility, shownAbilityRank } from "./public-ability.mjs";
 
 /**
  * Use an active Skill.
@@ -259,7 +260,7 @@ export async function useSkill({
     I.recordUse(actorId, ability.id, ability.system?.contentId ?? null, 1, bypassesCategoryLimit),
     I.log({
       kind: "ability", event: "skillUsed",
-      unitId: actorId, abilityId, name: ability.name,
+      unitId: actorId, abilityId, name: ability.name, // fgt-name-ok: the GM's log
       targets: targets.units.map((t) => t.unitId),
       applied: applied.map((a) => a.summary),
     }),
@@ -280,7 +281,7 @@ export async function useSkill({
   if (failure) {
     await ChatMessage.create({
       content: `<p>${game.i18n.format("FGT.Miss.SkillFailed", {
-        name: ability.name, source: failure.source, roll: failure.roll, chance: failure.chance,
+        name: shownAbility(ability), source: failure.source, roll: failure.roll, chance: failure.chance,
       })}</p>`,
       speaker: publicSpeakerFor(actor),
     });
@@ -326,7 +327,7 @@ export async function spendTier(actor, ability, self) {
   await applyWorldIntents(spend.spentIds.map((id) => I.removeEffect(actor.id, id, "spent")), `skill:${ability.id}`);
   const token = EffectRegistry.get(spend.defId)?.name ?? spend.defId;
   const name = game.i18n.format(index > 0 ? "FGT.Tier.Spent" : "FGT.Tier.SpentNothing", {
-    n: spend.tier, token, ability: ability.name, rank: view.system?.rank ?? "",
+    n: spend.tier, token, ability: shownAbility(ability), rank: view.system?.rank ?? "",
   });
   return { ability: view, row: { unitId: actor.id, summary: { id: spend.defId, name, outcome: "applied", reason: null } } };
 }
@@ -350,7 +351,7 @@ export async function rollUseFailure(actor, ability, self) {
   if (roll <= risk.chance) return { ...risk, roll };
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.UseFailure.Held", {
-      name: ability.name, roll, chance: risk.chance, source: risk.source,
+      name: shownAbility(ability), roll, chance: risk.chance, source: risk.source,
     })}</p>`,
     speaker: publicSpeakerFor(actor),
   });
@@ -382,9 +383,9 @@ export function useFailurePatch(fails, ability, self) {
  */
 export async function postUseFailureCard(actor, ability, fails) {
   const lines = [game.i18n.format("FGT.UseFailure.Failed", {
-    name: ability.name, roll: fails.roll, chance: fails.chance, source: fails.source,
+    name: shownAbility(ability), roll: fails.roll, chance: fails.chance, source: fails.source,
   })];
-  if (fails.then === "lockThisTurn") lines.push(game.i18n.format("FGT.UseFailure.Locked", { name: ability.name }));
+  if (fails.then === "lockThisTurn") lines.push(game.i18n.format("FGT.UseFailure.Locked", { name: shownAbility(ability) }));
   if (fails.then === "endActions") {
     lines.push(game.i18n.format("FGT.UseFailure.ActionsEnded", { unit: publicIdentityOf(actor, currentBoard()).name }));
   }
@@ -439,7 +440,7 @@ export async function rollConcealmentBreak(actor, ability, self) {
   // not learn she is still concealed.
   if (roll.total > chance) {
     await ChatMessage.create({
-      content: `<p><strong>${ability.name}</strong>: rolled ${roll.total} vs ${chance}%.`
+      content: `<p><strong>${shownAbility(ability)}</strong>: rolled ${roll.total} vs ${chance}%.`
         + ` Presence Concealment holds.</p>`,
       speaker: publicSpeakerFor(actor),
       whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id),
@@ -451,7 +452,7 @@ export async function rollConcealmentBreak(actor, ability, self) {
   const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
   await deactivateConcealment(actor.id, DEACTIVATION_REASONS.skillUse);
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> gave `
+    content: `<p><strong>${shownAbility(ability)}</strong> gave `
       + `${publicIdentityOf(actor, currentBoard()).name} away —`
       + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
     speaker: publicSpeakerFor(actor),
@@ -718,7 +719,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         unitId: actor.id,
         summary: {
           id: "chance",
-          name: game.i18n.format("FGT.Phase.Chance", { label: phase.chance.label ?? ability.name, roll: roll.total, percent }),
+          name: game.i18n.format("FGT.Phase.Chance", { label: phase.chance.label ?? shownAbility(ability), roll: roll.total, percent }),
           outcome: hit ? "applied" : "failed",
           reason: hit ? null : game.i18n.localize("FGT.Phase.Missed"),
         },
@@ -996,7 +997,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           if (target.unitId !== actor.id) break;
           const { transformUnit } = await import("./transform.mjs");
           const done = await transformUnit(actor.id, ability.system?.contentId ?? ability.id, { cause: "used" });
-          if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: ability.name }), outcome: "applied", reason: null } });
+          if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: shownAbility(ability) }), outcome: "applied", reason: null } });
           break;
         }
 
@@ -1253,7 +1254,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const opened = Boolean(field?.fieldId ?? field?.id);
           applied.push({
             summary: {
-              id: "field", name: ability.name,
+              id: "field", name: shownAbility(ability),
               outcome: opened ? "applied" : "failed",
               // `declined` only when it really was: anything else is the field
               // failing to open, and saying "declined" for that hides it.
@@ -1369,7 +1370,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             const { endField } = await import("./fields.mjs");
             if ((board.fields ?? []).some((f) => f.id === contentId)) await endField(contentId);
             await item.update({ "system.expended": true });
-            applied.push({ summary: { id: "expend", name: item.name, outcome: "applied", reason: null } });
+            applied.push({ summary: { id: "expend", name: shownAbility(item), outcome: "applied", reason: null } });
           }
           break;
         }
@@ -1418,7 +1419,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // A roll outside any Combat Process, which a granted adjustment may
           // move (Expert of Many Specializations, #226 reading 10).
           const { offerRollAdjustment } = await import("./roll-adjust.mjs");
-          const moved = await offerRollAdjustment(snapshot, roll.total, { check: "evade", label: ability.name });
+          const moved = await offerRollAdjustment(snapshot, roll.total, { check: "evade", label: ability.name }); // fgt-name-ok: the caster's own prompt
           const plan = checkPlan(snapshot, "evade");
           const outcome = evade({
             roll: moved.roll,
@@ -1500,7 +1501,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const started = await startChannel(actor, ability, phase);
           applied.push({
             summary: {
-              id: "channel", name: ability.name,
+              id: "channel", name: shownAbility(ability),
               outcome: started ? "applied" : "failed",
               reason: started ? null : "alreadyChannelling",
             },
@@ -1532,7 +1533,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // because the alternative is a Noble-Phantasm-sized hole that looks
           // like an ability quietly doing less than its text says.
           console.error(`FGT | ${ability.name} has a damage phase and was used as a Skill.`);
-          ui.notifications?.error(game.i18n.format("FGT.Skill.DamagePhase", { name: ability.name }));
+          ui.notifications?.error(game.i18n.format("FGT.Skill.DamagePhase", { name: ability.name })); // fgt-name-ok: the GM's error
           break;
 
         default:
@@ -1613,7 +1614,7 @@ async function runRollTable(phase, ability, actor, target, board) {
     const rolled = new Set(results.map(String));
     const others = choicesIn(table).filter((o) => !rolled.has(String(o.roll)));
     const picked = others.length === 0 ? [] : await chooseFor(actor, {
-      title: ability.name,
+      title: ability.name, // fgt-name-ok: the caster's own prompt
       hint: game.i18n.format("FGT.RollTable.ThenChooseHint", { results: results.join(", ") }),
       count: 1,
       min: 0,
@@ -1656,7 +1657,7 @@ async function chooseRows(actor, table, ability, roll) {
 
   // Asked of the caster's player, wherever the Skill is running (#130).
   const picked = await chooseFor(actor, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: game.i18n.format("FGT.RollTable.ChooseHint", { roll }),
     count: 1,
     options: options.map((o) => ({
@@ -1696,7 +1697,7 @@ function effectLabel(spec) {
  */
 async function postRollCard(actor, ability, target, results) {
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> on ${shownName(target) || "the target"}: `
+    content: `<p><strong>${shownAbility(ability)}</strong> on ${shownName(target) || "the target"}: `
       + `rolled ${results.join(", ")}.</p>`,
     speaker: publicSpeakerFor(actor),
   });
@@ -1737,7 +1738,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const tick = currentMoment().tick ?? 0;
         const stayOf = () => unitOf(unitActor(target?.id), currentBoard())?.expiresAt ?? null;
         const before = stayOf();
-        const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, {
+        const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, { // fgt-name-ok: a rule's source, read by rules, never printed
           board, tick, turnsPerRound: warRule("turnsPerRound"),
         });
         if (intents.length > 0) await applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null });
@@ -1745,7 +1746,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const after = stayOf();
         const name = kind === "DurationDelta" && typeof before === "number" && typeof after === "number"
           ? game.i18n.format("FGT.Skill.StayExtended", { before: Math.max(0, before - tick), after: Math.max(0, after - tick) })
-          : game.i18n.format("FGT.Skill.ActionTookEffect", { ability: ability.name });
+          : game.i18n.format("FGT.Skill.ActionTookEffect", { ability: shownAbility(ability) });
         out.push({ unitId: target?.id, summary: { id: kind, name, outcome: intents.length > 0 ? "applied" : "noEffect", reason: null } });
         continue;
       }
@@ -1926,7 +1927,7 @@ export async function postCostCards(charged, { ability, self }) {
       const servant = self?.id ? unitActor(self.id) : null;
       const text = game.i18n.format("FGT.Cost.MasterScaled", {
         servant: foundry.utils.escapeHTML(servant ? shownName(servant, currentBoard()) : ""),
-        ability: foundry.utils.escapeHTML(ability?.name ?? ""),
+        ability: foundry.utils.escapeHTML(shownAbility(ability)),
         amount: cost.amount ?? 0, factor: cost.scaledBy, source: foundry.utils.escapeHTML(cost.scaledFrom ?? ""),
       });
       await ChatMessage.create({ content: `<div class="fgt-card"><p>${text}</p></div>` });
@@ -2014,8 +2015,8 @@ export async function postCard(actor, ability, targets, applied) {
     {
       caster: self.name,
       img: self.img,
-      ability: ability.name,
-      rank: ability.system?.rank ?? null,
+      ability: shownAbility(ability),
+      rank: shownAbilityRank(ability),
       targets: names,
       // Rendered empty on purpose: the hook fills it for whoever is looking.
       effects: [],
@@ -2058,7 +2059,7 @@ export async function postCard(actor, ability, targets, applied) {
     // filtered card ships the whole result to every client that can read them,
     // and `strict` (a whisper per audience) is the setting for a table that
     // wants more than that.
-    flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor) } },
+    flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor), casterId: actor.id, abilityId: ability.id } },
   });
 }
 
@@ -2407,7 +2408,7 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
   // Asked of the caster's player, wherever the Skill is running: a Skill runs on
   // the GM, and its player's decision is on that player's screen (#130).
   const picked = await chooseFor(actor, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: phase.prompt ? game.i18n.localize(phase.prompt) : "",
     count: phase.count ?? 1,
     options: options.map((o) => ({
@@ -2477,7 +2478,7 @@ async function chosenCooldowns(phase, ability, doc) {
   const shape = options.length === 1
     ? options[0].id
     : (await chooseFor(doc, {
-      title: ability.name,
+      title: ability.name, // fgt-name-ok: the caster's own prompt
       hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
       count: 1,
       // Localized, like every other authored label the dialogs render. It was
@@ -2501,7 +2502,7 @@ async function chosenCooldowns(phase, ability, doc) {
 
   // fgt-offer-ok: picks whose Cooldown to cut, which is no use of them
   const chosen = await chooseFor(doc, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: game.i18n.format("FGT.Skill.ChooseCooldownTargets", { turns }),
     // Fewer candidates than the shape asks for is not a refusal: reduce what
     // there is. The alternative is a Skill that cannot be used at all because
@@ -2841,7 +2842,7 @@ export async function resolveWithoutProcess({ ability, actor, targets, board, ov
   await applyWorldIntents([
     ...(perUnit ? cooldownIntents(ability, actor, applied.summoned ?? 0, self) : []),
     I.log({
-      kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name,
+      kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name, // fgt-name-ok: the GM's log
       targets: targets.map((t) => t.unitId), applied: applied.map((a) => a.summary), counter: true,
     }),
   ], `counter:${ability.id}`);
@@ -2896,7 +2897,7 @@ export async function endExpendedFields(ability) {
 export async function runDeactivationPayout(item, actor, endedBy) {
   const phases = item?.system?.onDeactivate?.[endedBy] ?? [];
   if (phases.length === 0) return [];
-  const payout = { id: item.id, name: item.name, system: { ...item.system, phases } };
+  const payout = { id: item.id, name: item.name, system: { ...item.system, phases } }; // fgt-name-ok: the payout's own working copy, never printed
   const board = currentBoard();
   const applied = await runPhases(payout, actor, [{ unitId: actor.id }], board);
   await postCard(actor, payout, [{ unitId: actor.id }], applied);

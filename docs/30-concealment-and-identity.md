@@ -236,12 +236,18 @@ offers (§46.35.3).
 
 **A card posted from a player's client names its speaker** (#333): the same script refuses a `ChatMessage.create` in `module/apps` with no `speaker`, which speaks as the posting user's own character, unless `// fgt-speaker-ok: <reason>` says why. The engine's cards are posted by the active GM. Vlad III (Berserker)'s mode line, the fifth slip of the public-name rule, read "Kingprotea".
 
+**An ability's name is concealed too** (#387). *"The name of the Skill is concealed, it will use a public name… they give the full name of the skills which kinda ends up revealing the identity."* A line the table reads prints `engine/public-ability.mjs#shownAbility`: a tag of the ability's kind and five letters and digits, `NP-X5R76` or `SK-K2P9Q`, and no name stays real, Class Skills included. `rules/public-ability.mjs#publicTagOf` derives it from the War, the Unit and the ability, so it holds for one War, changes in the next and differs on two Units who hold one Skill. One printed NP on two clocks shares one by `publicTagAs`.
+
+The message holds the tag and never the name. `swapAbilityTags`, on `renderChatMessageHTML`, walks a card's text and gives the truth to whoever reads it: the GM, an open table, and a Unit's OWNER, never a teammate. An attack or Skill card also gives them the Unit's true name and the Rank, which the public card leaves out. The NP cut-in asks the same door. Once `identityRevealed` is set, new lines print the real name. Effects named for their Skill and an area the sheet names stay as they are, and a chance card's term labels wait for #386.
+
+A pick list shows `publicRow`: the tag, the Rank, Active or Passive, and the text with names removed by `scrubbedText`: the bearer's, its other abilities', and every other Servant's, since *"Karna"* names Arjuna by his rival. `test/unit/public-ability-387.test.mjs` walks the roster for what is left. Scáthach's and Chiron's GM stage keeps the truth, and the player's stage asks `publicRow`.
+
 **A guard keeps every player-facing name public** (#235). `tools/check-public-names.mjs`, run by `npm run lint`,
 refuses a Unit's `.name` read raw (off `game.actors.get(…)` or a variable holding a Unit: `actor`, `unit`, `defender`,
 …) anywhere in `module/engine`, `module/apps` or `module/rules`. A line names a Unit through the one reader,
 `engine/public-identity.mjs#shownName` (an Actor or a board unit) or `rules/identity.mjs#shownNameOf` (a board unit, in
 the rules layer), or says why its read is safe on that line or the one above: `// fgt-name-ok: <reason>` (the
-Unit's own player's prompt, console text, a Master, an ability's name). A file whose every read is GM-facing is
+Unit's own player's prompt, console text, a Master). It reads an ability's name the same way (#387), through `shownAbility`. A file whose every read is GM-facing is
 allowlisted in the script with its reason. It slipped three times before (§46.4-NV, -OJ, -OO); the sweep that made it
 green fixed the refusal banner and the targeting resolver's reasons, the targeting preview and review, the turn
 panel's roster, the Dimension and Hanging Gardens offers, and the cards for an automatic Counter, a cancelled NP, an
