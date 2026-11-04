@@ -3,7 +3,8 @@ id: 2026-11-04-file-evidence-hid-four-defects
 found: live press
 kind: live-client-only
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** ff814c4b called the audit closed, with 18 Clauses marked Observed from their files, as `npValue 50 on the ruled file`.
 **Actual:** Pressing them found four defects, none in those figures: each sat on the path the press walks to reach the figure.
