@@ -26,6 +26,7 @@ import * as I from "./intents.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { itemRevision } from "./war.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * The Skills a Skill Seal on this actor would end now, and the ones it may not.
@@ -99,11 +100,11 @@ export async function onSkillSealed(actor) {
     } else {
       await applyWorldIntents([I.setMode(actor.id, item.system?.slug ?? item.id, false, "sealed")], "skillSeal:mode");
     }
-    lines.push(game.i18n.format("FGT.SealEnds.Ended", { name, skill: item.name }));
+    lines.push(game.i18n.format("FGT.SealEnds.Ended", { name, skill: shownAbility(item) }));
   }
   for (const { item, why } of holds) {
     const key = { unsealable: "FGT.SealEnds.Unsealable", locked: "FGT.SealEnds.Locked", cannotDeactivate: "FGT.SealEnds.CannotDeactivate" }[why];
-    lines.push(game.i18n.format(key, { name, skill: item.name }));
+    lines.push(game.i18n.format(key, { name, skill: shownAbility(item) }));
   }
   await ChatMessage.create({
     content: `<div class="fgt-card"><h3>${game.i18n.localize("FGT.SealEnds.Title")}</h3>`

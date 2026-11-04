@@ -1945,7 +1945,7 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
 export function abilityRecordOf(item, overrides = {}) {
   return {
     id: item.id,
-    name: item.name,
+    name: item.name, // fgt-name-ok: the board's record, read through the public door
     // The stable machine name. Without it a cross-ability reference has only
     // the Foundry document id to match on, which content cannot know --
     // Goddess of War's "Divinity Rank is increased from B to A" names

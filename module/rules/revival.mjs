@@ -356,7 +356,7 @@ export function identityOfProcess(process, attack = process?.attack) {
 export function recordedAttack(unit, identity) {
   for (const ability of unit?.abilities ?? []) {
     if ((ability.recordedAttacks ?? []).includes(identity)) {
-      return { floored: true, source: ability.name ?? ability.id };
+      return { floored: true, source: ability.name ?? ability.id }; // fgt-name-ok: a rule's source, read by rules
     }
   }
   return { floored: false, source: null };

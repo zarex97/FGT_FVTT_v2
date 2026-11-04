@@ -543,6 +543,8 @@
   "FGT.Hgob.RidersHint": "Pick the allied Units to bring aboard. They are placed inside the garden; anyone left out stays on the ground.",
   "FGT.Hgob.RiderAt": "at ({i}, {j})",
   "FGT.Copy.PickHint": "Pick {count} Skills to use as effects of this Skill.",
+  "FGT.Pick.Active": "Active",
+  "FGT.Pick.Passive": "Passive",
   "FGT.Copy.NoAnswer": "The player did not answer. Your selection is still here.",
   "FGT.Copy.Granted": "{count} Skills copied.",
   "FGT.Copy.Failed": "The copy was refused: {reason}.",

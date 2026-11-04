@@ -184,6 +184,11 @@ A Noble Phantasm that encloses part of the board under its own membership, inter
 and escape conditions.
 _Avoid_: zone, area, dome, barrier
 
+**Bug Space**:
+Where one Unit holds others off the board. A held Unit has no Panel, cannot Act and cannot be aimed at; its
+Effects, durations and Cooldowns are paused. It is not defeated, and it comes back onto the board.
+_Avoid_: pocket, second board, Special Item
+
 ## Time
 
 **Turn**:
@@ -273,6 +278,19 @@ An Ability that is not a Noble Phantasm and not a Normal Attack.
 
 **Normal Attack**:
 The attack any combatant may make without an Ability, drawn from Base Attack.
+
+**Stolen Skill**:
+A Skill moved from its owner to another Unit, with its running Cooldown. The owner cannot use it and it does
+nothing for them; what it already landed stays. It goes back when it is discarded.
+_Avoid_: copy (a copy leaves the source its Skill)
+
+**Public Tag**:
+What the table calls an ability whose bearer is not revealed: its kind and five letters and digits, `NP-X5R76`. The
+same for one War, on one Unit. The bearer's owner and the GM read the real name.
+_Avoid_: alias, code name
+
+**Obtained Skill**:
+A copy of a defeated Unit's Skill, kept for the rest of the game.
 
 **Mode**:
 A persistent state an Ability puts a Unit into, switched on and off, and sometimes forced.

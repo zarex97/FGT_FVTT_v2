@@ -1556,7 +1556,7 @@ export function worldIO() {
       }
       const item = await fromContent(contentId);
       const data = source.toObject();
-      data.name = item?.name ?? contentId;
+      data.name = item?.name ?? contentId; // fgt-name-ok: the summon's document, its name set once
       if (item?.img) data.img = item.img;
       data.system = {
         ...data.system,
@@ -1572,7 +1572,7 @@ export function worldIO() {
       token.y = panel.i * scene.grid.size;
       // The TOKEN's name is its own, copied from the prototype: named only on
       // the actor, it read "Dropped Item" on the board.
-      if (item?.name) token.name = item.name;
+      if (item?.name) token.name = item.name; // fgt-name-ok: the summon's document, its name set once
       if (item?.img) token.texture = { ...(token.texture ?? {}), src: item.img };
       await scene.createEmbeddedDocuments("Token", [token]);
       await this.log([{ kind: "item", event: "itemDropped", itemId: contentId, count, panel, for: byId }]);

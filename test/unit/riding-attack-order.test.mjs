@@ -121,7 +121,9 @@ describe("a Noble Phantasm ridden onto an empty line still pays its price (#184)
       expect(out).toMatchObject({ ok: true, hit: [] });
       // 7◈+⅓◈ at three Turns a Round.
       expect(actor.items.get(np.id).system.cooldown.remaining).toBe(22);
-      expect(posted.some((m) => /Troias.*(empty line|EmptyLine)/.test(m.content))).toBe(true);
+      // By its public tag (#387), never its name.
+      expect(posted.some((m) => /NP-\w{5}.*(empty line|EmptyLine)/.test(m.content))).toBe(true);
+      expect(posted.some((m) => /Troias/.test(m.content))).toBe(false);
       delete globalThis.ChatMessage;
       delete globalThis.Roll;
     }, {

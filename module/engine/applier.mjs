@@ -348,7 +348,7 @@ function itemsBeforeBatch(intents) {
   if (typeof game === "undefined" || !game?.actors) return [];
   return (intents ?? []).filter((i) => i?.t === "itemQuantity" && i.unitId && i.itemId).map((i) => {
     const item = heldItem(i.unitId, i.itemId);
-    return { unitId: i.unitId, itemId: i.itemId, name: item?.name ?? null, before: quantityOf(item) };
+    return { unitId: i.unitId, itemId: i.itemId, name: item?.name ?? null, before: quantityOf(item) }; // fgt-name-ok: an Item's quantity, the GM's log
   });
 }
 

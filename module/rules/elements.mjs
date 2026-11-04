@@ -115,7 +115,7 @@ export function collectContributions(abilities, ctx = {}) {
 
   for (const ability of abilities ?? []) {
     const rank = shiftedRank(ability, shifts);
-    const source = ability.name ?? ability.id ?? "unknown";
+    const source = ability.name ?? ability.id ?? "unknown"; // fgt-name-ok: a rule's source, read by rules
 
     // Passives always contribute; actives only while the ability is active.
     const elements = [

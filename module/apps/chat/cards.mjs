@@ -26,6 +26,9 @@ import { playNoblePhantasmCutIn } from "./cut-in.mjs";
 import { isClassicUI, uiTemplate } from "../ui-style.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import { polarityOf } from "../../rules/effect-instance.mjs";
+import {
+  shownAbility, shownAbilityRank, nameForViewer, readsTruthOf, swapAbilityTags, truthOfTag, forgetAbilityTruths,
+} from "../../engine/public-ability.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -56,7 +59,7 @@ export async function renderAttackCard({ state, attacker, ability, targets }) {
         // ...and how it was delivered, for the same reason (#281).
         delivery: context.delivery,
         // A Noble Phantasm's declaration plays the cut-in on every client (#364).
-        np: ability?.type === "noblePhantasm" ? { name: ability.name, rank: ability.system?.rank ?? null } : null,
+        np: ability?.type === "noblePhantasm" ? { name: shownAbility(ability), rank: shownAbilityRank(ability) } : null,
       },
     },
   });
@@ -145,10 +148,12 @@ async function cardContext({
     // otherwise lose the name it was posted with, and the chat log is the
     // match's audit record (Ch. 37) -- it has to stay readable after a unit is
     // gone, which is precisely when somebody goes back to read it.
-    attackerName: (attacker ? publicIdentityOf(attacker, board).name : names?.attacker) ?? "Unknown",
-    defenderName: (defender ? publicIdentityOf(defender, board).name : names?.defender) ?? "—",
-    abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
-    abilityRank: ability?.system?.rank ?? null,
+    // Its owner reads their own Unit's true name (#387 ruling 63): this context is built on the viewer's client.
+    attackerName: (attacker ? nameForViewer(attacker, publicIdentityOf(attacker, board).name) : names?.attacker) ?? "Unknown",
+    defenderName: (defender ? nameForViewer(defender, publicIdentityOf(defender, board).name) : names?.defender) ?? "—",
+    // The tag, whoever reads: `swapAbilityTags` gives the entitled the name (#387).
+    abilityName: ability ? shownAbility(ability) : game.i18n.localize("FGT.Chat.NormalAttack"),
+    abilityRank: readsTruthOf(attacker) ? (ability?.system?.rank ?? null) : shownAbilityRank(ability),
     // Ranged, Melee or Special against THIS defender (#281): the Attack
     // Description's answer, the one the platforms and Gravity Manipulation read.
     delivery: (await deliveryOfProcess(state, board)) ?? message?.getFlag?.("fgt", "delivery") ?? null,
@@ -448,6 +453,7 @@ function fillAttackCard(message, html) {
     .then((content) => {
       const target = html.querySelector(".fgt-card");
       if (target) target.outerHTML = content;
+      swapAbilityTags(html);
       rollUpDamage(message, html);
     })
     .catch((err) => console.error("FGT | Could not re-render an attack card:", err));
@@ -636,7 +642,9 @@ export function activateChatListeners() {
     if (message.getFlag?.("fgt", "kind") !== "attack" || !np) return;
     // Nocturne's alone: the Classic look has no cut-in (#364).
     if (isClassicUI()) return;
-    playNoblePhantasmCutIn({ key: `${message.getFlag("fgt", "attackerId")}:${np.name}`, name: np.name, rank: np.rank });
+    // The truth for whoever may read it (#387 ruling 63), on this client alone.
+    const truth = truthOfTag(np.name); // fgt-name-ok: the tag the flag holds
+    playNoblePhantasmCutIn({ key: `${message.getFlag("fgt", "attackerId")}:${np.name}`, name: truth?.name ?? np.name, rank: truth?.rank ?? np.rank }); // fgt-name-ok: the tag the flag holds
   });
   Hooks.on("renderChatMessageHTML", (message, html) => {
     // A card that just arrived slides in, once; the log's own first draw and
@@ -647,9 +655,13 @@ export function activateChatListeners() {
     arrived.add(message.id);
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
+    swapAbilityTags(html);
     armCounterRung(message);
     bindCardEvents(message, html);
   });
+  // Who holds what changed: the next card reads it afresh (#387).
+  for (const hook of ["createItem", "deleteItem", "updateItem", "createActor", "deleteActor"]) Hooks.on(hook, forgetAbilityTruths);
+  Hooks.on("updateActor", (actor, changes) => { if (changes?.ownership) forgetAbilityTruths(); });
 }
 
 /**
@@ -981,6 +993,17 @@ function fillSkillEffects(message, html) {
     openTable: openTable(),
     casterControllers: flags.casterControllers ?? [],
   });
+
+  // The caster's truth for those who read it (#387 ruling 63): the tag in the
+  // title is swapped by the hook, and its name and Rank are written here.
+  const caster = flags.casterId ? game.actors.get(flags.casterId) : null;
+  if (readsTruthOf(caster)) {
+    const named = html.querySelector(".fgt-card__caster");
+    if (named) named.textContent = caster.name; // fgt-name-ok: this viewer reads its truth
+    const rank = caster.items?.get(flags.abilityId)?.system?.rank ?? null;
+    const title = html.querySelector(".fgt-card__title");
+    if (title && rank && !title.querySelector(".fgt-card__rank")) title.insertAdjacentHTML("beforeend", ` <span class="fgt-card__rank">${foundry.utils.escapeHTML(String(rank))}</span>`);
+  }
 
   // Whose card this is, to the reader (#364): the caster's controllers, one a
   // row landed on, or neither.

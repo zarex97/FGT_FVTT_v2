@@ -322,10 +322,11 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    */
   static async sayModeSwitch(actor, item, active) {
     const { shownName, publicSpeakerFor } = await import("../../engine/public-identity.mjs");
+    const { shownAbility } = await import("../../engine/public-ability.mjs");
     const escape = foundry.utils.escapeHTML;
     const board = currentBoard();
     const line = game.i18n.format(active ? "FGT.Mode.SwitchedOn" : "FGT.Mode.SwitchedOff", {
-      name: escape(shownName(actor, board)), mode: escape(item.name),
+      name: escape(shownName(actor, board)), mode: escape(shownAbility(item)),
     });
     // Spoken as the Unit's public name: the default speaker was the player's
     // own character, "Kingprotea", on Vlad's line (found pressing).
