@@ -79,7 +79,7 @@ table does not exist (Summer Habetrot) · a sheet binds only its owner · an Emp
 
 **Live, 2026-11-04.** On the Gilgamesh Audit scene, as Player1. **Found pressing, each fixed:** a stored card held the real names, built on the GM's client; a Cooldown row printed another Unit's NP, a read in one chain the guard missed, so the guard grew; Pixie's charges came through as none; one tag read as *(Wave)* on the Capture's card; a row read *"No effects were applied"* over a release; a steal's line ended in *": failed"*; the list printed `@rank`, and *"the Golden Hind"* passed the name removal. The GM's load takes over a minute, since the world sends 50 MB.
 
-**Staged, not played:** Home Base, Shielder and Beast Classes, an Outsider Attribute. **Left to tests, no board can produce them today:** BB, for no BB is built, and the Moon Cell and Debuff ChDwn terms.
+**Staged, not played:** a Home Base, Shielder and Beast Classes, an Outsider Attribute, a True Name BB, the War's Region and Debuff ChDwn. No BB is built yet, and she presses BB's own clauses when she is. **The Attacks' numbers are read from each card's breakdown, the Magic Resistance chances from a landing called directly on the GM page.**
 
 ## Readings
 
@@ -204,7 +204,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 ## Repulsion for One's Kin — Rank EX *(Passive 1 + 2)*
 
-- [x] **RK.bb** · Damage dealt to BB is +30% (Q) · *Observed: test on groupsOf; no BB is built*
+- [x] **RK.bb** · Damage dealt to BB is +30% (Q) · *Pressed: Drake staged True Name BB: atkUp 30*
 - [x] **RK.sf** · …and to Sakura Five Units (Q) · *Pressed: Kingprotea: atkUp 30*
 - [x] **RK.1.np** · …including NP · *Observed: npValue 30*
 - [x] **RK.1.ally** · …allied or enemy (Q) · *Observed: the rule names no side, and Wave reached Proto Gil*
@@ -256,7 +256,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **MP.2.agi** · …and her Agility by 35% of maximum · *Pressed: 2 to 7*
 - [x] **MP.3** · 3: She chooses an enemy Servant within Range (Q) · *Pressed: three in Range, she chose*
 - [x] **MP.3.class** · Her Servant Class becomes that Servant's (Q) · *Pressed: rider on the board*
-- [x] **MP.3.dur** · …for 1◈, then back, with a line (Q) · *Pressed: back to alterEgo at its expiry; the line built after*
+- [x] **MP.3.dur** · …for 1◈, then back, with a line (Q) · *Pressed: back at tick 43; "The Class it took goes back to its own." on Player1's card*
 - [x] **MP.4** · 4: Def Dwn for 1◈ on that Servant: damage taken +50% · *Pressed: Def Dwn 50*
 - [x] **MP.cd** · Cooldown 4◈ · *Pressed: 12*
 
@@ -271,11 +271,11 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **IE.owner.fx** · …and it has no effects for that Unit (Q) · *Pressed: his passive off*
 - [x] **IE.own.use** · She can use it as her own (Q) · *Pressed: on her bar*
 - [x] **IE.own.fx** · …and gains its effects (Q) · *Pressed: on her record*
-- [x] **IE.moon** · Term 1: the Region is the Moon Cell, +30% (Q) · *Observed: test on the term; this War's Region is not moon*
+- [x] **IE.moon** · Term 1: the Region is the Moon Cell, +30% (Q) · *Pressed: War's Region staged moon: +30*
 - [x] **IE.chup** · Term 2: she has Debuff ChUp, +X% (Q) · *Pressed: +30*
 - [x] **IE.bb** · Term 3: the target is BB or a Sakura Five Unit, +30% (Q) · *Pressed: +30 on Kingprotea*
 - [x] **IE.mr** · Term 4: for every Rank in Magic Resistance on the DU, -5% (Q) · *Pressed: -10, -15, -30*
-- [x] **IE.chdwn** · Term 5: she has Debuff ChDwn, -Y% (Q) · *Observed: test on the term*
+- [x] **IE.chdwn** · Term 5: she has Debuff ChDwn, -Y% (Q) · *Pressed: Debuff ChDwn 25 staged: rolled 63 vs 40%, 15 + 30 + 30 - 10 - 25*
 - [x] **IE.max** · She holds at most three · *Pressed: a fourth asks*
 - [x] **IE.fourth** · On a fourth she must choose one to discard (Q) · *Pressed: four listed*
 - [x] **IE.back** · The discarded one returns: its owner can use it again · *Pressed: Pioneer back on Drake*

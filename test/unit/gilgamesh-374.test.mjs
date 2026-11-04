@@ -285,7 +285,7 @@ describe("Enuma Elish's lists (EE.rm.*, EE.np.*, EE.nf.*, readings 17-24, 30)", 
     expect(fieldSealed(field, other)).toBe(false);
   });
 
-  it("keeps Gully Trap Funny Muryan off every list until Kazuradrop (reading 22)", () => {
+  it("keeps Gully Trap Funny Muryan's own row off the lists: it is the row for what creates Bug Space (#385 reading 42)", () => {
     expect(JSON.stringify(ENUMA.phases)).not.toMatch(/muryan/i);
     expect(JSON.stringify(ENUMA.endsFieldsInside)).not.toMatch(/muryan/i);
   });
