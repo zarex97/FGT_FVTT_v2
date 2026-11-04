@@ -28,6 +28,17 @@
  *      die's row is not applied a second time.
  *   6. **A row aimed at the user** (`target: self`). *"Applies Crit DmUp for 1◈
  *      Turns to himself"* sits in a table whose other rows land on the DU.
+ *
+ * Gate of Babylon (#374) adds three more:
+ *
+ *   7. **A row that changes at a count** (`upgrade: {at, effects}`). *"Freeze
+ *      (Note: If three or more 6s are rolled, becomes Crystalfreeze instead)"*:
+ *      the count is within one target's roll, and each such die lands the upgrade.
+ *   8. **A row whose magnitude is its count** (`magnitudeIsCount`). *"Deafen (1◈
+ *      Turns, magnitude starts at 1, increases by 1 more for every extra 18
+ *      rolled)"*: one landing, however many dice, its magnitude their number.
+ *   9. **Only some relations roll** (`relations` on the phase). *"All affected
+ *      enemy Units roll"* in an area that hits every Unit.
  */
 
 import { isFriendly } from "./relations.mjs";
@@ -49,6 +60,17 @@ export function tableFor(phase, relation) {
   const tables = phase?.tables ?? null;
   if (!tables) return null;
   return (isFriendly(relation) ? tables.ally : tables.enemy) ?? null;
+}
+
+/**
+ * Does a Unit of this relation roll at all?
+ *
+ * @param {object} phase
+ * @param {string} relation from `rules/relations.mjs`
+ * @returns {boolean}
+ */
+export function rollsTable(phase, relation) {
+  return !phase?.relations || phase.relations.includes(relation);
 }
 
 /** What a table may do with a repeated face. An unknown word refuses, never defaults. */
@@ -112,6 +134,8 @@ export function entriesFor(table, results) {
     return choicesIn(table).filter(({ entry }) => !entry?.all).map(({ entry }) => ({ roll: allAt, entry }));
   }
 
+  const countOf = (roll) => (results ?? []).filter((r) => r === roll).length;
+  const counted = new Set();
   /** @type {Array<{roll: number, entry: object}>} */
   const out = [];
   for (const roll of results ?? []) {
@@ -119,7 +143,16 @@ export function entriesFor(table, results) {
     // A face with no row is a content error, not a miss. Reported by the
     // caller rather than swallowed here, because a Skill that silently does
     // nothing on a 7 is indistinguishable from a Skill that worked.
-    out.push({ roll, entry });
+    if (entry?.magnitudeIsCount) {
+      // One landing, on the first such die: the rest raise its magnitude.
+      if (counted.has(roll)) continue;
+      counted.add(roll);
+      const magnitude = countOf(roll);
+      out.push({ roll, entry: { ...entry, effects: effectsOf(entry).map((e) => ({ ...e, magnitude })) } });
+      continue;
+    }
+    const upgraded = entry?.upgrade && countOf(roll) >= entry.upgrade.at;
+    out.push({ roll, entry: upgraded ? { ...entry, effects: entry.upgrade.effects } : entry });
   }
   return out;
 }

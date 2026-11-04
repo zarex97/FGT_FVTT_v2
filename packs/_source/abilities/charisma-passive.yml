@@ -1,0 +1,35 @@
+# Charisma with no Active: the Passive half of the common pair, parameterized.
+#
+# > "(Passive) All damage dealt by other allied Units within a 2 panel area of
+# > himself is increased by 27 including NP. This effect is negated if this Unit has
+# > Atk Up (Charisma) or is inflicted with Skill Seal."
+#
+# Gilgamesh's A+ at 27 (#374) and Arturia's B at 20 (#230), who print the sentence
+# with their own figure; `charisma.yml` is the same sentence with an Active beside it.
+#
+# "Other": not his own damage (`relations: [ally]`). Atk Up (Charisma) is asked by
+# family, so the one a Charisma-categorized Skill puts on him and the aura another
+# Charisma Active gives him both switch it off (#230 reading 23).
+schema: 1
+id: charisma-passive
+name: "Charisma"
+kind: skill
+slug: charisma
+passive: true
+parameterized: [rank, flat]
+rank: "@rank"
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage dealt by other allied Units within a 2 panel area of this Unit is increased by a flat figure,
+  including NP. This effect is negated if this Unit has @effect[atkUpCharisma]{Atk Up (Charisma)} or is inflicted with
+  @effect[skillSeal]{Skill Seal}.
+passiveRules:
+  - key: Aura
+    modifierKey: flatDamage
+    radius: 2
+    relations: [ally]
+    value: "@flat"
+    stacking: highestOnly
+    predicate:
+      - "not:self:effectFamily:atkUpCharisma"
+      - "not:self:effect:skillSeal"

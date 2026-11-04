@@ -102,7 +102,10 @@ export function inflictedEffectIds(ability) {
     if (phase?.kind === "applyEffects") take(phase.effects);
     if (phase?.kind === "rollTable") {
       for (const row of Object.values(phase.entries ?? {})) {
-        if (row?.target !== "self") take(row?.effects);
+        if (row?.target !== "self") {
+          take(row?.effects);
+          take(row?.upgrade?.effects);
+        }
       }
     }
   }

@@ -1,0 +1,27 @@
+# Appendix A §A.13
+# "Cannot Act. Damage from an attack is +100% Total Damage, then Sleep is removed;
+# the unit cannot Counter that phase."
+#
+# Gate of Babylon's row 12 is the first to inflict it (#374). `rules/budget.mjs`'s
+# PREVENT_ALL and `rules/invalidation.mjs` have listed it since they were written,
+# and `engine/effect-applier.mjs#findExclusion` runs the family's exclusivity.
+#
+# +100% is a Total Damage rise on the defender, stage 15 of the pipeline, so a
+# periodic tick does not read it. Woken by any damage from an attack
+# (`engine/attack.mjs#wokenBy`), which also closes that phase's Counter.
+schema: 1
+id: sleep
+name: "Sleep"
+description: |
+  Cannot Act. Damage from an attack is increased by 100% of Total Damage, then Sleep is removed, and this Unit cannot
+  Counter that phase.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+preventsAction: true
+wokenByAttackDamage: true
+rules:
+  - { key: DamageModifier, modifierKey: totalDefDwn, direction: taken, value: 100 }

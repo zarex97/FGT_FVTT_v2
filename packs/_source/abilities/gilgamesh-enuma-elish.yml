@@ -1,0 +1,164 @@
+# Enuma Elish: The Star of Creation that Split Heaven and Earth, Rank EX (#374).
+#
+# Beside him and turnable: the sheet's missing "next to" is a typo (reading 13). Every
+# Unit in it is hit. Against a Servant its 5x is doubled, Rama's shape (14), unless the
+# Servant is on the list (15, 29): printed name, sheet, content id. A row whose Servant
+# is not built holds the id its sheet will take, and `gilgamesh-374.test.mjs` holds the
+# roster to it. Three names have no sheet yet. The struck Karl der Große is on no row.
+#
+# Its lists are by content id, never words inside a name (reading 30), and
+# `rules/listed-abilities.mjs` reads them. An area he stands in at the declaration ends
+# once the damage has landed, whoever owns it (18). A DU it hit who carries a listed
+# ability takes the seal, and what that ability caused leaves every Unit (17, 19, 20).
+# Nameless Forest's Tokens go first (23). "Reality Marble in its name" can only be a
+# printed tag (24). Gully Trap Funny Muryan waits for Kazuradrop (22).
+schema: 1
+id: gilgamesh-enuma-elish
+name: "Enuma Elish: The Star of Creation that Split Heaven and Earth"
+rank: EX
+isNP: true
+npTags: [antiWorld]
+kind: noblePhantasm
+slug: enumaElish
+cooldown: "8◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+sameRoundExclusive: [gilgamesh-gate-of-babylon]
+description: |
+  Sword of Rupture, Ea. Base Attack (MAG) is used. Hits a 3x6 or 6x3 panel area in any non-diagonal direction next to
+  Gilgamesh for 5x damage. Damage dealt to Servants (with some exceptions, listed below) is further increased by 100%.
+  If Enuma Elish is used within a Reality Marble or on certain Units with a Reality Marble, this NP has additional
+  effects at the end of the Damage Step (the full list can be found below). Cooldown: 8◈ Turns.
+  Note: The Active effect/usage of Gate of Babylon cannot be used on the same Round as Enuma Elish, and vice-versa.
+
+  List of Servants who do not take extra damage from Enuma Elish- 「 」, Charlemagne, Lord Logres, Melusine (both),
+  Romulus (normal), Demeter (Erinyes), Nikola Tesla, Altera the San(ta), Asagami Fujino, Napoleon, Tiamat (both),
+  Francis Drake, Leonardo da Vinci (Young), Mozart, Artoria Caster, Mysterious Heroine X (both), Ryougi Shiki,
+  Mysterious Heroine X Alter, Shizuki Soujuurou, Sherlock Holmes, Space Ishtar, Ranmaru X, Archetype:Earth, BB Dubai,
+  Kishinami Hakuno, Azumi no Isora, Abigail Williams (all), Voyager, Kukulkan, Super Aoko, Oberon Vortigern,
+  Phantasmoon, Dante Alighieri, Sodom's Beast/Draco/Harlot, Space Ereshkigal, U-Olga Marie, Beast III/R (Rapture), Beast
+  III/L (Lapse), Beast IV/L (Yaskaya), Beast VII (President).
+
+  List of abilities which cause additional effects from Enuma Elish-
+  Depletion Garden, Golem Keter Malkuth, Ionioi Hetairoi, Papiyas/Dairokuten Maou Hajun, Puppet Playground/Kugutsu
+  Yūen, Shimabara Jigoku, Overload, Unlimited Blade Works, Aestus/Nuptiae Domus Aurea, Chaos Labyrinthos, Diatrekhōn
+  Astēr Lonkhē: Duel Field, Hakuro Jyou no Hyakki Hachitendou-sama, Ramesseum Tentyris: If Gilgamesh uses Enuma Elish
+  while he is inside the NP area, the NP is forcefully ended.
+  Bug Space: If the Unit with this Skill is affected by Enuma Elish, it is inflicted with Skill Seal (Ea) for 3◈ Turns.
+  Skill Seal (Ea) is Unremovable and ignores Debuff Immune/Resist effects on the DU, but only affects the Skill listed
+  here, negating all its effects including Passive effects (i.e. if the affected Unit has other Skills not listed here,
+  they can still be used). Additionally, remove all effects caused by this Skill from all Units on the field who had
+  been applied with them.
+  Airavata King Size, Alf Layla wa-Layla, Chariot My Love, Cursed Cupid Cleanser, De Sterrennacht, Dimension of Steam,
+  Emotional Engine - Full Drive, Metabole Piglets, Tsumukari Muramasa, Unlimited Lost Works, Lai Rhyme Goodfellow: If the
+  Unit with this NP is affected by Enuma Elish, it is inflicted with NP Seal (Ea) for 3◈ Turns. NP Seal (Ea) is
+  Unremovable and ignores Debuff Immune/Resist effects on the DU, but only affects the NP listed here, negating all its
+  effects including Passive effects (i.e. if the affected Unit has other NP not listed here, they can still be used).
+  Additionally, remove all effects caused by this NP from all Units on the field who had been applied with them.
+  Gully Trap Funny Muryan/Atomicros Muryan Foot: If Gilgamesh is caught within Bug Space, during his Player's Turn, he
+  can use Enuma Elish if it is not on Cooldown (Note: Counts towards the number of Units which Attack during this
+  Turn!). In this case, all Units caught within Bug Space are released and placed on random panels within a 2 panel area
+  around the DU, then the DU is inflicted with NP Seal (Ea) for 3◈ Turns. Additionally, remove all effects caused by
+  this NP from all Units on the field who had been applied with them.
+  Nameless Forest: If the Unit with this NP is affected by Enuma Elish, remove all Nameless Forest Tokens from all Units
+  on the board, then the DU is inflicted with NP Seal (Ea) for 3◈ Turns.
+  Other abilities with Reality Marble in its name: If it is the type of ability to deploy an area, that area is
+  immediately ended if Gilgamesh uses Enuma Elish while within that area. Otherwise, a Unit with that ability who is
+  affected by Enuma Elish is inflicted with Skill Seal (Ea) and/or NP Seal (Ea) for 3◈ Turns, depending on whether that
+  ability was a Skill and/or NP.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 6, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+  conditionalMultipliers:
+    - factor: 2
+      predicate: ["target:type:servant"]
+      source: "Servant (+100%)"
+      except:
+        - { printed: "「 」", sheets: ["「　」"], ids: ["ryougi-void"] }
+        - { printed: "Charlemagne", sheets: ["Charlemagne"], ids: ["charlemagne"] }
+        - { printed: "Lord Logres", sheets: ["Lord Logres"], ids: ["lord-logres"] }
+        - { printed: "Melusine (both)", sheets: ["Melusine", "Melusine Ondine"], ids: ["melusine", "melusine-ondine"] }
+        - { printed: "Romulus (normal)", sheets: ["Romulus"], ids: ["romulus"] }
+        - { printed: "Demeter (Erinyes)", sheets: [], ids: ["demeter-erinyes"], noSheet: true }
+        - { printed: "Nikola Tesla", sheets: ["Tesla"], ids: ["tesla"] }
+        - { printed: "Altera the San(ta)", sheets: ["Attila the San(ta)"], ids: ["attila-the-santa"] }
+        - { printed: "Asagami Fujino", sheets: ["Fujino"], ids: ["fujino"] }
+        - { printed: "Napoleon", sheets: ["Napoleon"], ids: ["napoleon"] }
+        - { printed: "Tiamat (both)", sheets: ["Tiamat", "Larva_Tiamat"], ids: ["tiamat", "larva-tiamat"] }
+        - { printed: "Francis Drake", sheets: ["Francis Drake"], ids: ["drake"] }
+        - { printed: "Leonardo da Vinci (Young)", sheets: ["da Vinci (Summer)"], ids: ["da-vinci-summer"] }
+        - { printed: "Mozart", sheets: ["Mozart"], ids: ["mozart"] }
+        - { printed: "Artoria Caster", sheets: ["Artoria Caster"], ids: ["artoria-caster"] }
+        - { printed: "Mysterious Heroine X (both)", sheets: ["Mysterious Heroine X", "MHXX"], ids: ["mysterious-heroine-x", "mhxx"] }
+        - { printed: "Ryougi Shiki", sheets: ["Ryougi"], ids: ["ryougi"] }
+        - { printed: "Mysterious Heroine X Alter", sheets: ["Mysterious Heroine X Alter"], ids: ["mysterious-heroine-x-alter"] }
+        - { printed: "Shizuki Soujuurou", sheets: ["Soujuurou"], ids: ["soujuurou"] }
+        - { printed: "Sherlock Holmes", sheets: ["Holmes"], ids: ["holmes"] }
+        - { printed: "Space Ishtar", sheets: ["Space Ishtar"], ids: ["space-ishtar"] }
+        - { printed: "Ranmaru X", sheets: ["Mysterious Ranmaru X"], ids: ["mysterious-ranmaru-x"] }
+        - { printed: "Archetype:Earth", sheets: ["Archetype_Earth"], ids: ["archetype-earth"] }
+        - { printed: "BB Dubai", sheets: [], ids: ["bb-dubai"], noSheet: true }
+        - { printed: "Kishinami Hakuno", sheets: ["Kishinami Hakuno"], ids: ["kishinami-hakuno"] }
+        - { printed: "Azumi no Isora", sheets: [], ids: ["azumi-no-isora"], noSheet: true }
+        - { printed: "Abigail Williams (all)", sheets: ["Abigail", "Abby (Summer)"], ids: ["abigail", "abby-summer"] }
+        - { printed: "Voyager", sheets: ["Voyager"], ids: ["voyager"] }
+        - { printed: "Kukulkan", sheets: ["Kukulkan"], ids: ["kukulkan"] }
+        - { printed: "Super Aoko", sheets: ["Aozaki Aoko"], ids: ["aozaki-aoko"], when: ["target:effect:superAoko"] }
+        - { printed: "Oberon Vortigern", sheets: ["Oberon Vortigern"], ids: ["oberon-vortigern"] }
+        - { printed: "Phantasmoon", sheets: ["Phantasmoon"], ids: ["phantasmoon"] }
+        - { printed: "Dante Alighieri", sheets: ["Dante Alighieri"], ids: ["dante-alighieri"] }
+        - { printed: "Sodom's Beast/Draco/Harlot", sheets: ["Draco"], ids: ["draco"] }
+        - { printed: "Space Ereshkigal", sheets: ["Summer Ereshkigal"], ids: ["summer-ereshkigal"] }
+        - { printed: "U-Olga Marie", sheets: ["U-Olga Marie"], ids: ["u-olga-marie"] }
+        - { printed: "Beast III/R (Rapture)", sheets: ["Rapture"], ids: ["rapture"] }
+        - { printed: "Beast III/L (Lapse)", sheets: ["Lapse"], ids: ["lapse"] }
+        - { printed: "Beast IV/L (Yaskaya)", sheets: ["Yaskaya"], ids: ["yaskaya"] }
+        - { printed: "Beast VII (President)", sheets: ["President"], ids: ["president"] }
+endsFieldsInside:
+  tags: [realityMarble]
+  abilities:
+    - depletion-garden
+    - avicebron-golem-keter-malkuth
+    - iskandar-ionioi-hetairoi
+    - nobunaga-dairokuten-maou-hajun
+    - puppet-playground
+    - shimabara-jigoku
+    - overload
+    - emiya-unlimited-blade-works
+    - nero-aestus-domus-aurea
+    - nero-bride-nuptiae-domus-aurea
+    - asterios-chaos-labyrinthos
+    - achilles-diatrekhon-aster-lonkhe
+    - osakabehime-hakuro-jyou
+    - ozymandias-ramesseum-tentyris
+phases:
+  - kind: damage
+    target: reuse
+  - kind: strikeListedAbilities
+    target: reuse
+    seal: sealEa
+    duration: "3◈"
+    rows:
+      - abilities:
+          - kazuradrop-bug-space
+          - kingprotea-airavata-king-size
+          - scheherazade-alf-layla-wa-layla
+          - medb-chariot-my-love
+          - bb-cursed-cupid-cleanser
+          - gogh-de-sterrennacht
+          - babbage-dimension-of-steam
+          - sei-shonagon-emotional-engine-full-drive
+          - metabole-piglets
+          - senji-muramasa-tsumukari-muramasa
+          - demiya-unlimited-lost-works
+          - oberon-wry-rhyme-goodfellow
+        removesCaused: true
+      - abilities: [nursery-nameless-forest]
+        removesEffects: [namelessForest]
+        clearsResources: ["resources.namelessForestTokens.value"]
+      - tags: [realityMarble]

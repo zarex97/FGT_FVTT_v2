@@ -157,6 +157,8 @@ export const ABILITY_ROUTES = {
   additionalCosts: doc("module/rules/costs.mjs", "charged at use"),
   criteria: doc("module/engine/attack.mjs", "counted once per declaration by rules/count.mjs#criteriaMet (#283)"),
   tiers: doc("module/engine/skill-use.mjs", "a Skill's bracketed tier, bought by spending tokens (rules/tiers.mjs, #372)"),
+  tierChoice: doc("module/rules/tiers.mjs", "a tier chosen at the declaration, never bought (#374)"),
+  endsFieldsInside: doc("module/engine/attack.mjs", "the areas a use ends, read at the declaration (#374)"),
   aftermath: doc("module/engine/attack.mjs", "a second resolution of the same use"),
   schedule: doc("module/engine/schedule.mjs", "a strike recorded at activation, landing later"),
   alsoCountsAsAttackFor: doc("module/engine/budget.mjs", "the joint attack budget"),
@@ -286,6 +288,8 @@ export const EFFECT_ROUTES = {
     "resetsSiblings",
     // Read by `rules/tiers.mjs#tierSpend` (#372).
     "spentForTier",
+    // Read by `engine/attack.mjs#wokenBy` (#374).
+    "wokenByAttackDamage",
     // Read by `engine/seal-ends.mjs#sealedEffects` and
     // `engine/effect-extension.mjs#offerEffectExtensions` (#359).
     "endsOnSkillSeal", "extension",

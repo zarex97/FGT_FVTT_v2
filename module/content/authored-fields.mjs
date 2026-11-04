@@ -110,6 +110,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "resetsSiblings", "absorbs", "defaultDuration",
   // A token spent for a Skill's tier, and the Skill's tiers (#372).
   "spentForTier", "tiers",
+  // A Rank chosen at the declaration, and the areas a use ends (#374).
+  "tierChoice", "endsFieldsInside", "wokenByAttackDamage",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment
   // escapes are declared and read. `periodic` is the only source of a damage

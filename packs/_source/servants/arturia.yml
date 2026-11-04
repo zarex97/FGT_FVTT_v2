@@ -46,7 +46,7 @@ abilities:
   - { ref: class-magic-resistance-weakness, vsAttribute: dragon, rank: C, percent: 25 }
   - { ref: class-riding-unlocks, rank: B, cooldown: "2◈", mov: 4 }
   - { ref: arturia-vivians-blessing }
-  - { ref: arturia-charisma }
+  - { ref: charisma-passive, rank: B, flat: 20 }
   - { ref: arturia-knight-of-utopia }
   - { ref: arturia-instinct }
   - { ref: arturia-radiant-road }
