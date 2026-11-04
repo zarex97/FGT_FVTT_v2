@@ -1,0 +1,18 @@
+# Appendix A §A.14
+# "(1) Cannot use Active Skills or Spells. (2) Negates all automatically-activating
+# skills and effects."
+#
+# No rule elements. Clause 1 is the prevention table in `rules/budget.mjs`, Skill
+# Seal's reach. Clause 2 is `engine/scheduler.mjs#fireEvent`, the one door every
+# `automatic: true` handler passes, which says what it held (#374 reading 11).
+schema: 1
+id: addle
+name: "Addle"
+description: "Cannot use Active Skills or Spells. Negates all automatically-activating Skills and effects."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules: []

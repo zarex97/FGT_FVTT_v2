@@ -146,6 +146,10 @@ A vertical layer of the board. Ground level and the deck of a Platform are diffe
 **Platform**:
 A Unit that other Units may board and be carried by, occupying its own Level.
 
+**Empty Aim**:
+An area Attack declared where its user sees no Unit. It is paid in full, and it may still catch a Unit they cannot see.
+_Avoid_: Blind aim (Blind is an effect), empty swing (the place may not be empty).
+
 **Knockback**:
 Forced horizontal displacement of a Unit out of a Panel another Unit has moved into. The displaced
 Unit stays on its own Level.

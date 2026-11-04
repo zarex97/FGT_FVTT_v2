@@ -404,6 +404,8 @@ export function snapshotUnit(actor, {
     // Changes to the healing this Unit receives (Heal Dwn, Drowning, #232),
     // read by `engine/applier.mjs#resolveHealing`.
     healingReceived: contributions.healingReceived ?? [],
+    // Pools this Unit cannot regain (Gashed, #374), read at the same door.
+    barsRestore: contributions.barsRestore ?? [],
     // More off every cut to a named Cooldown (Merlin, Barghest, #299), read by
     // `engine/applier.mjs#resolveCooldownCuts`.
     cooldownCutBonus: contributions.cooldownCutBonus ?? [],
@@ -2565,6 +2567,11 @@ export function negatingEffectOf(item, actor) {
   for (const e of actor?.effects ?? []) {
     if (e.disabled || e.isSuppressed) continue;
     const def = EffectRegistry.get(e.system?.defId);
+    // A seal naming this one ability: Skill Seal (Ea) and NP Seal (Ea), *"negating
+    // all its effects including Passive effects"* (#374 reading 19). Whatever else
+    // the bearer has stays usable.
+    const sealed = e.system?.params?.sealsAbility ?? null;
+    if (sealed && (sealed === sys.contentId || sealed === item.id)) return def?.id ?? e.system?.defId;
     if ((def?.negatesAbilities ?? []).some(reaches)) return def.id;
   }
   return null;

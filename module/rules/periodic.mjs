@@ -9,7 +9,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /** Keys an authored `periodic` may carry. The validator refuses any other. */
 export const PERIODIC_KEYS = Object.freeze([
-  "when", "amount", "scaling", "actedOnly", "healConversion", "bypassModifiers", "kind", "every",
+  "when", "amount", "scaling", "actedOnly", "healConversion", "bypassModifiers", "kind", "every", "percentOfCurrent", "ownTurnOnly",
 ]);
 
 /** The boundaries a periodic ticks at. */
@@ -39,7 +39,9 @@ export const PERIODIC_SCALINGS = Object.freeze(["flat", "perStage", "doubling"])
 export function periodicOf(def) {
   const p = def?.periodic;
   if (!p || (p.kind && p.kind !== "damage") || typeof p.amount !== "number") return null;
-  const amount = (e) => {
+  const amount = (e, unit = null) => {
+    // A share of what the bearer has left: Nightmare's *"−10% of current Health"*.
+    if (typeof p.percentOfCurrent === "number") return Math.floor(Number(unit?.health ?? 0) * (p.percentOfCurrent / 100));
     const stage = e?.stage || 1;
     if (p.scaling === "doubling") return p.amount * 2 ** (stage - 1);
     if (p.scaling === "perStage") return p.amount * stage;
@@ -47,7 +49,7 @@ export function periodicOf(def) {
   };
   return {
     when: p.when, amount, actedOnly: Boolean(p.actedOnly), healConversion: p.healConversion ?? null,
-    every: p.every ?? null,
+    every: p.every ?? null, ownTurnOnly: Boolean(p.ownTurnOnly),
   };
 }
 

@@ -582,6 +582,15 @@ function stage3AbilityMultiplier(s) {
   let conditional = 1;
   for (const cm of s.ctx.conditionalMultipliers ?? []) {
     if (!testPredicate(cm.predicate, s.predicateCtx)) continue;
+    // A list of Units the clause spares, each by content id and, where its sheet
+    // says so, a state: Enuma Elish's *"List of Servants who do not take extra
+    // damage"* (#374 readings 15, 29). Said, as a clause held back is.
+    const spared = (cm.except ?? []).find((row) => (row.ids ?? []).some((id) => s.predicateCtx.options?.has?.(`target:contentId:${id}`))
+      && (!row.when || testPredicate(row.when, s.predicateCtx)));
+    if (spared) {
+      s.note("conditionalMultiplier", `${cm.source ?? "ability clause"}: not against ${spared.printed}`, "attacker");
+      continue;
+    }
     const factor = conditionalFactor(cm, s);
     if (factor === null) continue;
     conditional *= factor;

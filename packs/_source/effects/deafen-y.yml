@@ -1,0 +1,20 @@
+# Appendix A §A.14, the parameterized row.
+# "Deafen(Y): Own Evade rolls +Y; enemies evading this unit's attacks roll -Y."
+#
+# Not Nemo's Deafen, which his sheet states with fixed figures and a Detect clause
+# (`deafen.yml`). The catalogue's note says the two want different ids. Gate of
+# Babylon's row 18 is the one who inflicts this form: *"magnitude starts at 1,
+# increases by 1 more for every extra 18 rolled"* (#374 reading 9).
+schema: 1
+id: deafenY
+name: "Deafen"
+description: "This Unit's Evade rolls are increased by Y, and enemies evading this Unit's Attacks roll Y lower."
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  - { key: CheckModifier, check: evade, value: "@magnitude" }
+  - { key: CheckModifier, check: evade, direction: imposed, value: "-@magnitude" }

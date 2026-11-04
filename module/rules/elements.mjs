@@ -82,7 +82,7 @@ export function empty() {
     autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [], lethalCancels: [],
-    categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
+    categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], barsRestore: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
     defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [], naturalTicks: [],
     attackAllowances: [], bansAlliedServantAttacks: [], attackNullifiers: [], attackRiders: [],
@@ -2471,6 +2471,16 @@ export const EXECUTORS = Object.freeze({
       exceptSources: [...(el.exceptSources ?? [])],
       source,
     });
+  },
+
+  /**
+   * A pool this Unit cannot regain: Gashed's *"Health and Agility cannot be
+   * restored"* (#374), its Agility half. Read at the one door every write
+   * passes (`engine/applier.mjs#resolveHealing`), which says what it held.
+   */
+  BarsRestore(el, { source, out }) {
+    // `source` is an effect's id here: the door names it by its registry name.
+    out.barsRestore.push({ stat: el.stat, source });
   },
 
   /**

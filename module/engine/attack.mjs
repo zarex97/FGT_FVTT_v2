@@ -70,7 +70,7 @@ import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { landEffect, landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
-import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
+import { tableFor, rollsTable, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { spentFirstOf, holdsFamily } from "../rules/effects/families.mjs";
@@ -107,7 +107,25 @@ import { regionSizedTargeting } from "./fields.mjs";
 // the one door is `public-identity.mjs#shownName`.
 import { shownName, shownNameById } from "./public-identity.mjs";
 import { historyOf } from "./state-history.mjs";
+import { chosenTierView } from "../rules/tiers.mjs";
+import { fieldsEndedBy, struckAbilities, causedBy } from "../rules/listed-abilities.mjs";
 import { warRule, currentWar, isWarGM, warOfScene } from "./war.mjs";
+
+/**
+ * The ability a Process was declared with, as the Rank its user chose reads.
+ *
+ * The one door from a Process to its ability: the damage, the riders and the die
+ * table all read the Rank in force (#374 reading 2). A Process with no choice
+ * stored reads the ability as it stands.
+ *
+ * @param {object} state the Process
+ * @param {object|null|undefined} attackerDoc
+ * @returns {object|null}
+ */
+function declaredAbility(state, attackerDoc) {
+  const item = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  return item ? (chosenTierView(item, state.attack.tier) ?? item) : null;
+}
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -256,6 +274,8 @@ export async function resolveAttack({
   // the multiplier its damage reads.
   const criteria = declarationCriteria(ability?.system?.criteria, targets, self, board);
   if (criteria.total > 0 && !resume) await postCriteriaCard(attacker, ability, criteria);
+  // The Rank its user chose is the first thing the table hears of it (#374).
+  if (ability?.system?.tierChoice && !resume) await postChosenTier(attacker, ability);
 
   // The ability's OWN price -- its shield refresh, its use record, its costs
   // and its cooldown. Shared with the Ch. 21 Counter path, which pays all of it
@@ -1168,6 +1188,14 @@ export function buildAttackSpec({
       // not affected"*, and a Mana Burst is a Normal Attack by its own flag
       // (`attack:kind:normal`), so nothing could tell the two apart (#230).
       sourceContentId: ability?.system?.contentId ?? null,
+      // The Rank its user chose (#374): every later step reads the ability
+      // through `declaredAbility`, and a Process outlives this call.
+      tier: Number.isInteger(placement?.tier) ? placement.tier : null,
+      // The areas this use ends, read where its user stands at the declaration
+      // (#374 reading 18): *"used within"* is a "while X", and the damage lands
+      // first. Ended by `fireAttackPerformed`, once every Process is over.
+      endsFields: view && ability?.system?.endsFieldsInside
+        ? fieldsEndedBy(ability.system.endsFieldsInside, unitOf(attacker, view), view) : [],
       // WHAT ITS USER HELD when it was declared, by definition id: a charge
       // spent by "the next" NP is spent by an NP declared holding it, never by
       // one whose Combat Phase closes after the charge was gained (NP DmUp
@@ -4302,6 +4330,13 @@ async function fireAttackPerformed(siblings) {
       rolls,
     });
     intents.push(...settled);
+    // The areas its user stood in at the declaration, once its damage has
+    // landed: Enuma Elish's *"the NP is forcefully ended"* (#374 reading 18).
+    // Each posts its own closing card, and takes what its end takes.
+    for (const fieldId of processes.find((p) => !p.st.isCounter)?.st.attack?.endsFields ?? []) {
+      const { deactivateField } = await import("./fields.mjs");
+      await deactivateField(fieldId, "forcedEnd");
+    }
     if (intents.length === 0) continue;
     // A clock the Attack turned is a line on its card, as the Damage Step's
     // are (#209): Excalibur took 23 -> 21 off its own two Units and no card
@@ -4326,7 +4361,7 @@ async function fireAttackPerformed(siblings) {
 async function settleDeclarationCooldown(attackerId, attacker, processes) {
   const declared = processes.filter((p) => !p.st.isCounter);
   const abilityId = declared[0]?.st.attack?.abilityId ?? null;
-  const ability = abilityId ? unitActor(attackerId)?.items?.get(abilityId) : null;
+  const ability = abilityId ? declaredAbility(declared[0].st, unitActor(attackerId)) : null;
   if (!ability) return [];
   const facts = useFacts(declarationRecord(declared.map((p) => ({ state: p.st, result: p.result }))));
   const delta = settleDelta(ability, attackerId, { unit: attacker, facts });
@@ -5499,6 +5534,12 @@ function counterAvailable(state) {
   const defender = unitFrom(board, defenderDoc);
   if (!attacker?.panel || !defender?.panel) return false;
 
+  // *"The unit cannot Counter that phase"*: woken by this attack (#374 reading 11).
+  const wokenNow = [...siblingMessages(state)].some((m) => {
+    const raw = m.getFlag("fgt", "process");
+    return raw && process.deserialize(raw).defenderId === state.defenderId && m.getFlag("fgt", "result")?.flags?.wokeFromSleep;
+  });
+  if (wokenNow) return false;
   const held = defender.effects ?? [];
   // What the counter swings from: the mount's footprint and Range for a rider
   // whose mount replaces her Normal Attack, and her own otherwise (#171).
@@ -5710,7 +5751,7 @@ async function applyInjury(state, message) {
   // (`singleInjuryRollPending`); later ones find the real verdict already
   // recorded and skip (`singleInjuryRoll`).
   const attackerDoc = unitActor(state.attackerId);
-  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  const ability = declaredAbility(state, attackerDoc);
   let damage = result.total;
   let exceededThreshold = Boolean(result.flags?.exceededInjuryThreshold);
 
@@ -6343,7 +6384,7 @@ async function applyDamage(state, message) {
   // only the board can answer.
   const attacker = windowAugmented(unitFrom(board, attackerDoc), attackerDoc, state);
   const defender = unitFrom(board, defenderDoc);
-  const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
+  const ability = declaredAbility(state, attackerDoc);
 
   // Once, and shared: the option set the predicates read and the context the
   // pipeline reads describe the same attack -- the Attack Description, which
@@ -6781,6 +6822,7 @@ async function applyDamage(state, message) {
       // 16 (Crystalfreeze too). The pipeline raised `removeFreeze` and nothing
       // read it, so a Unit stayed Frozen after the hit that broke it (#258, live).
       ...frozenBrokenBy(defender, result),
+      ...wokenBy(defender, result),
       ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify", state.attackerId ?? null)] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
       // Damage that empties a Health bar is where `unitDefeated` fires, and
@@ -6848,8 +6890,30 @@ function withMaxHealth(unit, max) {
  * The removals of the Freeze an attack broke (`flags.removeFreeze`).
  *
  * Fire at stage 0 breaks Freeze alone, Crystalfreeze having no Fire clause; 150
- * or more at stage 16 breaks whichever of the two the Unit holds.
+ * or more at stage 16 breaks whichever of the two the Unit holds. Sleep and what
+ * derives from it are woken by any damage from an attack: *"Damage from an attack
+ * is +100% Total Damage, then Sleep is removed; the unit cannot Counter that
+ * phase"* (Appendix A, #374 reading 11).
  *
+ * @param {object} defender the defender's board unit
+ * @param {object} result the damage result
+ * @returns {object[]} intents
+ */
+function wokenBy(defender, result) {
+  if (!(result?.total > 0)) return [];
+  const woken = (defender?.effectInstances ?? []).filter((e) => EffectRegistry.get(e.defId)?.wokenByAttackDamage);
+  if (woken.length === 0) return [];
+  // Read by `counterAvailable`: the saved result is what every rung after this one sees.
+  result.flags.wokeFromSleep = true;
+  return woken.flatMap((e) => [
+    I.removeEffect(defender.id, e.id, "damage"),
+    I.log({ kind: "cardLine", unitId: defender.id, source: e.defId, line: {
+      key: "FGT.Effect.Woken", data: { effect: EffectRegistry.get(e.defId)?.name ?? e.defId },
+    } }),
+  ]);
+}
+
+/**
  * @param {object} defender the defender's board unit
  * @param {object} result the damage result
  * @returns {object[]} intents
@@ -7111,7 +7175,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     summary: { id, name, outcome: "blocked", reason: game.i18n.format("FGT.Barrier.Holds", { name: heldBy ?? "" }), chance: null },
   });
   const attackerDoc = unitActor(state.attackerId);
-  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  const ability = declaredAbility(state, attackerDoc);
   const defenderDoc = unitActor(state.defenderId);
   if (!ability || !defenderDoc) return declared;
 
@@ -7361,6 +7425,15 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
       continue;
     }
+    // What the abilities a DU carries suffer when it is hit: Enuma Elish's lists
+    // (#374 readings 17, 19, 20, 23). A hit, so an Evade never comes here and a
+    // Block does; once per Process, so once per DU.
+    if (phase.kind === "strikeListedAbilities") {
+      if (heldOnly) continue;
+      if (holding) { keep("strikeListedAbilities", ability.name); continue; }
+      applied.push(...await strikeListedAbilities(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
+      continue;
+    }
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
     // A rider the sheet gates on HURT, not hit: Mystery Bisection's *"35% chance
     // of inflicting Instakill if damage was dealt"* (#243 reading 15). A Block
@@ -7499,7 +7572,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
  * @returns {Promise<object[]>}
  */
 async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc) {
-  const table = tableFor(phase, relationOf(attackerUnit, defender, boardSnapshot()));
+  const relation = relationOf(attackerUnit, defender, boardSnapshot());
+  // *"All affected enemy Units roll"* in an area that hits every Unit (#374
+  // reading 5). Held back, so said.
+  if (!rollsTable(phase, relation)) {
+    return [{ summary: {
+      id: "rollTable",
+      name: game.i18n.format("FGT.RollTable.NotRolled", { name: ability.name, unit: shownName(defender) }),
+      outcome: "blocked", reason: null, chance: null,
+    } }];
+  }
+  const table = tableFor(phase, relation);
   if (!table) {
     // fgt-name-ok: console text for the GM and the developer
     console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
@@ -7546,6 +7629,81 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
     speaker: publicSpeakerFor(attackerDoc),
   });
   return applied;
+}
+
+/**
+ * What a hit does to the abilities its DU carries, row by row.
+ *
+ * In the sheet's order: a row's Tokens leave first (*"remove all Nameless Forest
+ * Tokens from all Units on the board, then the DU is inflicted"*), then the seal,
+ * then what the ability caused. The seal names its ability and its kind, *"Skill
+ * Seal (Ea)"* or *"NP Seal (Ea)"*; it is Unremovable, and no Debuff Immune or
+ * Resist stops it (#374 reading 19).
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} state the Process
+ * @param {object} attackerDoc
+ * @param {object} attackerUnit
+ * @param {object} defender the defender's unit
+ * @param {object} defenderDoc
+ * @returns {Promise<object[]>} the card's lines
+ */
+async function strikeListedAbilities(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc) {
+  const out = [];
+  const removalLines = async (found, reason) => {
+    if (found.length === 0) return [];
+    await applyBatch(found.map(({ unitId, instance }) => I.removeEffect(unitId, instance.id, reason)), "abilityEffect:strikeListed");
+    return found.map(({ unitId, instance }) => ({ unitId, summary: {
+      id: instance.defId, name: EffectRegistry.get(instance.defId)?.name ?? instance.defId, outcome: "removed", reason: null, chance: null,
+    } }));
+  };
+  for (const { item, row } of struckAbilities(phase, defenderDoc.items)) {
+    const units = boardSnapshot().units ?? [];
+    if (row.removesEffects?.length) {
+      const named = new Set(row.removesEffects);
+      const found = units.flatMap((u) => (u.effectInstances ?? [])
+        .filter((e) => named.has(e.defId)).map((instance) => ({ unitId: u.id, instance })));
+      out.push(...await removalLines(found, "strikeListed"));
+      // The pool hanging from a marker goes with it, as an escape takes it, and no
+      // stat is written back: Nameless Forest's *"Health and Luck that are lost
+      // from the effects of this NP are not restored"* (#247 reading 5, #374).
+      const pools = found.flatMap(({ unitId }) => (row.clearsResources ?? []).map((path) => I.setResource(unitId, path, 0)));
+      if (pools.length > 0) await applyBatch(pools, "abilityEffect:strikeListed");
+    }
+    // A seal already on this ability is refreshed, never doubled: each ability is
+    // one instance, and a second hit starts its 3◈ again.
+    const sealedId = item.system?.contentId ?? item.id;
+    const prior = (unitFrom(boardSnapshot(), defenderDoc)?.effectInstances ?? [])
+      .filter((e) => e.defId === phase.seal && e.params?.sealsAbility === sealedId);
+    if (prior.length > 0) await applyBatch(prior.map((e) => I.removeEffect(defenderDoc.id, e.id, "refreshed")), "abilityEffect:strikeListed");
+    const isNP = Boolean(item.system?.isNP || item.system?.categorizedAsNP || item.type === "noblePhantasm");
+    const seal = game.i18n.format(isNP ? "FGT.Effect.NpSealNamed" : "FGT.Effect.SkillSealNamed", { ability: item.name });
+    out.push(...await landEntry(entryOf({
+      id: phase.seal,
+      duration: phase.duration,
+      unremovable: true,
+      bypassesImmunity: true,
+      bypassChanceModifiers: true,
+      params: { sealsAbility: sealedId, name: seal },
+    }, { phase }), {
+      target: unitFrom(boardSnapshot(), defenderDoc) ?? defender,
+      source: { unitId: state.attackerId, abilityId: ability.id },
+      useRecord: state.use ?? null,
+      caster: attackerDoc,
+      casterUnit: attackerUnit,
+      attack: attackFacts(attackerUnit, defender, state),
+      distance: state.attack?.range ?? null,
+      process: state,
+    }, {
+      write: (intents) => applyBatch(intents, "abilityEffect:strikeListed"),
+      reread: () => unitFrom(boardSnapshot(), defenderDoc),
+    }));
+    if (row.removesCaused) {
+      out.push(...await removalLines(causedBy(item, defenderDoc.id, boardSnapshot().units ?? []), "strikeListed"));
+    }
+  }
+  return out;
 }
 
 /**
@@ -8011,7 +8169,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
  */
 function damageSuppressedBy(state, before) {
   const attackerDoc = unitActor(state.attackerId);
-  const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
+  const ability = declaredAbility(state, attackerDoc);
   const skipIf = ability?.system?.damage?.skipIf ?? null;
   if (!skipIf?.effectApplied) return null;
 
@@ -8632,7 +8790,7 @@ export function processDamagePreview(state, board) {
   const caster = (board?.units ?? []).find((u) => u.id === state.attackerId);
   const defender = (board?.units ?? []).find((u) => u.id === state.defenderId);
   if (!attackerDoc || !caster || !defender) return null;
-  const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
+  const ability = declaredAbility(state, attackerDoc);
   if (dealsNoDamage(ability)) return null;
   const ids = new Set([state.defenderId, ...siblingMessages(state)
     .map((m) => process.deserialize(m.getFlag("fgt", "process")).defenderId)]);
@@ -10401,6 +10559,27 @@ async function resolveEmptiedUnit(unitId) {
  * @param {{met: number, which: number[], total: number}} criteria
  * @returns {Promise<void>}
  */
+/**
+ * Say which Rank a use was chosen at, and what that Rank sets.
+ *
+ * @param {object} actor
+ * @param {object} ability the ability, as the chosen tier reads
+ * @returns {Promise<void>}
+ */
+async function postChosenTier(actor, ability) {
+  const damage = ability.system.damage ?? {};
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Tier.Chosen", {
+      ability: ability.name,
+      rank: ability.system.rank ?? "",
+      multiplier: damage.multiplier ?? 1,
+      flat: damage.flatBonus ?? 0,
+      cooldown: ability.system.cooldown?.max ?? "",
+    })}</p>`,
+    speaker: publicSpeakerFor(actor),
+  });
+}
+
 export async function postCriteriaCard(actor, ability, criteria) {
   await ChatMessage.create({
     content: `<p>${criteriaLine((key, data) => game.i18n.format(key, data), ability, criteria)}</p>`,

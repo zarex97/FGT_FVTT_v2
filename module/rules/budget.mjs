@@ -58,6 +58,9 @@ const PREVENTS = Object.freeze({
   silence: ["spell"],
   skillSeal: ["skill", "spell"],
   npSeal: ["np"],
+  // *"Cannot use Active Skills or Spells"*, Skill Seal's reach (#374). Its second
+  // clause is `scheduler.mjs#fireEvent`'s.
+  addle: ["skill", "spell"],
   // Avalon placed, taken back or passed on: *"both Arturia and her Master
   // cannot Attack on the same Turn, and cannot Move after"* (#230).
   itemRite: ["move", "attack", "np", "spell", "ridingAttack"],

@@ -30,6 +30,7 @@ export {
   NP_TAG_SCALE, NP_TAG_QUALIFIERS, scaleOf, scaleTagOf, meetsTagThreshold,
 } from "./np-scale.mjs";
 import { meetsTagThreshold } from "./np-scale.mjs";
+import { fieldSealed } from "./listed-abilities.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /* -------------------------------------------------------------------------- */
@@ -885,6 +886,8 @@ export function isolationBlocks(field, attacker, target, board, ctx = {}) {
  */
 export function interiorModifiers(field, unit, board) {
   if (!contains(field, unit?.panel, board)) return [];
+  // It stands, and does nothing while its ability is sealed (#374 reading 20).
+  if (fieldSealed(field, board)) return [];
   const relation = relationTo(field, unit, board);
 
   return (field.interior ?? [])
