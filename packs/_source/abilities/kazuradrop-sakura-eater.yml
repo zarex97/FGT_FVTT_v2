@@ -1,0 +1,49 @@
+# Sakura Eater, Rank A (#385 SE.*).
+#
+# Every Unit truly there counts, hidden ones too: *"Hidden is different from unreachable
+# or intangible"* (reading 12). A Unit in a Bug Space is off the board. *"Instead"*
+# replaces Effect 2 only, and the ⅓◈ reaches her other Skills, not this one, not an NP
+# (reading 13, as Olga's ruling 11). `obtainsOnKill` is the Passive (readings 14, 15).
+schema: 1
+id: kazuradrop-sakura-eater
+name: "Sakura Eater"
+rank: A
+kind: skill
+slug: sakuraEater
+cooldown: "3◈"
+timing: { window: ownTurn }
+obtainsOnKill: { groups: [bb, sakuraFive] }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. NP Cooldown is reduced by 2◈ Turns.
+  2. For every BB and other 'Sakura Five' Unit within a 3 panel area of herself, NP Cooldown is further reduced by
+     2◈ Turns.
+  3. If there are no BB or other 'Sakura Five' Units within a 3 panel area of herself, Skill Cooldown is reduced by
+     ⅓◈ Turns instead.
+  Cooldown: 3◈ Turns.
+  (Passive) Whenever Kazuradrop successfully defeats a BB or Sakura Five Unit, she can choose one of the non-Class
+  Skills on the defeated Unit and obtain it for her own usage permanently (for the rest of the game). Skills obtained
+  in this way do not count towards the Skill limit of Insect Eater.
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "2◈", direction: down }
+  - kind: cooldown
+    target: self
+    changes:
+      - scope: np
+        ticks: "2◈"
+        direction: down
+        count: &kin
+          of: board
+          within: 3
+          excludeSelf: true
+          standing: true
+          requires:
+            - { or: ["self:group:bb", "self:group:sakuraFive"] }
+  - kind: cooldown
+    target: self
+    whenCountZero: *kin
+    changes:
+      - { scope: skills, excludeSelf: true, ticks: "⅓◈", direction: down }

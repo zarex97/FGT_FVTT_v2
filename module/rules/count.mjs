@@ -229,7 +229,7 @@ function boardUnits(spec, ctx) {
  * @param {object|null|undefined} b
  * @returns {number}
  */
-function unitDistance(a, b) {
+export function unitDistance(a, b) {
   const from = a?.panels?.length ? a.panels : (a?.panel ? [a.panel] : []);
   const to = b?.panels?.length ? b.panels : (b?.panel ? [b.panel] : []);
   let best = Infinity;

@@ -21,6 +21,7 @@
  * went unnoticed for as long as they did.
  */
 
+import { groupsOf } from "./unit-groups.mjs";
 import { parametersCounted } from "./count.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -532,6 +533,9 @@ function add(options, side, unit, withoutModeHeld = false) {
 
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
+
+  // A group a sheet names by its members: *"BB and 'Sakura Five' Units"* (#385).
+  for (const g of groupsOf(unit)) options.add(`${side}:group:${g}`);
 
   // A SERVANT's Class, its group, and whether it is a Knight (#286, #314):
   // *"All damage dealt to Caster-class Servants"*, *"Standard Class Servants"*,

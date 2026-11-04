@@ -51,6 +51,7 @@ Eight timing windows exist, and only one is not offered at a moment: `ownTurn` i
 
 - `whenAttacked` — as a reaction inside an attacker's Combat Process (`module/rules/windows.mjs:47-50`)
 - `whenAllyAttacked` — when an ally nearby is about to be hit (`module/rules/windows.mjs:52-55`)
+- `allyDamageStep` — at the start of an allied Unit's Damage Step (#385): Bug Space's rescue, its bearer neither side, so an Evade opens nothing
 - `damageStep` — at the start of a Damage Step, on the attacker's own attack (`module/rules/windows.mjs:57-60`). Asked **once per attack**, not once per Process (#188 reading 13): a fan-out is one Combat Phase and many Processes, and a Riding Attack through three Units asked three times, so Monstrous Strength, billed on the first, boosted one hit of the ride. The first Process to reach the window asks and records the answer, a refusal included, on its message (`windowPicks`); its siblings take the same answer without asking or paying again (`engine/attack.mjs#offerAttackerWindow`).
 - `combatPhaseStart` — at the start of a Combat Phase, on the attacker's own attack (`module/rules/windows.mjs:62-65`)
 - `defendingPhaseStart` — at the start of a Combat Phase the Unit is attacked in, asked of each defender after the attacker's window (#206 reading 4, `engine/attack.mjs`). Uncrowned Arms Mastership switches *"at the start of any Combat Phase"* Karna is in, attacking or defending.

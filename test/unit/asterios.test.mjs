@@ -343,6 +343,8 @@ describe("a non-damaging Noble Phantasm", () => {
       // the platform's.
       "karl-carolus-patricius",
       "karl-cpa-auctoritas",
+      // Bug Space's capture, Gully Trap Funny Muryan's Method 1 (#385).
+      "kazuradrop-gully-trap",
       // Invisible Air's Usage 1 (#336): AGL Up and MOV Up on its user, cast with
       // the Mana Burst it rides; the Attack is the Mana Burst's.
       "lanceturia-invisible-air",

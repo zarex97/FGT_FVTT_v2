@@ -347,7 +347,7 @@ export function categoryRankOf(unit, category) {
 
 export const REQUIREMENT_KINDS = Object.freeze([
   "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill",
-  "resourceAtLeast", "healthBelow", "modeActive", "counterpartAdjacent",
+  "resourceAtLeast", "bugSpaceRoom", "healthBelow", "modeActive", "counterpartAdjacent",
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
   "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
@@ -455,6 +455,10 @@ export function meetsRequirement(req, ctx) {
       return !(unit?.abilities ?? []).some(
         (a) => (a.slug === req.mode || a.id === req.mode) && a.active,
       );
+
+    case "bugSpaceRoom":
+      // *"The maximum number of Units that can be held inside Bug Space"* (#385 reading 33).
+      return (unit?.bugSpace?.held ?? 0) < (unit?.bugSpace?.capacity ?? 0);
 
     case "resourceAtLeast":
       // Ch. 06's pools live under `resources`; Agility and Luck are top-level

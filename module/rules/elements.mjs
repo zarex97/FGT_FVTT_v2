@@ -733,6 +733,9 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // A charge spent each time the handler pays out, for a count-limited
     // effect: Alpi is "for 1◈ Turns, **3 times**".
     consumesUse: el.consumesUse ?? false,
+    // Said when the charge goes, even with nothing else to say: Pixie burns one
+    // with no enemy near, and a charge gone in silence is a Clause nobody saw (#385).
+    useLine: el.useLine ?? null,
     // Charm: *"removed at the end of the Combat Phase if the unit takes damage
     // from an attack."* A condition about the BEARER rather than about the
     // event's subject, so it is answered in `fireEvent` against the damage the

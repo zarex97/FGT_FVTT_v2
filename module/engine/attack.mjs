@@ -72,6 +72,7 @@ import { landEffect, landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
 import { tableFor, rollsTable, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { unitDistance } from "../rules/count.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { spentFirstOf, holdsFamily } from "../rules/effects/families.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
@@ -88,7 +89,7 @@ import { pressGate, offerable, pressesAsAttack } from "./press-gate.mjs";
 // Re-exported for the tests and callers that reach it through this module (#159).
 export { abilityKind };
 import {
-  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW, DEFENDING_PHASE_START_WINDOW, PROCESS_END_WINDOW,
+  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, ALLY_DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW, DEFENDING_PHASE_START_WINDOW, PROCESS_END_WINDOW,
   windowsOf,
 } from "../rules/windows.mjs";
 import {
@@ -220,7 +221,23 @@ export async function resolveAttack({
     }
     return { options, targets };
   };
-  let aimed = aim(pre, board);
+  // A sweep that also strikes everyone its user holds (#385 reading 40): read at the
+  // declaration, back on the board for this Attack, Effects still paused.
+  /** @type {string[]} */
+  let struckHeld = [];
+  if (!resume && pre.ability?.system?.strikesHeld) {
+    const { openForStrike } = await import("./bug-space.mjs");
+    struckHeld = await openForStrike(attacker);
+    if (struckHeld.length > 0) board = boardSnapshot();
+  }
+  let aimed;
+  try {
+    aimed = aim(pre, board);
+  } catch (err) {
+    // A refusal puts them back where they were.
+    for (const id of struckHeld) await unitActor(id)?.update({ "system.heldStruck": false });
+    throw err;
+  }
   // A ghost's Attack reveals it (#249 readings 18, 27, 29) -- once the Attack
   // is legal, its targets included, so one refused out of Range reveals nothing
   // (found live): off a shared panel, the marker gone, then aimed again from
@@ -236,6 +253,13 @@ export async function resolveAttack({
   }
   const { self, ability, actionKind, free, master, usage } = pre;
   const { options, targets } = aimed;
+  if (struckHeld.length > 0) {
+    const caught = new Set(targets.units.map((t) => t.unitId));
+    for (const unitId of struckHeld) {
+      if (caught.has(unitId)) targets.units.find((t) => t.unitId === unitId).heldStruck = true;
+      else targets.units.push({ unitId, distance: 0, band: 0, relation: relationOf(self, unitFrom(board, unitActor(unitId)), board), heldStruck: true });
+    }
+  }
 
   // Declaring the attack is what spends the budget, not landing it: a Noble
   // Phantasm that misses still consumed the Servant's attack for the turn, and
@@ -1554,6 +1578,7 @@ async function declareProcesses({
   const caughtConcealed = new Set((targets?.units ?? []).filter((t) => t.concealedAoE).map((t) => t.unitId));
   const caughtByArea = new Set((targets?.units ?? []).filter((t) => t.caughtByArea).map((t) => t.unitId));
   const unseenByAttacker = new Set((targets?.units ?? []).filter((t) => t.unseen).map((t) => t.unitId));
+  const heldStruck = new Set((targets?.units ?? []).filter((t) => t.heldStruck).map((t) => t.unitId));
   const spec = Object.keys(platformFactors).length > 0 ? { ...counterSpec, platformFactors } : counterSpec;
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -1752,6 +1777,8 @@ async function declareProcesses({
       caughtConcealed: caughtConcealed.has(bound.defenderId) || undefined,
       unseenByAttacker: unseenByAttacker.has(bound.defenderId) || undefined,
       caughtByArea: caughtByArea.has(bound.defenderId) || undefined,
+      // Held in a Bug Space: no Evade or Block, no reaction at all (#385 reading 40).
+      ...(heldStruck.has(bound.defenderId) ? { forbiddenReactions: ["block", "evade", "counter", "luck"], reactionAbilities: { [bound.defenderId]: [] } } : {}),
     };
     const state = carryDeclarationBoosts(declared, boostWindow);
     // What this defender could answer with, beyond Block and Evade. Recorded on
@@ -4652,6 +4679,18 @@ async function runAutomaticStep(state, message) {
       return next;
     }
     case "damage": {
+      // An ally about to receive this may be taken out of it (#385 readings 34, 35):
+      // no damage and no riders, on the card, and the Attack goes on for the others.
+      {
+        const rescued = await offerAllyCapture(state);
+        if (rescued) {
+          await message.setFlag("fgt", "damage", 0);
+          const said = message.getFlag("fgt", "effects") ?? [];
+          const rescuedRows = cardRows([rescued]);
+          await message.setFlag("fgt", "effects", [...said, ...rescuedRows]);
+          return process.advance(state, "cancelled");
+        }
+      }
       // AUTOMATIC handlers first, then the offer. The attacker's own window
       // below asks the player for something; this pays out a rule that needs no
       // asking, and it has to run before anything is computed for the same
@@ -4802,6 +4841,18 @@ async function runAutomaticStep(state, message) {
       // Circuits pay out as App. E always said. It read `result.total > 0`,
       // and the reference and the code disagreed for every listener.
       const stepEnd = riders ? await fireDamageStepEnd(state, result) : { rows: [], records: [] };
+      // Insect Eater: a successful Attack's chance, at the end of this DU's last
+      // Damage Step (#385 reading 22). A non-damaging Process has none.
+      const theft = riders && struck ? await (await import("./stolen-skills.mjs")).rollSkillTheft(state) : [];
+      // *"Then, if there are any Units inside Bug Space, they are all forcefully
+      // released"*: this one has had its Process (#385 reading 40).
+      {
+        const struckDoc = state.defenderId ? unitActor(state.defenderId) : null;
+        if (struckDoc?.system?.heldStruck) {
+          const { forceOut } = await import("./bug-space.mjs");
+          await forceOut(unitActor(state.attackerId), [struckDoc]);
+        }
+      }
       // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
@@ -4827,7 +4878,7 @@ async function runAutomaticStep(state, message) {
       const said = message.getFlag("fgt", "effectsBeforeDamage") ?? (message.getFlag("fgt", "effects") ?? []);
       if (!message.getFlag("fgt", "effectsBeforeDamage")) await message.setFlag("fgt", "effectsBeforeDamage", said);
       await message.setFlag("fgt", "effects", [...said, ...cardRows([
-        ...startRows, ...before, ...applied, ...held, ...(result.lines ?? []), ...taken.rows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
+        ...startRows, ...before, ...applied, ...held, ...(result.lines ?? []), ...taken.rows, ...receivedRows, ...theft, ...dealt.rows, ...stepEnd.rows,
       ])]);
       return process.advance(state, "done", {
         total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...taken.records, ...dealt.records, ...stepEnd.records],
@@ -5177,7 +5228,7 @@ function evadeModifiers(state, attacker, defender) {
     // appeared. `abilityId` is on the state; the document may be gone by the
     // time a log is read, so the fallback is honest rather than absent.
     const source = state.attack.abilityId
-      ? (unitActor(state.attackerId)?.items?.get(state.attack.abilityId)?.name ?? "the attack")
+      ? (shownAbility(unitActor(state.attackerId)?.items?.get(state.attack.abilityId)) || "the attack")
       : "the attack";
     mods.push({ source, value: state.attack.evadeModifier });
   }
@@ -7448,6 +7499,13 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
       continue;
     }
+    // Bug Space, on a Process not Evaded (#385 reading 33).
+    if (phase.kind === "capture") {
+      if (heldOnly || holding) continue;
+      const { captureUnit } = await import("./bug-space.mjs");
+      await captureUnit(attackerDoc, defenderDoc);
+      continue;
+    }
     // What the abilities a DU carries suffer when it is hit: Enuma Elish's lists
     // (#374 readings 17, 19, 20, 23). A hit, so an Evade never comes here and a
     // Block does; once per Process, so once per DU.
@@ -7725,8 +7783,38 @@ async function strikeListedAbilities(phase, ability, state, attackerDoc, attacke
     if (row.removesCaused) {
       out.push(...await removalLines(causedBy(item, defenderDoc.id, boardSnapshot().units ?? []), "strikeListed"));
     }
+    // Everyone inside comes out: what that ability caused is gone (#385 reading 44).
+    if (row.releasesHeld) {
+      const { forceOut, heldBy } = await import("./bug-space.mjs");
+      await forceOut(defenderDoc, heldBy(defenderDoc.id));
+    }
   }
   return out;
+}
+
+/**
+ * The seal an ability used from inside a Bug Space leaves on the holder, whether or
+ * not the holder Evaded: *"then the DU is inflicted with NP Seal (Ea)… Additionally,
+ * remove all effects caused by this NP"* (#385 readings 43, 44). Through the same
+ * door as a hit, so a seal is one instance and one line.
+ *
+ * @param {{attacker: object, ability: object, holder: object, spec: object}} args
+ * @returns {Promise<void>}
+ */
+export async function sealFromInside({ attacker, ability, holder, spec }) {
+  const board = boardSnapshot();
+  const state = { attackerId: attacker.id, defenderId: holder.id, attack: { kind: "np", abilityId: ability.id } };
+  const rows = await strikeListedAbilities(
+    { seal: spec.seal, duration: spec.duration, rows: [{ abilities: spec.abilities, removesCaused: true }] },
+    ability, state, attacker, unitFrom(board, attacker), unitFrom(board, holder), holder,
+  );
+  const lines = rows.map((r) => r.summary?.name).filter(Boolean);
+  if (lines.length > 0) {
+    await ChatMessage.create({
+      content: `<div class="fgt-card">${lines.map((l) => `<p>${l}</p>`).join("")}</div>`,
+      speaker: publicSpeakerFor(attacker),
+    });
+  }
 }
 
 /**
@@ -9289,6 +9377,70 @@ async function offerAttackerWindow(state, window, message) {
   }
 }
 
+/**
+ * The start of an allied Unit's Damage Step: whoever may take it out of this Attack
+ * (#385 readings 34, 35). Offered per Process, so an Evade opens nothing. Asked
+ * again when it is billed: two Processes of one area reach here together, and its
+ * clock answers the second.
+ *
+ * @param {object} state
+ * @returns {Promise<object|null>} the card's row, when one was taken
+ */
+async function offerAllyCapture(state) {
+  if (!state.defenderId || state.attack?.nonDamaging || state.attack?.plainDamage) return null;
+  const board = boardSnapshot();
+  const defenderDoc = unitActor(state.defenderId);
+  const defender = unitFrom(board, defenderDoc);
+  if (!defender || defenderDoc?.system?.heldIn) return null;
+  for (const owner of board.units ?? []) {
+    if (owner.id === defender.id || owner.id === state.attackerId || owner.defeated) continue;
+    if (relationOf(owner, defender, board) !== "ally") continue;
+    const doc = unitActor(owner.id);
+    if (!doc) continue;
+    const offers = offerable(doc, abilitiesAtWindow(windowSubject(owner, doc.items), ALLY_DAMAGE_STEP_WINDOW),
+      (item) => windowGateContext(item, board))
+      .filter((item) => unitDistance(owner, defender) <= Number(item.system?.timing?.radius ?? 0));
+    if (offers.length === 0) continue;
+    const picked = await askOwner(doc, {
+      kind: "choose",
+      title: game.i18n.localize(`FGT.Window.${ALLY_DAMAGE_STEP_WINDOW}`),
+      hint: game.i18n.format("FGT.BugSpace.RescueHint", { name: shownName(defenderDoc, board), attacker: shownName(unitActor(state.attackerId), board) }),
+      min: 0,
+      count: 1,
+      options: offers.map((a) => ({
+        id: a.id,
+        // fgt-name-ok: the holder's own prompt
+        name: a.name,
+        detail: a.system?.description ?? "",
+      })),
+    });
+    const item = doc.items.get((picked ?? [])[0]);
+    if (!item) continue;
+    const after = boardSnapshot();
+    const gate = pressGate(doc, item, windowGateContext(item, after));
+    if (!gate.ok) {
+      await tellReactionRefused(doc, item, gate.reason, gate.usage?.detail);
+      continue;
+    }
+    const self = unitOf(doc, after);
+    const plan = cooldownFor(item, doc.id, { unit: self });
+    await applyBatch([
+      ...plan.cooldowns.map((c) => I.cooldown(c.actorId, c.abilityId, c.ticks, "set")),
+      I.recordUse(doc.id, item.id, item.system?.contentId ?? null),
+      I.log({ kind: "ability", event: "windowUsed", window: ALLY_DAMAGE_STEP_WINDOW, unitId: doc.id, abilityId: item.id, name: item.name }), // fgt-name-ok: the GM's log
+    ], `window:${ALLY_DAMAGE_STEP_WINDOW}`);
+    const { captureUnit } = await import("./bug-space.mjs");
+    await captureUnit(doc, defenderDoc);
+    return { unitId: doc.id, summary: {
+      id: "bugSpaceRescue",
+      name: game.i18n.format("FGT.BugSpace.Rescued", { name: shownName(defenderDoc, after), holder: shownName(doc, after) }),
+      outcome: "applied",
+      reason: null,
+    } };
+  }
+  return null;
+}
+
 /** Window answers still being asked, by group, attacker and window. */
 const openWindowPicks = new Map();
 
@@ -9438,7 +9590,7 @@ async function askAttackerWindow(state, window, message) {
   if (used.length > 0) {
     await ChatMessage.create({
       content: `<p><strong>${publicIdentityOf(actor, currentBoard()).name}</strong> uses `
-        + `${used.map((id) => actor.items.get(id)?.name ?? id).join(", ")}.</p>`,
+        + `${used.map((id) => shownAbility(actor.items.get(id)) || id).join(", ")}.</p>`,
       speaker: publicSpeakerFor(actor),
     });
   }

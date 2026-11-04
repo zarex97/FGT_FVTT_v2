@@ -135,5 +135,7 @@ describe("the guard", () => {
       expect(ABILITY_NAME_READ.test(held)).toBe(true);
     }
     expect(ABILITY_NAME_READ.test("effect.name")).toBe(false);
+    // Read in one chain, as a Cooldown row printed Airavata King Size to the whole table.
+    expect(ABILITY_NAME_READ.test("unitActor(id)?.items?.get(a)?.name")).toBe(true);
   });
 });

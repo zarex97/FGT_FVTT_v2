@@ -306,7 +306,7 @@ describe("meetsRequirement", () => {
     // an unrecognised kind refuses, so the ability compiles, loads, and never
     // works.
     const listed = [
-      "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill", "resourceAtLeast",
+      "bugSpaceRoom", "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill", "resourceAtLeast",
       "healthBelow", "modeActive", "counterpartAdjacent", "masterHealthAbove",
       "targetHasEffect", "predicate",
       // Beyond Ch. 17's own list, added by content that needed them.

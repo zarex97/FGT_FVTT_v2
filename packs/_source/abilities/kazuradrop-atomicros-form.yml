@@ -1,0 +1,69 @@
+# Atomicros Form, Atomicros Muryan Foot's two passives (#385 AM.door*, AM.mov, AM.agi).
+#
+# A Mode with an entry price and no way back, Mannanán's God's Holder's shape. Door one is
+# free, on her Turn, at exactly 7, and Stun stops it (readings 41, 49). Door two takes no
+# Tokens and no Skills: two kills tallied, opened at the end of the Combat Phase (41).
+# No end is printed, so the Form lasts the War. Insect Eater's +15 and Bug Space's five
+# read this Mode's slug in their own files.
+schema: 1
+id: kazuradrop-atomicros-form
+name: "Atomicros Form"
+kind: skill
+slug: atomicrosForm
+isMode: true
+cannotDeactivate: true
+notASkill: true
+copyable: { allowed: false, reason: unique }
+timing: { window: ownTurn }
+requirements:
+  - { kind: resourceAtLeast, key: eaterTokens, amount: 7 }
+description: |
+  (Passive 1) It can only be used while in Atomicros Form, which can be achieved by meeting one of the two conditions-
+  1. During your Turn, remove 7 Eater Tokens from herself and discard all Skills 'stolen' with Insect Eater to enter Atomicros Form.
+  2. When Kazuradrop has defeated a total of two BB and/or Sakura Five Units, she automatically changes into Atomicros Form
+     at the end of the Combat Phase.
+  (Passive 2) Kazuradrop gains the following effects while in Atomicros Form-
+  1. MOV is increased by 1.
+  2. Agility Check rolls are reduced by 3.
+  3. The base chance of Insect Eater succeeding is increased by 15%.
+  4. Bug Space can now hold a maximum of five Units instead of three.
+phases:
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.eaterTokens.value, delta: -7 }
+  - kind: discardStolen
+    target: self
+passiveRules:
+  - key: OnEvent
+    event: unitKilled
+    automatic: true
+    defer: true
+    predicate:
+      - { or: ["target:group:bb", "target:group:sakuraFive"] }
+    then:
+      - { key: ResourceDelta, resource: kinDefeated, delta: 1 }
+  - key: OnEvent
+    event: combatPhaseEnd
+    automatic: true
+    defer: true
+    predicate: ["self:resource:kinDefeated:gte:2"]
+    then:
+      - { key: ResourceDelta, resource: atomicrosDue, delta: 1 }
+  - key: ForceMode
+    mode: atomicrosForm
+    when: ["self:resource:atomicrosDue:gte:1"]
+  - key: StatDelta
+    stat: mov
+    value: 1
+    predicate: ["self:skillActive:atomicrosForm"]
+  - key: CheckModifier
+    check: agility
+    direction: outgoing
+    value: -3
+    predicate: ["self:skillActive:atomicrosForm"]
+  - key: CheckModifier
+    check: evade
+    direction: outgoing
+    value: -3
+    predicate: ["self:skillActive:atomicrosForm"]

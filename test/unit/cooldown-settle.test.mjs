@@ -185,7 +185,7 @@ describe("a clock an afterProcess phase turns is a line on its card", () => {
       await playProcess(w, messageId, { quickTarget00001: ["nothing", "declined"], quickNemo0000001: ["declined"] });
       expect(item().system.cooldown.remaining).toBe(3);
       const rows = w.messages.get(messageId).getFlag("fgt", "effects") ?? [];
-      expect(rows.filter((r) => r.id === "cooldown").map((r) => r.name)).toEqual([expect.stringMatching(/Quickfire.*6 → 3/)]);
+      expect(rows.filter((r) => r.id === "cooldown").map((r) => r.name)).toEqual([expect.stringMatching(/^SK-\w{5}: Cooldown 6 → 3/)]);
     }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
   });
 });

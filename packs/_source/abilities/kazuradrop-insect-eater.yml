@@ -1,0 +1,36 @@
+# id_es: Insect Eater (#385 IE.*).
+#
+# Read by `engine/stolen-skills.mjs#rollSkillTheft`, after each DU's last Damage Step, one
+# roll per DU per Attack. Terms in points, clamped last, and no debuff rule has a say
+# (reading 24). E 1 to A 5, EX 6 (reading 23). The Moon Cell is the War's Region (25).
+schema: 1
+id: kazuradrop-insect-eater
+name: "id_es: Insect Eater"
+kind: skill
+slug: insectEater
+passive: true
+stealsSkills:
+  base: 15
+  limit: 3
+  tokens: eaterTokens
+  terms:
+    - { label: "Moon Cell", value: 30, anyOf: ["war:region:moon"] }
+    - { label: "Debuff ChUp", effect: debuffChUp, sign: 1 }
+    - { label: "BB or Sakura Five", value: 30, anyOf: ["target:group:bb", "target:group:sakuraFive"] }
+    - { label: "Magic Resistance", perRank: magicResistance, value: -5 }
+    - { label: "Debuff ChDwn", effect: debuffChDwn, sign: -1 }
+    - { label: "Atomicros Form", value: 15, anyOf: ["self:skillActive:atomicrosForm"] }
+description: |
+  (Passive 1) Whenever Kazuradrop performs a successful Attack, she has a 15% chance of 'stealing' one of the DU's Skills
+  at the end of the Damage Step. A 'stolen' Skill cannot be used by its original owner and has no effects for that Unit,
+  while Kazuradrop can now use that Skill and gain its effects as if it was her own. The chance of this Skill triggering
+  is affected by the following-
+  1. If the Region is the Moon Cell: +30%
+  2. If Kazuradrop has Debuff ChUp: +X%
+  3. If the target is BB or a Sakura Five Unit: +30%
+  4. For every Rank in Magic Resistance on the DU: -5%
+  5. If Kazuradrop has Debuff ChDwn: -Y%
+  Kazuradrop can only hold a maximum of three 'stolen' Skills at any time. If she obtains a fourth Skill, she must choose
+  which 'stolen' Skill to discard, she loses the discarded Skill and its owner can use it again.
+  Note: Whenever a Skill is 'stolen' by Insect Eater, its Cooldown is also carried over.
+  (Passive 2) Whenever Kazuradrop successfully 'steals' a Skill with Insect Eater, gain 1 Eater Token (max. 7).

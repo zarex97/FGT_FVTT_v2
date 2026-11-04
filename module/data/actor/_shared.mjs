@@ -326,6 +326,13 @@ export function combatantCommon() {
     // 3). Written at the Master's death (`rules/relationships.mjs#onMasterDefeated`),
     // read by `engine/scheduler.mjs#checkRemovals`.
     sustainabilityDecay: new fields.NumberField({ required: true, nullable: false, initial: 0, integer: true, min: 0 }),
+    // Whom this Unit is held by in a Bug Space, off the board (#385). Written by
+    // `engine/bug-space.mjs`, read by `rules/bug-space.mjs#isOffBoard`.
+    heldIn: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // The Tick it went in: an expiry is absolute, so its release pushes each on by this.
+    heldSince: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // Back on the board for one sweeping Attack's Process, Effects still paused.
+    heldStruck: new fields.BooleanField({ initial: false }),
     // The FORM this Unit has taken, by its ability's `form.id` (`formTaken`, so
     // it is never read as an ability's own `form` block): Gilles
     // (Caster)'s Gigantic Horror (#323). One-way, written by

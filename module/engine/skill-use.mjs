@@ -46,6 +46,7 @@ import { resourceLabel, resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { unitDistance } from "../rules/count.mjs";
 import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
@@ -513,6 +514,56 @@ export function resolveSkillTargets(ability, self, board, placement) {
 }
 
 /**
+ * Take the Class of an enemy Servant she chooses in Range, and land what follows on
+ * it. A hidden Servant is no choice: Presence Concealment shuts it out of an enemy's
+ * Skill. The Class is read now and holds if that Servant falls (reading 19).
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} board
+ * @param {object} self
+ * @returns {Promise<object[]>} card rows
+ */
+async function takeClassOf(phase, ability, actor, board, self) {
+  const reach = typeof self.range === "number" ? self.range : (self.range?.panels ?? 1);
+  const inRange = (board.units ?? []).filter((u) => u.kind === "servant" && !u.defeated && !u.concealed
+    && relationOf(self, u, board) === "enemy" && unitDistance(self, u) <= reach);
+  if (inRange.length === 0) {
+    return [{ unitId: actor.id, summary: { id: "takeClassNone", name: game.i18n.format("FGT.TakeClass.NoServant", { ability: shownAbility(ability) }), outcome: "applied", reason: null } }];
+  }
+  const pickedId = inRange.length === 1 ? inRange[0].id : (await chooseFor(actor, {
+    title: ability.name, // fgt-name-ok: the caster's own prompt
+    hint: game.i18n.localize("FGT.TakeClass.Hint"),
+    count: 1,
+    // fgt-offer-ok: picks whom to read, which is no use of an ability
+    options: inRange.map((u) => ({ id: u.id, name: shownName(u, board) })),
+  }))?.[0] ?? inRange[0].id;
+  const targetUnit = inRange.find((u) => u.id === pickedId) ?? inRange[0];
+  const classes = [...(targetUnit.servantClasses ?? [])];
+  const rows = [];
+  const write = (intents) => applyWorldIntents(intents, `skill:${ability.id}:takeClass`);
+  rows.push(...await landEntry(entryOf({
+    id: "classTaken", duration: phase.duration, unremovable: true, bypassesImmunity: true, bypassChanceModifiers: true,
+    params: { classes },
+  }, { phase }), {
+    target: self, source: { unitId: actor.id, abilityId: ability.id }, caster: unitActor(actor.id), casterUnit: self,
+  }, { write, reread: () => unitOf(unitActor(actor.id), currentBoard()) }));
+  rows.push({ unitId: actor.id, summary: {
+    id: "takeClass",
+    name: game.i18n.format("FGT.TakeClass.Taken", { name: shownName(unitActor(actor.id), board), classes: classes.map((c) => game.i18n.localize(CONFIG.FGT?.servantClasses?.[c] ?? c)).join(", "), from: shownName(targetUnit, board) }),
+    outcome: "applied",
+    reason: null,
+  } });
+  for (const rule of phase.inflicts ?? []) {
+    rows.push(...await landEntry(entryOf(rule, { phase }), {
+      target: targetUnit, source: { unitId: actor.id, abilityId: ability.id }, caster: unitActor(actor.id), casterUnit: self,
+    }, { write, reread: () => unitOf(unitActor(targetUnit.id), currentBoard()) }));
+  }
+  return rows;
+}
+
+/**
  * Every Unit an ability may be aimed at, from where its owner stands now.
  *
  * Asked by a reaction whose target its user picks (`timing.aimedAt: chosen`):
@@ -695,6 +746,8 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       const chosen = targets?.[0]?.unitId ? board.units.find((u) => u.id === targets[0].unitId) ?? null : null;
       if (!chosen || !testPredicate(phase.chosenPredicate, { options: rollOptionsFor({ attacker: self, defender: chosen }) })) continue;
     }
+    // *"If there are no…, instead"*: this phase runs only at a count of 0 (#385 reading 13).
+    if (phase.whenCountZero && countOf(phase.whenCountZero, { board, self }) !== 0) continue;
     if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) {
       // Held back, and said so when the sheet names why: Unparalleled's effect is
       // not applied once another allied Servant has Attacked (#328 ruling 11).
@@ -1012,7 +1065,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             ? resolveTicks(parseTick(String(phase.cooldownBonus)), { turnsPerRound: warRule("turnsPerRound") }) : 0;
           const open = await markFieldEnd(phase.field, actor.id, { cooldownBonus: bonus });
           if (open) {
-            const named = doc.items.find((i) => (i.system?.contentId ?? i.id) === phase.field)?.name ?? phase.field;
+            const named = shownAbility(doc.items.find((i) => (i.system?.contentId ?? i.id) === phase.field)) || phase.field;
             applied.push({ unitId: actor.id, summary: {
               id: "endField",
               name: game.i18n.format(bonus > 0 ? "FGT.Phase.FieldEndsAtTurnEndLonger" : "FGT.Phase.FieldEndsAtTurnEnd",
@@ -1110,6 +1163,28 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        // The free release from a Bug Space (#385 reading 37).
+        case "releaseHeld": {
+          const { pressRelease } = await import("./bug-space.mjs");
+          applied.push(...(await pressRelease(doc)).map((r) => ({ unitId: actor.id, ...r })));
+          break;
+        }
+
+        // Moon's Pupa, Effects 3 and 4 (#385 readings 16-19): she must choose an enemy
+        // Servant in Range if there is one, and with none the card says so.
+        case "takeClass": {
+          applied.push(...await takeClassOf(phase, ability, actor, board, self));
+          break;
+        }
+
+        // Atomicros's first door: every Skill stolen with Insect Eater goes back.
+        case "discardStolen": {
+          const { discardAllStolen } = await import("./stolen-skills.mjs");
+          const count = await discardAllStolen(doc);
+          if (count > 0) applied.push({ unitId: actor.id, summary: { id: "discardStolen", name: game.i18n.format("FGT.Theft.DiscardedAll", { count }), outcome: "applied", reason: null } });
+          break;
+        }
+
         case "cooldown": {
           const changes = phase.choose
             ? await chosenCooldowns(phase, ability, doc)
@@ -1120,7 +1195,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // On the card. Blood Temple's read *"NP Regen"* and nothing else: the
           // ⅔◈ it took off the Noble Phantasm left no line (#188).
           changes.forEach((c, n) => {
-            const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+            const name = shownAbility(unitActor(c.unitId)?.items?.get(c.abilityId)) || null;
             const line = cooldownLine(name, before[n], remainingOf(c));
             if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null } });
           });
@@ -2177,7 +2252,7 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // three-turn Round.
       // A Count (`rules/count.mjs`): Van Gogh's *"⅓◈ * the stage of the Curse"*.
       const scale = countScaleOf(change);
-      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc) }) : 1;
+      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc), board, self: board ? unitOf(subject, board) : null }) : 1;
       const turns = perStack * (change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
         : change.countMatching // fgt-count-ok: presence only, sized by countMatchingTurns through the Count module
