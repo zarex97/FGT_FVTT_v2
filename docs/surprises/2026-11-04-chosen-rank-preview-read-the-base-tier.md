@@ -3,7 +3,8 @@ id: 2026-11-04-chosen-rank-preview-read-the-base-tier
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Choosing Rank A++ for Gate of Babylon changes everything that reads the use.
 **Actual:** The card, the cost and the clock read A++. The targeting tooltip under the cursor still read Rank E: *"AlterEgo 202 – 283"*, for an attack that dealt 787.
