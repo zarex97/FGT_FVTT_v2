@@ -27,6 +27,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { currentWar } from "./war.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * Ride through a line of enemies, attacking each.
@@ -161,7 +162,7 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
       });
       await ChatMessage.create({
         speaker: ChatMessage.getSpeaker({ actor }),
-        content: `<p><strong>${foundry.utils.escapeHTML(ability.name)}</strong> — ${game.i18n.localize("FGT.Riding.EmptyLine")}</p>`,
+        content: `<p><strong>${foundry.utils.escapeHTML(shownAbility(ability))}</strong> — ${game.i18n.localize("FGT.Riding.EmptyLine")}</p>`,
       });
       const x = Math.floor(remainingMov / 2);
       const ride = { panels: plan.distance, hitCount: 0, remainingMov, x, xLessOne: Math.max(0, x - 1) };

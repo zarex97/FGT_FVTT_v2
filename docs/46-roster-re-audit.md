@@ -7973,3 +7973,19 @@ Stunned Unit could try the escape; a first sight fired twice; tolls, entries and
 a refusal named nothing; Usage 2 over the Carolus left Karl and his Master off the CPA; the CPA's push never heard
 Karl's swing; a felled CPA blamed its owner; the payment that felled Karl left the Carolus standing; his Master's fall
 freed him and the Carolus forgot the Master.
+
+## 46.56 Kazuradrop (Alter Ego) — a Unit held off the board, a Skill taken, a Class taken
+
+**#385, 166 Clauses, 2026-11-04.** Clause list and readings: `docs/superpowers/specs/2026-11-04-kazuradrop-clauses.md`.
+
+Three new mechanisms, each generic:
+
+- **Bug Space** (`rules/bug-space.mjs`, `engine/bug-space.mjs`). `system.heldIn` is the one fact: `snapshotBoard` leaves the Unit off the board, as it does a banished Kagome Spirit, so every sweep passes it by and its clocks stop. `FGTEffect#isSuppressed` answers its Effects. An expiry is an absolute Tick, so the release pushes each on by the Ticks held. A sweeping NP puts them back for its own Processes (`heldStruck`), with no reaction.
+- **A Stolen Skill** (`rules/skill-theft.mjs`, `engine/stolen-skills.mjs`). The owner's Item stays, marked `stolenBy`, and `rules/summon-grants.mjs#grantHeld`, the door every reader of a Unit's abilities passes, says it is not theirs. The thief holds a clone with the running clock. A discard writes the clock back.
+- **A Class taken** (`classTaken`, read by `rules/form.mjs#formSheet`). Every reader of a Class passes that door, so the NP gate, ZON and a Contract read it too.
+
+Also new: the `allyDamageStep` window, `rules/unit-groups.mjs` for what a sheet names by members (`target:group:`), and `whenCountZero` on a phase.
+
+**#387 landed first:** an ability's public tag (Ch. 30). Pressing her found what the first pass missed: a stored card held the GM's real names, and a Cooldown row read a name in one chain, so the guard now reads that shape too.
+
+**Staged:** BB by True Name, for no BB is built, the Moon Cell and Debuff ChDwn. **The last presses, of Clauses first closed from their files, found four defects:** a refused use from inside Bug Space emptied it first, with no line, and the offer never asked the gate; a removal's line was a bare effect name; pressing Atomicros Form while in it took 7 Tokens and every stolen Skill for nothing; and the sheet's refusals dropped every placeholder they did not list. **Follow-ups:** Effects named for their Skill and areas a sheet names (#387), and what a chance card may print (#386). Asked what a stored card was, I read one: it was the GM's whole view, not a name for a frame, and it is now a stranger's (#388).

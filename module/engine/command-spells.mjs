@@ -20,6 +20,7 @@ import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { currentWar } from "./war.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * The commands this Master may use at this moment.
@@ -288,7 +289,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
  */
 async function postCommandSpellCard({ master, servant, command, cost, abilityId, lines = [] }) {
   const escape = foundry.utils.escapeHTML;
-  const skill = abilityId ? unitActor(servant?.id)?.items.get(abilityId)?.name ?? null : null;
+  const skill = abilityId ? shownAbility(unitActor(servant?.id)?.items.get(abilityId)) || null : null;
   // The Servant's public name: a card every player reads said *"on Arjuna's
   // Fated Rivals"* under an Archer the table knew only as Archer (#234, as
   // every engine line since #230 §46.4-NV).

@@ -83,6 +83,7 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
   req("stance", "Only while mounted, or only while dismounted.", [
     { key: "stance", type: "select", choices: ["mounted", "dismounted"] },
   ]),
+  req("bugSpaceRoom", "Only while its user's Bug Space has room.", []),
   req("resourceAtLeast", "Only while the Unit holds enough of a pool — tokens, counters.", [
     { key: "key", type: "text" },
     { key: "amount", type: "number" },

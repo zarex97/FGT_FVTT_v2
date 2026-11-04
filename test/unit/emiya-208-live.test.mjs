@@ -234,9 +234,13 @@ describe("an attack card lists its effects when the damage step is skipped (#208
         attacker: "scathachLive0001", ability: np.id, target: "heraclesLive0001",
         react: { heraclesLive0001: ["nothing", "declined"] },
       });
-      expect(w.messages.get(declared.messageId).getFlag("fgt", "result")).toBeFalsy();
+      const message = w.messages.get(declared.messageId);
+      expect(message.getFlag("fgt", "result")).toBeFalsy();
+      const rows = message.getFlag("fgt", "effects");
+      expect(rows.map((r) => r.name).join(" | ")).toMatch(/Instakill/);
+      // The Stored Card is a stranger's view (#388): he counts them, even with no damage to read.
       const card = w.cards.filter((c) => c.path.endsWith("chat/attack.hbs")).at(-1);
-      expect((card.data.visibility?.effectNames ?? []).join(" | ")).toMatch(/Instakill/);
+      expect(card.data.visibility.effectCount).toBe(rows.length);
     }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
   }, 120_000);
 });

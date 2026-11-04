@@ -496,7 +496,7 @@ describe("found pressing her live (#359)", () => {
       const { offerEffectExtensions } = await import("../../module/engine/effect-extension.mjs");
       await offerEffectExtensions(currentBoard(), { tick: 18, turnsPerRound: 3 });
       const rows = w.messages.contents.filter((m) => m.whisper.length > 0).map((m) => m.content).join(" ");
-      expect(rows).toMatch(/Sacred Guardian Beast/);
+      expect(rows).toMatch(/SK-\w{5}/); // its public tag (#387)
       expect(rows).toMatch(/Shisarot/);
     }, WAR);
   });

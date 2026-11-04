@@ -43,6 +43,7 @@ import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
 import { chooseFor, askOwner } from "./ask.mjs";
 import { shownName } from "./public-identity.mjs";
 import { warRule, currentWar, isWarGM } from "./war.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -456,7 +457,7 @@ async function openField(ability, actor, snapshot, spec, {
 
   const [region] = await scene.createEmbeddedDocuments("Region", [{
     // An area the sheet names: *"This area will be known as 'Wallachia'"*.
-    name: spec.name ?? ability.name,
+    name: spec.name ?? shownAbility(ability),
     shapes: [shapeOf(panels, scene)],
     // Every player sees it, not only the GM on the Regions layer (#330, ruled
     // 2026-10-24): a field a player can walk into is one a player can see.
@@ -470,7 +471,7 @@ async function openField(ability, actor, snapshot, spec, {
   // with an empty `behaviors` collection -- so the field existed on the canvas,
   // carried none of its six axes, and `boundedFieldsOf` skipped it.
   const [behavior] = await region.createEmbeddedDocuments("RegionBehavior", [{
-    name: ability.name,
+    name: ability.name, // fgt-name-ok: the behaviour's own name, in the Regions layer, the GM's
     type: "npField",
     system: field,
   }]);

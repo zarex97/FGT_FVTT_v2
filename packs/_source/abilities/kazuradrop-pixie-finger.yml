@@ -1,0 +1,43 @@
+# Pixie Finger, Rank A (#385 PF.*).
+#
+# Written order: the first use's debuffs get no +30%, later Pixie ticks do (reading 10).
+# Effect 1 raises every NP on each enemy, a ready one too. It has no chance and is no
+# debuff (reading 9). The doubts in the sheet's brackets are not rules (readings 6, 7).
+schema: 1
+id: kazuradrop-pixie-finger
+name: "Pixie Finger"
+rank: A
+kind: skill
+slug: pixieFinger
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all enemy Units within a 3x3 panel area directly next to herself. Has the
+  following effects-
+  1. NP Cooldown is increased by ⅓◈ Turns.
+  2. Inflicts @effect[defDwnC]{Def Dwn (C)} for ⅓◈ Turns, all damage taken is increased by 30% and Agility is reduced
+     by 1 whenever this Unit is successfully Attacked.
+  3. Inflicts @effect[critResDwn]{Crit ResDwn} for ⅓◈ Turns, Crit Damage taken is increased by 50%.
+  4. Applies @effect[debuffChUp]{Debuff ChUp} for 1◈ Turns to herself, chance of inflicting debuffs is increased by 30%.
+  5. Applies the '@effect[pixie]{Pixie}' buff for 2 times to herself, has the following effects- At the start of this
+     Unit's Turn, inflicts Effect 2 and 3 of this Skill on all enemy Units within a 2 panel area of herself.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3, turnable: true }
+  selection: { relations: [enemy], chooser: all }
+phases:
+  - kind: cooldown
+    target: reuse
+    changes:
+      - { unit: target, scope: np, ticks: "⅓◈", direction: up }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwnC, magnitude: 30, duration: "⅓◈" }
+      - { id: critResDwn, magnitude: 50, duration: "⅓◈" }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: debuffChUp, magnitude: 30, duration: "1◈" }
+      - { id: pixie, uses: 2, permanent: true }

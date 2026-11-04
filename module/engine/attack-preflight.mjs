@@ -211,7 +211,7 @@ function replacingNormalAttack(self, actor, board) {
  * @param {object|null} [actor] the attacker, whose items name an exclusion's partner
  * @returns {string}
  */
-function usageRefusal(usage, actor = null) {
+export function usageRefusal(usage, actor = null) {
   const d = usage.detail ?? {};
   // An exclusion names its partner by content id; the player reads its name, as
   // the sheet does (`apps/actor-sheet/present.mjs`). Torrent of Light refused a

@@ -1,0 +1,42 @@
+# Gully Trap Funny Muryan: Expanding World, Rank B, Method 2 (#385 G2.*).
+#
+# Hits every Unit in the area and everyone inside, read at the declaration, no Evade or
+# Block for those inside (reading 40). Debuffs land paused and run from the release.
+schema: 1
+id: kazuradrop-gully-trap-wave
+name: "Gully Trap Funny Muryan: Expanding World (Wave)"
+rank: B
+kind: noblePhantasm
+slug: gullyTrapWave
+isNP: true
+npTags: [antiUnit]
+publicTagAs: kazuradrop-gully-trap
+strikesHeld: true
+cooldown: "6◈"
+timing: { window: ownTurn }
+sameTurnExclusive: [kazuradrop-gully-trap]
+description: |
+  2. Base Attack (MAG) is used. Hits a 3x3 panel directly next to herself, deals 3.5x damage to all Units within the NP
+  area and Units currently within Bug Space when the NP was used. Then, inflicts the following effects on all affected Units-
+  a. Inflicts @effect[atkDwn]{Atk Dwn} for 1◈ Turns, all damage dealt is reduced by 20%; if NP, 10%.
+  b. Inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 30%.
+  c. Has a 40% chance of inflicting @effect[stun]{Stun} for ⅓◈ Turns.
+  Then, if there are any Units inside Bug Space, they are all forcefully released onto random panels within a 2 panel area
+  of Kazuradrop. Cooldown: 6◈ Turns. Cannot be used on the same Turn as Effect 1.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 3.5
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkDwn, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+      - { id: defDwn, magnitude: 30, duration: "1◈" }
+      - { id: stun, chance: 40, duration: "⅓◈" }

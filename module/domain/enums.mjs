@@ -37,6 +37,9 @@ export const KNIGHT_CLASSES = Object.freeze(["saber", "archer", "lancer"]);
 /** The groups a Class belongs to, as `classGroup:` options name them. */
 export const CLASS_GROUPS = Object.freeze(["standard", "extra", "knight"]);
 
+/** The groups `rules/unit-groups.mjs` lists by True Name. */
+export const UNIT_GROUP_NAMES = Object.freeze(["bb", "sakuraFive"]);
+
 /** Unit kinds. Maps 1:1 to Actor subtypes. @see docs/06-units-and-stats.md */
 export const UNIT_KINDS = Object.freeze([
   "servant", "master", "civilian", "summon", "platform", "structure",

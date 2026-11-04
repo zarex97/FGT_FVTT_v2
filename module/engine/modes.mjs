@@ -40,6 +40,7 @@ import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
 import { shownNameById } from "./public-identity.mjs";
 import { currentWar, isWarGM } from "./war.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * Guards against re-entry.
@@ -94,7 +95,7 @@ export async function reconcileForcedModes(board = null) {
         // A Master at 0 is the defeat path's to answer (#209 §46.4-NH).
         if (!forcedOffNow(item, unit, snapshot, { masterDefeatAnswers: true })) continue;
         intents.push(I.setMode(unit.id, item.system?.slug ?? item.id, false, "forcedDeactivation"));
-        stopped.push({ unitId: unit.id, ability: item.name });
+        stopped.push({ unitId: unit.id, ability: shownAbility(item) });
       }
 
       const lapsed = new Set(lapsedConstantModes([...actor.items], { tick }).map((i) => i.id));
@@ -108,7 +109,7 @@ export async function reconcileForcedModes(board = null) {
         // this does not go through `canToggleMode`.
         const back = lapsed.has(item.id);
         intents.push(I.setMode(unit.id, slug, true, back ? "suspensionLapsed" : compulsionSource(unit, slug)));
-        switched.push({ unitId: unit.id, ability: item.name, back });
+        switched.push({ unitId: unit.id, ability: shownAbility(item), back });
       }
     }
 

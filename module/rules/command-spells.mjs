@@ -180,7 +180,7 @@ export function essenceCommand(item) {
   const sys = item?.system ?? {};
   if (!(sys.effect ?? []).length || sys.grantedBy) return null;
   return {
-    id: sys.contentId || item.id, name: item.name, essence: true, itemId: item.id,
+    id: sys.contentId || item.id, name: item.name, essence: true, itemId: item.id, // fgt-name-ok: a Command Spell, no concealed name
     description: sys.description ?? "",
     timing: sys.timing ?? null, requirements: sys.requirements ?? [], effect: sys.effect ?? [],
     maxUses: sys.maxUses ?? 1, timesUsed: sys.timesUsed ?? 0,

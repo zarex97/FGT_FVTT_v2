@@ -1,0 +1,31 @@
+# Pixie Finger's 'Pixie' buff (#385 PF.5.*).
+#
+# > "Applies the 'Pixie' buff for 2 times to herself, has the following effects- At the
+# > start of this Unit's Turn (a Turn this Unit Acts?), inflicts Effect 2 and 3 of this
+# > Skill on all enemy Units within a 2 panel area of herself (all enemy Units within a
+# > 3x3 panel area directly next to herself?)."
+#
+# Her own Player's Turn, 2 panels around her: the brackets are the author's doubts
+# (readings 6, 7). A charge burns at each Turn start, with a line, even with no enemy
+# near (reading 8). No duration is printed, so it stands until it is spent.
+schema: 1
+id: pixie
+name: "Pixie"
+description: "At the start of this Unit's Turn, inflicts Def Dwn (C) 30% and Crit ResDwn 50% for ⅓◈ Turns on all enemy Units within a 2 panel area of herself."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 2
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: turnStart
+    automatic: true
+    defer: true
+    consumesUse: true
+    useLine: FGT.Effect.PixieCharge
+    predicate: ["self:ownTurn"]
+    then:
+      - { key: ApplyEffect, target: nearby, radius: 2, relations: [enemy], effect: { id: defDwnC, magnitude: 30 }, duration: "⅓◈" }
+      - { key: ApplyEffect, target: nearby, radius: 2, relations: [enemy], effect: { id: critResDwn, magnitude: 50 }, duration: "⅓◈" }

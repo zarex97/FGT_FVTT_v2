@@ -76,9 +76,13 @@ export function heldNow(actor, item) {
 export function formSheet(actor) {
   const sys = actor?.system ?? {};
   const o = formOf(actor)?.spec?.overrides ?? {};
+  // A Class taken for a time: Moon's Pupa's *"changes her Servant Class to the
+  // selected Servant's"* (#385 readings 17-19). The door every reader of a
+  // Unit's Class passes, so the NP gate, ZON and a Contract read it too.
+  const taken = [...(actor?.effects ?? [])].find((e) => !e.disabled && e.system?.defId === "classTaken")?.system?.params?.classes ?? null;
   return {
     trueName: o.trueName ?? sys.trueName ?? null,
-    servantClasses: [...(o.servantClasses ?? sys.servantClasses ?? [])],
+    servantClasses: [...(taken ?? o.servantClasses ?? sys.servantClasses ?? [])],
     alignment: o.alignment ?? sys.alignment ?? null,
     region: [...(o.region ?? sys.region ?? [])],
     parameters: o.parameters ?? sys.parameters ?? {},

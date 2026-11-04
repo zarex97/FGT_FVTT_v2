@@ -71,14 +71,14 @@ async function tellWitness(witness, ability, { roll, chance, learned }, board) {
   if (learned && reader) {
     await recordInNotebook(reader, {
       key: npKey(ability),
-      title: ability.name,
+      title: ability.name, // fgt-name-ok: the learner's own prompt
       content: `<p>${escape(String(ability.system?.description ?? ""))}</p>`,
     });
   }
   // A miss names whose NP it was, never the NP: its name is what was not learned.
   const userName = publicIdentityOf(unitActor(ability.parent?.id ?? ability.actor?.id), board).name;
   const line = game.i18n.format(learned ? "FGT.TrueName.Learned" : "FGT.TrueName.Missed", {
-    name: escape(name), np: escape(ability.name), user: escape(userName), roll, chance,
+    name: escape(name), np: escape(ability.name), user: escape(userName), roll, chance, // fgt-name-ok: whispered to the learner and the GM
   });
   const whisper = game.users.filter((u) => u.isGM || u.id === player?.id).map((u) => u.id);
   await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>`, whisper });

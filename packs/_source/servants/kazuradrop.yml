@@ -1,0 +1,54 @@
+# packs/_source/servants/kazuradrop.yml
+# Conversion source: char_orig_sheets/by-class/Alter Ego/Kazuradrop.md
+# Audit: #385 (docs/superpowers/specs/2026-11-04-kazuradrop-clauses.md)
+#
+# One Sakura Five among the five Rapture lists, and the first Unit who holds others off
+# the board, takes a Skill from its owner and takes another Servant's Class.
+#
+# Every printed figure agrees with its table: STR E -> 50, MAG B -> 175, END E -> 500.
+schema: 1
+id: kazuradrop
+name: Kazuradrop
+type: servant
+
+trueName: Kazuradrop
+servantClasses: [alterEgo]
+classContainer: alterEgo
+alignment: { order: lawful, morality: good }
+region: [moon]
+# `Non-Hominidae` withholds Hominidae through the closure, as Kingprotea's does.
+attributes: [female, servant, earth, humanoid, nonHominidae, mechanical, fae, child]
+
+parameters: { str: E, end: E, agi: C, mag: B, luc: C }
+baseHealth: 500
+mov: 5
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 175 }
+# "Note: Normal Attacks use Base Attack (MAG)."
+normalAttack: { mode: fixed, component: mag }
+sustainability: "2◈"
+
+# Atomicros's second door counts `kinDefeated` and opens with `atomicrosDue` at the end
+# of the Combat Phase, so a kill does not change her mid-Process.
+resources:
+  eaterTokens: { value: 0, max: 7 }
+  kinDefeated: { value: 0, max: 99 }
+  atomicrosDue: { value: 0, max: 1 }
+
+abilities:
+  # Her sheet alone prints: "This effect is negated if Kazuradrop is not the 'Alter-Ego'
+  # Servant Class." On her copy (reading 1).
+  - { ref: class-alter-ego, negatedWhile: { notClass: alterEgo } }
+  - { ref: class-magic-resistance, rank: A }
+  # Kingprotea's two clauses at EX, word for word.
+  - { ref: kingprotea-territory-creation }
+  - { ref: kazuradrop-repulsion }
+  - { ref: kazuradrop-pixie-finger }
+  - { ref: kazuradrop-sakura-eater }
+  - { ref: kazuradrop-moons-pupa }
+  - { ref: kazuradrop-insect-eater }
+  - { ref: kazuradrop-gully-trap }
+  - { ref: kazuradrop-gully-trap-wave }
+  - { ref: kazuradrop-bug-space-release }
+  - { ref: kazuradrop-atomicros }
+  - { ref: kazuradrop-atomicros-form }

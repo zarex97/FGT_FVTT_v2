@@ -450,7 +450,7 @@ describe("Clairvoyance (CV*)", () => {
     await withSubjects(party(8), async ({ world: w }) => {
       expect(await swing(w)).toBe(5);
       const rows = [...w.messages].flatMap((m) => m.getFlag("fgt", "effects") ?? []).filter((r) => r.id === "cooldown");
-      expect(rows.map((r) => r.name)).toEqual([expect.stringMatching(/Clairvoyance.*6 → 5/)]);
+      expect(rows.map((r) => r.name)).toEqual([expect.stringMatching(/^SK-\w{5}: Cooldown 6 → 5/)]);
     }, WAR);
   });
 
@@ -486,7 +486,7 @@ describe("Eye of the Mind (True) (EM*)", () => {
       await playAttack(w, { attacker: FOE, target: CH, react: { [CH]: ["evade", "declined", "declined"], [FOE]: ["declined"] } });
       expect(eye.system.cooldown.remaining).toBe(8);
       const rows = [...w.messages].flatMap((m) => m.getFlag("fgt", "effects") ?? []).filter((r) => r.id === "cooldown");
-      expect(rows.map((r) => r.name)).toContainEqual(expect.stringMatching(/Eye of the Mind.*9 → 8/));
+      expect(rows.map((r) => r.name)).toContainEqual(expect.stringMatching(/^SK-\w{5}: Cooldown 9 → 8/));
     }, { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "B" } });
   });
 });

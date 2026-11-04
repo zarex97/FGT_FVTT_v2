@@ -52,6 +52,8 @@ const COMMENT = /^\s*(?:\/\/|\/\*|\*)/;
  */
 const ALLOWED = [
   // ── The write choke point itself ─────────────────────────────────────────
+  { file: "engine/bug-space.mjs", category: "unit-state", why: "who a Bug Space holds: one field, and a token hidden where it stood, as `io.banish` hides one" },
+  { file: "engine/stolen-skills.mjs", category: "unit-state", why: "an Item cloned onto a thief or a killer and handed back: documents, not a Unit's state" },
   { file: "engine/io.mjs", category: "unit-state", why: "the intent applier's write adapter — the choke point Ch. 02 is about" },
 
   // ── Chat message flags ───────────────────────────────────────────────────

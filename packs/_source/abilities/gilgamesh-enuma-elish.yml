@@ -136,6 +136,11 @@ endsFieldsInside:
     - achilles-diatrekhon-aster-lonkhe
     - osakabehime-hakuro-jyou
     - ozymandias-ramesseum-tentyris
+# Caught inside: hits the holder alone, and seals the three uses of its two NPs (#385 43, 44).
+fromInsideBugSpace:
+  seal: sealEa
+  duration: "3◈"
+  abilities: [kazuradrop-gully-trap, kazuradrop-gully-trap-wave, kazuradrop-atomicros]
 phases:
   - kind: damage
     target: reuse
@@ -145,7 +150,6 @@ phases:
     duration: "3◈"
     rows:
       - abilities:
-          - kazuradrop-bug-space
           - kingprotea-airavata-king-size
           - scheherazade-alf-layla-wa-layla
           - medb-chariot-my-love
@@ -158,6 +162,9 @@ phases:
           - demiya-unlimited-lost-works
           - oberon-wry-rhyme-goodfellow
         removesCaused: true
+      - abilities: [kazuradrop-gully-trap]
+        removesCaused: true
+        releasesHeld: true
       - abilities: [nursery-nameless-forest]
         removesEffects: [namelessForest]
         clearsResources: ["resources.namelessForestTokens.value"]

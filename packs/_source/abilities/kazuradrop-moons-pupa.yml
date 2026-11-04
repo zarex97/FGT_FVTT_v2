@@ -1,0 +1,37 @@
+# Moon's Pupa, Rank A (#385 MP.*).
+#
+# Usable with no enemy Servant in Range: Effects 3 and 4 say so (reading 16). With one in
+# Range she must choose. Every reader sees the new Class, the NP gate, ZON and a Contract
+# too. Her seat stays, and she keeps her Class Skills and gains none (reading 17). A
+# two-Class Servant gives both (reading 18).
+schema: 1
+id: kazuradrop-moons-pupa
+name: "Moon's Pupa"
+rank: A
+kind: skill
+slug: moonsPupa
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Removes all debuffs from herself.
+  2. Restores her Health and Agility by 35% of their maximum values.
+  3. Choose an enemy Servant within Range. Kazuradrop changes her Servant Class to the selected Servant's for 1◈ Turns.
+  4. Inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns on that selected enemy Servant, all damage taken is increased by 50%.
+  Cooldown: 4◈ Turns.
+phases:
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }
+  - kind: heal
+    target: self
+    percentOfMax: 35
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: agility, percentOfMax: 35 }
+  - kind: takeClass
+    target: self
+    duration: "1◈"
+    inflicts:
+      - { id: defDwn, magnitude: 50, duration: "1◈" }

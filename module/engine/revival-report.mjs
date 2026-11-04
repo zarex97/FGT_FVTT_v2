@@ -10,6 +10,7 @@
 
 import { unitActor } from "./board.mjs";
 import { isWarGM } from "./war.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * The card's words for one `revive` or `reviveFailed` log entry.
@@ -89,7 +90,7 @@ export async function postRevival(entry) {
     if (region) return escape(region.name);
     for (const actor of game.actors ?? []) {
       const item = actor.items?.find((i) => i.system?.contentId === source || i.id === source);
-      if (item) return escape(item.name);
+      if (item) return escape(shownAbility(item));
     }
     // ...or by the EFFECT, as the Turn's card names one (#234): Guts read
     // "revived by guts", its id (#239, live).
