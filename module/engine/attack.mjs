@@ -7736,7 +7736,14 @@ async function strikeListedAbilities(phase, ability, state, attackerDoc, attacke
     if (found.length === 0) return [];
     await applyBatch(found.map(({ unitId, instance }) => I.removeEffect(unitId, instance.id, reason)), "abilityEffect:strikeListed");
     return found.map(({ unitId, instance }) => ({ unitId, summary: {
-      id: instance.defId, name: EffectRegistry.get(instance.defId)?.name ?? instance.defId, outcome: "removed", reason: null, chance: null,
+      // Says what it took and from whom: a bare "Atk Dwn" on the seal's card read as
+      // one more thing inflicted (#385, found pressing EE.muryan.remove).
+      id: instance.defId,
+      name: game.i18n.format("FGT.Effect.RemovedFrom", {
+        effect: EffectRegistry.get(instance.defId)?.name ?? instance.defId,
+        name: publicIdentityOf(unitActor(unitId), boardSnapshot()).name,
+      }),
+      outcome: "removed", reason: null, chance: null,
     } }));
   };
   for (const { item, row } of struckAbilities(phase, defenderDoc.items)) {

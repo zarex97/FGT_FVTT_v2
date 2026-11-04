@@ -16,6 +16,8 @@ notASkill: true
 copyable: { allowed: false, reason: unique }
 timing: { window: ownTurn }
 requirements:
+  # Pressed in Form, it took 7 Tokens and every stolen Skill for nothing (#385, live).
+  - { kind: modeInactive, mode: atomicrosForm }
   - { kind: resourceAtLeast, key: eaterTokens, amount: 7 }
 description: |
   (Passive 1) It can only be used while in Atomicros Form, which can be achieved by meeting one of the two conditions-
