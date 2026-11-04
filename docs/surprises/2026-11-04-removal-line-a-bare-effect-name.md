@@ -3,7 +3,8 @@ id: 2026-11-04-removal-line-a-bare-effect-name
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The seal's card says Enuma Elish took what the NP caused.
 **Actual:** The card read *"NP Seal (Ea): … Atk Dwn Def Dwn NP Seal (Ea): …"*, which reads as more effects inflicted, on nobody named.

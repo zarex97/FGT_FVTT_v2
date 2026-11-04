@@ -3,7 +3,8 @@ id: 2026-11-04-sheet-refusal-drops-placeholders
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** `usage.detail` carries `{amount, held, pool}`, so the sheet reads *"Needs 7 Eater Tokens; 0 held."*
 **Actual:** Player1's sheet read *"Needs undefined undefined; undefined held."*

@@ -3,7 +3,8 @@ id: 2026-11-04-robbing-a-corpse
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** I picked that a fallen DU still rolls for Insect Eater, because the steal comes *"at the end of the Damage Step"* and the Attack did succeed.
 **Actual:** The user: *"She can't rob from a fully dead unit (Basically an unit that will diaspear soon as it is a corpse)"*.

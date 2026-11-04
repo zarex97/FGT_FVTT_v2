@@ -3,7 +3,8 @@ id: 2026-11-04-hidden-read-as-absent
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** I picked that Sakura Eater's *"within a 3 panel area of herself"* counts only Units she sees, so a hidden BB feeds nothing and the card leaks nothing.
 **Actual:** The user: *"Hidden is different from unreachable or intangible."* A hidden Unit is there, and it counts. Bug Space is what is off the board.
