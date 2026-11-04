@@ -315,11 +315,11 @@ Space Ereshkigal `Summer Ereshkigal`, Beast III/R `Rapture`, Beast III/L `Lapse`
 - [x] **EE.np.sterrennacht** · …with De Sterrennacht · *Pressed: NP Seal (Ea)*
 - [x] **EE.np.rest** · …with Alf Layla wa-Layla, Chariot My Love, Cursed Cupid Cleanser, Dimension of Steam, Emotional Engine - Full Drive, Metabole Piglets, Tsumukari Muramasa, Unlimited Lost Works or Lai Rhyme Goodfellow (Q) · *Pressed: Stand-ins `babbage-dimension-of-steam`, `medb-chariot-my-love` on an ally*
 - [x] **EE.np.remove** · …and every effect that NP caused is removed from all Units (Q) · *Pressed: Terror and Crit DmUp off both sides; Insanity's Atk Up stays*
-- [ ] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
-- [ ] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
-- [ ] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
-- [ ] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
-- [ ] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Unpressed: waits for Kazuradrop (ruling 22)*
+- [x] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Pressed on Kazuradrop (#385): offered at his Turn, used*
+- [x] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Pressed on Kazuradrop (#385): Servant attacks 1*
+- [x] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Pressed on Kazuradrop (#385): both around her, within 2*
+- [x] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Pressed on Kazuradrop (#385): three seals, on the use*
+- [x] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Observed on Kazuradrop (#385): the row's removesCaused*
 - [x] **EE.nf.tokens** · A DU with Nameless Forest who is affected: every Nameless Forest Token is removed from all Units (Q) · *Pressed: Marker and pool off Proto Gil and Arturia; maxima stay*
 - [x] **EE.nf.seal** · …then the DU is inflicted with NP Seal (Ea) for 3◈ · *Pressed: NP Seal (Ea), after the Tokens*
 - [x] **EE.other.area** · Another ability with "Reality Marble" in its name that deploys an area: ended if he uses Enuma Elish within it (Q) · *Pressed: Stand-in with the tag: ended*

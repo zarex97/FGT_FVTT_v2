@@ -7988,4 +7988,4 @@ Also new: the `allyDamageStep` window, `rules/unit-groups.mjs` for what a sheet 
 
 **#387 landed first:** an ability's public tag (Ch. 30). Pressing her found what the first pass missed: a stored card held the GM's real names, and a Cooldown row read a name in one chain, so the guard now reads that shape too.
 
-**Left to tests:** BB (no BB is built) and the Moon Cell and Debuff ChDwn terms. **Follow-ups:** Effects named for their Skill and areas a sheet names (#387), and what a chance card may print (#386).
+**Staged:** BB by True Name, for no BB is built, the Moon Cell and Debuff ChDwn. **Follow-ups:** Effects named for their Skill and areas a sheet names (#387), what a chance card may print (#386), and a stored card's breakdown, which still names its sources for the frame before its re-render.
