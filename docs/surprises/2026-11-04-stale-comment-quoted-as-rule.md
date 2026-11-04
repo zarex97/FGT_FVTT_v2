@@ -3,7 +3,8 @@ id: 2026-11-04-stale-comment-quoted-as-rule
 found: user
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** I told the user a card shows the public identity *"including to the unit's own owner, whose card is the same card the opponent is reading"*, quoting `public-identity.mjs`, and picked one card for all.
 **Actual:** The user: *"I feel like the owner should have a different view of the card."* On reading the path, a card already can: `fillAttackCard` re-renders on every client, and `fillSkillEffects` is *"one message, rendered differently per client"*.

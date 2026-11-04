@@ -3,7 +3,8 @@ id: 2026-11-04-ability-name-reveals-identity
 found: user
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** The public-name guard of #235 keeps a concealed Unit's identity off every card, so a card that says *"Archer of Red"* tells the table nothing more.
 **Actual:** The user: *"I noticed that they give the full name of the skills which kinda ends up revealing the identity."* The same card prints the ability's real name, and *Excalibur* names its Unit as surely as *Arturia* would.
