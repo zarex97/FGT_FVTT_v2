@@ -284,6 +284,10 @@ A Skill moved from its owner to another Unit, with its running Cooldown. The own
 nothing for them; what it already landed stays. It goes back when it is discarded.
 _Avoid_: copy (a copy leaves the source its Skill)
 
+**Stored Card**:
+The copy of a card its message keeps. A client shows it until it draws its own view.
+_Avoid_: cached card, raw card
+
 **Public Tag**:
 What the table calls an ability whose bearer is not revealed: its kind and five letters and digits, `NP-X5R76`. The
 same for one War, on one Unit. The bearer's owner and the GM read the real name.
