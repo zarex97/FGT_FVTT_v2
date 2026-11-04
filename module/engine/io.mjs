@@ -747,6 +747,25 @@ export function worldIO() {
       await combat.setFlag("fgt", "deferred", [...(combat.getFlag("fgt", "deferred") ?? []), entry]);
     },
 
+    /**
+     * What a Unit's fall for good does to what it holds: everyone out of its Bug
+     * Space, its Stolen Skills back (#385 readings 28, 38), and its killer's choice
+     * of an Obtained Skill (reading 15), which is not waited on.
+     * @param {string} unitId
+     * @param {string|null} killerId
+     */
+    async noteFinalDefeat(unitId, killerId) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const { onHolderDefeated, forceOut } = await import("./bug-space.mjs");
+      await onHolderDefeated(actor);
+      // A Unit that fell inside comes out as a body, where its holder stands.
+      if (actor.system?.heldIn) await forceOut(resolve(actor.system.heldIn) ?? actor, [actor]);
+      const { discardAllStolen, offerObtainedSkill } = await import("./stolen-skills.mjs");
+      await discardAllStolen(actor);
+      if (killerId) void offerObtainedSkill(killerId, unitId);
+    },
+
     async banish(unitId, untilTick, fieldId) {
       const actor = resolve(unitId);
       const token = resolveToken(unitId);
@@ -1556,7 +1575,7 @@ export function worldIO() {
       }
       const item = await fromContent(contentId);
       const data = source.toObject();
-      data.name = item?.name ?? contentId;
+      data.name = item?.name ?? contentId; // fgt-name-ok: the summon's document, its name set once
       if (item?.img) data.img = item.img;
       data.system = {
         ...data.system,
@@ -1572,7 +1591,7 @@ export function worldIO() {
       token.y = panel.i * scene.grid.size;
       // The TOKEN's name is its own, copied from the prototype: named only on
       // the actor, it read "Dropped Item" on the board.
-      if (item?.name) token.name = item.name;
+      if (item?.name) token.name = item.name; // fgt-name-ok: the summon's document, its name set once
       if (item?.img) token.texture = { ...(token.texture ?? {}), src: item.img };
       await scene.createEmbeddedDocuments("Token", [token]);
       await this.log([{ kind: "item", event: "itemDropped", itemId: contentId, count, panel, for: byId }]);

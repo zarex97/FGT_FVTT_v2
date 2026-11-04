@@ -75,7 +75,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // to `false` means the recorder never starts and the Noble Phantasm has no
   // past to read, silently.
   "requiresHistory",
-  "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts", "criteria",
+  "phases", "copyable", "publicTagAs", "bugSpace", "strikesHeld", "fromInsideBugSpace", "stealsSkills", "obtainsOnKill", "notASkill", "copiedFrom", "opensDialog", "additionalCosts", "criteria",
   "npGateRound", "countsForNPSeal", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",

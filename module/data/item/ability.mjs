@@ -352,6 +352,26 @@ function abilityCommon() {
     schedule: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
+    // Bug Space (#385): the ability that creates it says how many fit.
+    bugSpace: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // Its Attack also strikes every Unit its bearer holds, then forces them out.
+    strikesHeld: new fields.BooleanField({ initial: false }),
+    // Usable from inside a Bug Space: Gilgamesh's Enuma Elish (#374).
+    fromInsideBugSpace: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // Insect Eater's chance, limit and Tokens (`rules/skill-theft.mjs`).
+    stealsSkills: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // Sakura Eater's Passive: whom a kill may take a Skill from.
+    obtainsOnKill: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // An action on a Unit's bar that no list of its Skills offers.
+    notASkill: new fields.BooleanField({ initial: false }),
+    // Who took this Skill from this Unit, and where the thief's clone came from.
+    stolenBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    stolenFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
+    // The ability whose public tag this one shares: one printed NP on two clocks
+    // is one tag (#387 ruling 60), read by `rules/public-ability.mjs#tagKey`.
+    publicTagAs: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
     // Whether Scáthach may copy this (Ch. 17). Authored per ability because
     // "Skills a Servant is physically born with" is a judgement the author
     // makes and the engine cannot infer -- there is no field on Natural Body

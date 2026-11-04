@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { playAttack, castSkill } from "../helpers/process.mjs";
 import { fireEvent } from "../../module/engine/scheduler.mjs";
+import { shownAbility } from "../../module/engine/public-ability.mjs";
 import * as process from "../../module/engine/combat-process.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -219,7 +220,8 @@ describe("Utopia cuts NP Cooldown per Unit hit, played (KU.4; reading 7)", () =>
       // no line anywhere (#230, live, Excalibur's own 23 -> 21).
       const lines = (w.messages.get(declared.processes[0].messageId).getFlag("fgt", "effects") ?? [])
         .filter((e) => e.id === "cooldown").map((e) => e.name);
-      expect(lines).toContain("Strike Air: Hammer of the Wind King: Cooldown 10 → 9");
+      // By its public tag (#387), never its name.
+      expect(lines).toContainEqual(expect.stringMatching(/^[NS][PK]-\w{5}: Cooldown 10 → 9$/));
     }, MATCH);
   });
 });
@@ -364,7 +366,9 @@ describe("Avalon, Method 1 (AV.1.*; readings 14, 15, 24)", () => {
       const offered = process.deserialize(w.messages.get(declared.messageId).getFlag("fgt", "process")).reactionAbilities?.[ALLY] ?? [];
       const shown = publicIdentityOf(w.actor(ART), currentBoard()).name;
       expect(shown).not.toBe(w.actor(ART).name);
-      expect(offered.map((a) => a.name)).toContain(`${avalon.name} (${shown})`);
+      // Its name is concealed too (#387): the card is public.
+      expect(offered.map((a) => a.name)).toContain(`${shownAbility(avalon)} (${shown})`);
+      expect(offered.map((a) => a.name)).not.toContain(`${avalon.name} (${shown})`);
     }, { ...THEIRS, pack: PACK });
   });
 

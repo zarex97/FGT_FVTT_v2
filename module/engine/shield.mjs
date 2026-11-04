@@ -30,6 +30,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { unitActor } from "./board.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * @typedef {object} Absorption
@@ -109,7 +110,7 @@ export function absorb(defender, total, ctx = {}) {
   return {
     through,
     absorbed,
-    source: def.name ?? item.name,
+    source: def.name ?? shownAbility(item),
     // Broken when nothing is left of it. A floored barrier never is.
     broken: floored === 0 && absorbed >= available,
     intents: [
@@ -140,7 +141,7 @@ export function ridersHeldBy(defender, options) {
   const barrier = barrierOn(defender, options ?? new Set());
   if (!barrier?.def?.absorbs?.holdsRiders) return null;
   if (!((barrier.item.system?.shieldHealth ?? 0) > 0)) return null;
-  return barrier.def.name ?? barrier.item.name;
+  return barrier.def.name ?? shownAbility(barrier.item);
 }
 
 /**

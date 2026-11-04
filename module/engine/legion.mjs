@@ -212,10 +212,10 @@ function sharedClock(found, item, like) {
   const own = found.pool.template?.system?.linkedGroup?.ownCooldowns ?? [];
   if (own.includes(item.system?.slug)) return 0;
   const living = like && !like.system?.defeated
-    ? [...(like.items ?? [])].find((i) => i.name === item.name)
+    ? [...(like.items ?? [])].find((i) => i.name === item.name) // fgt-name-ok: a comparison of names, never printed
     : null;
   if (living) return living.system?.cooldown?.remaining ?? 0;
-  const left = found.pool.clocks?.remaining?.[item.name] ?? 0;
+  const left = found.pool.clocks?.remaining?.[item.name] ?? 0; // fgt-name-ok: a clock's key, never printed
   const since = (currentMoment().tick ?? 0) - (found.pool.clocks?.tick ?? 0);
   return Math.max(0, left - Math.max(0, since));
 }

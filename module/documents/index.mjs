@@ -106,7 +106,16 @@ export class FGTItem extends Item {}
 
 // An effect's expiry is read in one place, `domain/tick.mjs#expiryReached`; the
 // document carries no copy of that comparison (`isExpired` had no caller).
-export class FGTEffect extends ActiveEffect {}
+export class FGTEffect extends ActiveEffect {
+  /**
+   * A Unit held in a Bug Space: *"All effects, durations, and Cooldowns are paused
+   * & have no effect"* (#385 reading 31). Every reader of a Unit's Effects asks this.
+   * @override
+   */
+  get isSuppressed() {
+    return Boolean(this.parent?.system?.heldIn) || super.isSuppressed;
+  }
+}
 
 
 

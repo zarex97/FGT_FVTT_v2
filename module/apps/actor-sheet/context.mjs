@@ -25,6 +25,8 @@ import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf, publicNameOf } from "../../rules/identity.mjs";
+import { nameForViewer, readsTruthOf, shownAbility } from "../../engine/public-ability.mjs";
+import { shownName } from "../../engine/public-identity.mjs";
 import { abilityArt } from "../hud/present.mjs";
 import { hasGranted, GRANTS } from "../../rules/granted.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
@@ -901,8 +903,9 @@ function sourceOf(row) {
     : null;
 
   return {
-    sourceName: source?.name ?? (row.sourceUnitId ? game.i18n.localize("FGT.Sheet.UnknownSource") : null),
-    sourceAbility: ability?.name ?? null,
+    // Read by whoever opened this sheet: the source's truth is its owner's (#387).
+    sourceName: source ? nameForViewer(source, shownName(source, currentBoard())) : (row.sourceUnitId ? game.i18n.localize("FGT.Sheet.UnknownSource") : null),
+    sourceAbility: ability ? (readsTruthOf(source) ? ability.name : shownAbility(ability)) : null,
   };
 }
 

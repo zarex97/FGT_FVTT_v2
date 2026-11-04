@@ -46,7 +46,11 @@
                               remaining=state.detail.remaining ticks=state.detail.ticks
                               maxUses=state.detail.maxUses timesUsed=state.detail.timesUsed
                               requiresRound=state.detail.requiresRound away=state.detail.away
-                              partner=state.detail.partner}}">
+                              partner=state.detail.partner amount=state.detail.amount
+                              pool=state.detail.pool held=state.detail.held
+                              names=state.detail.names name=state.detail.name by=state.detail.by
+                              category=state.detail.category attribute=state.detail.attribute
+                              kind=state.detail.kind range=state.detail.range}}">
         {{#if use.toggles}}
           {{localize (concat "FGT.Mode." (ifThen active "on" "off"))}}{{#if tally}} {{tally.tally}}/{{tally.count}}{{/if}}
         {{else}}
@@ -77,7 +81,11 @@
        remaining=state.detail.remaining ticks=state.detail.ticks
        maxUses=state.detail.maxUses timesUsed=state.detail.timesUsed
        requiresRound=state.detail.requiresRound round=state.detail.round
-       away=state.detail.away partner=state.detail.partner}}
+       away=state.detail.away partner=state.detail.partner
+       amount=state.detail.amount pool=state.detail.pool held=state.detail.held
+       names=state.detail.names name=state.detail.name by=state.detail.by
+       category=state.detail.category attribute=state.detail.attribute
+       kind=state.detail.kind range=state.detail.range}}
     {{#if usage}}
       <span class="fgt-stat__note">{{localize "FGT.Sheet.Uses" used=usage.used max=usage.max}}</span>
     {{/if}}

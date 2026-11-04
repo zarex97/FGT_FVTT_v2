@@ -33,7 +33,7 @@ import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim
 import { payQueuedEnds } from "./queued-ends.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { whenEngineReady } from "./engine-ready.mjs";
-import { warRule, isWarGM, warOfUnit } from "./war.mjs";
+import { currentWar, warRule, isWarGM, warOfUnit } from "./war.mjs";
 
 /** The `Hooks` the boundaries are bound on: once each, and a fresh test world binds its own. */
 const boundariesOn = new WeakSet();
@@ -457,6 +457,11 @@ async function onTurnChange(combat, prior, current) {
   // A banished Kagome Spirit whose span has run out comes back, on a random
   // panel of the area it belongs to rather than where it fell.
   await fields.returnBanished(nextTick);
+  // A Unit inside a Bug Space is offered its way out on its Player's Turn (#385).
+  {
+    const { offerFromInside } = await import("./bug-space.mjs");
+    offerFromInside(currentWar()?.actingFactionId ?? null);
+  }
   // ...and what it did, on a card: Unlimited Blade Works' toll took Health at
   // every Turn's start and said so to nobody (#208, live). The Turn-end events
   // are gathered above; these are the start's own.

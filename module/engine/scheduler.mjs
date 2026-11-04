@@ -562,6 +562,11 @@ export function fireEvent(event, units, ctx) {
       // buffs removed, and a shot at a Unit with none costs nothing.
       if (handler.consumesUse && handler.defId && !(strip.tried && !strip.removed)) {
         out.push(I.consumeUse(u.id, handler.defId));
+        if (handler.useLine) {
+          const held = (u.effectInstances ?? []).find((e) => e.defId === handler.defId);
+          out.push(I.log({ kind: "cardLine", unitId: u.id, source: handler.source,
+            line: { key: handler.useLine, data: { left: Math.max(0, Number(held?.uses ?? 1) - 1) } } }));
+        }
       }
       // ...and a handler on its own clock starts it (#328 ruling 10).
       if (handler.ownCooldown) out.push(...ownCooldownStart(u, handler.abilityId, ctx));
@@ -1165,6 +1170,9 @@ const ACTIONS = Object.freeze({
    */
   SetMode: (a, u, h) => [I.setMode(u.id, a.ability, a.active === true, h.source)],
 
+  // A line and nothing else: what an effect's end means, for one with no other
+  // action to say it (#385, Moon's Pupa's Class going back).
+  CardLine: (a, u, h) => [I.log({ kind: "cardLine", unitId: u.id, source: h.source, line: { key: a.line } })],
   ResourceDelta: (a, u, h, c) => {
     // An ABSOLUTE write, for a clause that names the resulting number rather
     // than a change. *"Remove all Fragarach Counters from Mannanán"* is

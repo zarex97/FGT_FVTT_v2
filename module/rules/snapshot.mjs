@@ -43,6 +43,8 @@ import { tierOf } from "./master-rank.mjs";
 import { isUnbound } from "./cs-namespacing.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { formOf, formOverrides, formSheet, keptByForm } from "./form.mjs";
+import { bugSpaceCapacity, isOffBoard } from "./bug-space.mjs";
+import { outrankedByTwin } from "./skill-theft.mjs";
 import { grantHeld } from "./summon-grants.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf, passengerContributions } from "./platforms.mjs";
@@ -906,6 +908,16 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // targeted and could act (#180). The field keeps who is away until when
   // (`state.banished`), and `returnBanished` brings it back.
   const banished = new Set((settings.fields ?? []).flatMap((f) => Object.keys(f.state?.banished ?? {})));
+  // ...nor is a Unit held in a Bug Space (`rules/bug-space.mjs`). Each holder reads
+  // how full it is before they go.
+  for (const a of actors) {
+    if (isOffBoard(a.actor ?? a)) banished.add(a.snapshot?.id ?? a.actor?.id ?? a.id);
+  }
+  const heldCounts = new Map();
+  for (const a of actors) {
+    const holder = (a.actor ?? a)?.system?.heldIn;
+    if (holder) heldCounts.set(holder, (heldCounts.get(holder) ?? 0) + 1);
+  }
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
   const units = actors.filter((a) => !banished.has(a.snapshot?.id ?? a.actor?.id ?? a.id)).map((a) => a.snapshot
@@ -919,6 +931,10 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
       // the projection needs to know which Round it is looking at.
       round: settings.round ?? null,
     }));
+  for (const u of units) {
+    const doc = actors.find((a) => (a.snapshot?.id ?? a.actor?.id ?? a.id) === u.id);
+    u.bugSpace = { held: heldCounts.get(u.id) ?? 0, capacity: bugSpaceCapacity((doc?.actor ?? doc)?.items) };
+  }
   const board = {
     bounds: boundsFor(scene, settings),
     units,
@@ -1945,7 +1961,7 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
 export function abilityRecordOf(item, overrides = {}) {
   return {
     id: item.id,
-    name: item.name,
+    name: item.name, // fgt-name-ok: the board's record, read through the public door
     // The stable machine name. Without it a cross-ability reference has only
     // the Foundry document id to match on, which content cannot know --
     // Goddess of War's "Divinity Rank is increased from B to A" names
@@ -2598,6 +2614,12 @@ function negated(item, actor) {
   );
   const byEffect = item.system?.negatedBy ?? [];
   if (byEffect.length > 0 && byEffect.some((id) => carried().has(id))) return true;
+  // Two passives of one name do not add: the higher Rank governs (#385 reading 46).
+  if (item.system?.passive && outrankedByTwin(item, actor.items)) return true;
+  // Only while its bearer is a named Class: Kazuradrop's *"This effect is negated
+  // if Kazuradrop is not the 'Alter-Ego' Servant Class"* (#385 reading 1).
+  const needsClass = item.system?.negatedWhile?.notClass ?? null;
+  if (needsClass && !formSheet(actor).servantClasses.includes(needsClass)) return true;
   // ...or by an effect that says which abilities it negates: Mythos's Spells,
   // NPs but two tags, and Divinity (#362 MY.2, MY.3).
   if (negatingEffectOf(item, actor)) return true;

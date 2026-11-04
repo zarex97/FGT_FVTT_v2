@@ -39,6 +39,7 @@ import { shownName, publicSpeakerFor } from "./public-identity.mjs";
 import { warRule, currentWar } from "./war.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /** The name the table knows a Unit by (#232: a concealed caster is its class). */
 
@@ -87,7 +88,7 @@ export async function scheduleStrike({ ability, attacker, self }) {
     ownerId: attacker.id,
     abilityId: ability.id,
     contentId: ability.system?.contentId ?? ability.id,
-    name: ability.name,
+    name: shownAbility(ability),
     panel,
     activatedTick: tick,
     fireAt: tick + ticks,
@@ -104,11 +105,11 @@ export async function scheduleStrike({ ability, attacker, self }) {
 
   await applyWorldIntents([I.log({
     kind: "ability", event: "strikeScheduled", unitId: attacker.id, abilityId: ability.id,
-    name: ability.name, panel, fireAt: strike.fireAt,
+    name: ability.name, panel, fireAt: strike.fireAt, // fgt-name-ok: the GM's log
   })], `schedule:${ability.id}`);
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.Schedule.Activated", {
-      name: ability.name, unit: shownName(attacker), after: spec.after ?? "", row: panel.i + 1, col: panel.j + 1,
+      name: shownAbility(ability), unit: shownName(attacker), after: spec.after ?? "", row: panel.i + 1, col: panel.j + 1,
     })}</p>`,
     speaker: publicSpeakerFor(attacker),
   });
@@ -246,7 +247,7 @@ export async function schedulePosthumous(unitId, killerId) {
     }
     if (!killerId) {
       await ChatMessage.create({
-        content: `<p>${game.i18n.format("FGT.Schedule.PosthumousNoKiller", { name: ability.name, unit: shownName(owner) })}</p>`,
+        content: `<p>${game.i18n.format("FGT.Schedule.PosthumousNoKiller", { name: shownAbility(ability), unit: shownName(owner) })}</p>`,
       });
       continue;
     }
@@ -256,7 +257,7 @@ export async function schedulePosthumous(unitId, killerId) {
       ownerId: owner.id,
       abilityId: ability.id,
       contentId: ability.system?.contentId ?? ability.id,
-      name: ability.name,
+      name: shownAbility(ability),
       panel: self?.panel ? { i: self.panel.i, j: self.panel.j } : null,
       activatedTick: tick,
       fireAt: tick + resolveTicks(parseTick(spec.delay ?? "⅓◈"), { turnsPerRound: warRule("turnsPerRound") }),

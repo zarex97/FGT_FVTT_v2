@@ -1,0 +1,44 @@
+# Atomicros Muryan Foot: Shrinking World, Rank EX (#385 AM.*).
+#
+# Only in Atomicros Form (`kazuradrop-atomicros-form`), and the NP's Round gate still
+# holds (reading 41). Its own public tag (reading 60).
+schema: 1
+id: kazuradrop-atomicros
+name: "Atomicros Muryan Foot: Shrinking World"
+rank: EX
+kind: noblePhantasm
+slug: atomicrosMuryanFoot
+isNP: true
+npTags: [antiUnit]
+strikesHeld: true
+cooldown: "8◈"
+timing: { window: ownTurn }
+sameTurnExclusive: [kazuradrop-gully-trap]
+requirements:
+  - { kind: modeActive, mode: atomicrosForm }
+description: |
+  (Passive 1) This NP cannot be normally used. It can only be used while in Atomicros Form.
+  (Active) Base Attack (MAG) is used. Hits a 5x5 panel directly next to herself, deals 5x damage to all Units within the NP
+  area and Units currently within Bug Space when the NP was used. Then, inflicts the following effects on all affected Units-
+  a. Inflicts @effect[atkDwn]{Atk Dwn} for 1◈ Turns, all damage dealt is reduced by 30%; if NP, 15%.
+  b. Inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 40%.
+  c. Has a 60% chance of inflicting @effect[stun]{Stun} for 1◈ Turns.
+  Then, if there are any Units inside Bug Space, they are all forcefully released onto random panels within a 2 panel area
+  of Kazuradrop. Cooldown: 8◈ Turns. Cannot be used on the same Turn as Effect 1 of Gully Trap Funny Muryan.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 5, long: 5, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkDwn, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+      - { id: defDwn, magnitude: 40, duration: "1◈" }
+      - { id: stun, chance: 60, duration: "1◈" }

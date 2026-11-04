@@ -154,8 +154,8 @@ describe("a cut a handler makes is said where a player reads it (#209, live)", (
       expect(message.getFlag("fgt", "result").isCrit, "the swing crit").toBe(true);
       const lines = (message.getFlag("fgt", "effects") ?? []).filter((e) => e.id === "cooldown").map((e) => e.name);
       expect(lines).toEqual([
-        "Dioscures Tyndaridae: Hymn of the Divine Twins: Cooldown 18 → 17",
-        "Dioscures Tyndaridae: Hymn of the Divine Twins: Cooldown 18 → 17",
+        expect.stringMatching(/^NP-\w{5}: Cooldown 18 → 17$/),
+        expect.stringMatching(/^NP-\w{5}: Cooldown 18 → 17$/),
       ]);
       const state = JSON.parse(message.getFlag("fgt", "process"));
       const records = state.history.flatMap((h) => h.detail?.rollRecords ?? []);

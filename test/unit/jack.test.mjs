@@ -358,7 +358,7 @@ describe("an attack card lists its riders and their rolls (#185)", () => {
     const cards = readFileSync("module/apps/chat/cards.mjs", "utf8");
     // The flag, read once; a skipped damage step reads it too (#208, live).
     expect(cards).toMatch(/const effectRows = message\?\.getFlag\?\.\("fgt", "effects"\) \?\? \[\];/);
-    expect(cards).toMatch(/viewerVisibility\(state, result \?\? \{ total: 0 \}, effectRows\)/);
+    expect(cards).toMatch(/viewerVisibility\(state, result \?\? \{ total: 0 \}, effectRows\b/);
     expect(cards.includes("(state.appliedEffects ?? [])")).toBe(false);
     expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/await message\.setFlag\("fgt", "effects"/);
     const applier = readFileSync("module/engine/effect-applier.mjs", "utf8");

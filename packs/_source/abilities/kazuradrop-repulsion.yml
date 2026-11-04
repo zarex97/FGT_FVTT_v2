@@ -1,0 +1,29 @@
+# Repulsion for One's Kin, Rank EX (#385 RK.*).
+#
+# Either side, and the two add: +100% on Kingprotea (reading 4). The last sentence
+# closes Passive 2 alone: a Beast-Class BB still takes the 30% (reading 5).
+schema: 1
+id: kazuradrop-repulsion
+name: "Repulsion for One's Kin"
+rank: EX
+kind: skill
+slug: repulsionForOnesKin
+passive: true
+description: |
+  (Passive 1) All damage dealt to BB and 'Sakura Five' Units is increased by 30% including NP.
+  (Passive 2) All damage dealt to Units with the same Servant Class as herself is increased by 70% including NP.
+  Has no effect against the Shielder and Beast Servant Classes.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 30
+    npValue: 30
+    predicate:
+      - { or: ["target:group:bb", "target:group:sakuraFive"] }
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 70
+    npValue: 70
+    predicate: ["target:class:same", { not: "target:class:shielder" }, { not: "target:class:beast" }]

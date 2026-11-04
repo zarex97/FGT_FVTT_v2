@@ -21,7 +21,7 @@ describe("the vocabulary", () => {
   // end of a Combat Process (#330). Eleven with Invisible Air's ride (#336).
   it("holds exactly the windows an ability may name", () => {
     expect([...ABILITY_WINDOW_IDS].sort()).toEqual([
-      "automatic", "combatPhaseStart", "damageStep", "defendingPhaseStart", "ownTurn", "processEnd",
+      "allyDamageStep", "automatic", "combatPhaseStart", "damageStep", "defendingPhaseStart", "ownTurn", "processEnd",
       "ridesAttack", "whenAllyAttacked", "whenAttacked", "whenFatallyHit", "whenTargetedByNP",
     ]);
   });

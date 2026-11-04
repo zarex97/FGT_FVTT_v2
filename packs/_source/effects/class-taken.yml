@@ -1,0 +1,21 @@
+# Moon's Pupa's Class (#385 readings 17-19).
+#
+# > "Choose an enemy Servant within Range. Kazuradrop changes her Servant Class to the
+# > selected Servant's for 1◈ Turns."
+#
+# Neither buff nor debuff, as the sheet says *"changes"*, not *"applies"*, so no removal
+# touches it. `params.classes` is read at use and holds if that Servant falls.
+# `rules/form.mjs#formSheet` is its one reader: the door every reader of a Class passes.
+schema: 1
+id: classTaken
+name: "Class Taken"
+description: "This Unit's Servant Class is another's for a time."
+polarity: status
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+onExpire:
+  - { key: CardLine, line: FGT.TakeClass.Ended }
+rules: []

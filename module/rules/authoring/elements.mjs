@@ -147,6 +147,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "npDiceDoubled", type: "checkbox" },
     { key: "includesNP", type: "checkbox" },
     { key: "consumesUse", type: "checkbox" },
+    { key: "useLine", type: "text" },
     { key: "uses", type: "number" },
   ]),
   entry("Ward", "A reduction that only applies against a named category of attack.", [

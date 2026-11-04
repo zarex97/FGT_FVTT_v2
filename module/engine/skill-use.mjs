@@ -46,6 +46,7 @@ import { resourceLabel, resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { unitDistance } from "../rules/count.mjs";
 import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
@@ -78,6 +79,7 @@ import { warRule, currentWar } from "./war.mjs";
 import { phaseChance } from "../rules/phase-chance.mjs";
 import { durationChanges } from "../rules/effect-duration.mjs";
 import { tierSpend, tierIndex, tierView } from "../rules/tiers.mjs";
+import { shownAbility, shownAbilityRank } from "./public-ability.mjs";
 
 /**
  * Use an active Skill.
@@ -259,7 +261,7 @@ export async function useSkill({
     I.recordUse(actorId, ability.id, ability.system?.contentId ?? null, 1, bypassesCategoryLimit),
     I.log({
       kind: "ability", event: "skillUsed",
-      unitId: actorId, abilityId, name: ability.name,
+      unitId: actorId, abilityId, name: ability.name, // fgt-name-ok: the GM's log
       targets: targets.units.map((t) => t.unitId),
       applied: applied.map((a) => a.summary),
     }),
@@ -280,7 +282,7 @@ export async function useSkill({
   if (failure) {
     await ChatMessage.create({
       content: `<p>${game.i18n.format("FGT.Miss.SkillFailed", {
-        name: ability.name, source: failure.source, roll: failure.roll, chance: failure.chance,
+        name: shownAbility(ability), source: failure.source, roll: failure.roll, chance: failure.chance,
       })}</p>`,
       speaker: publicSpeakerFor(actor),
     });
@@ -326,7 +328,7 @@ export async function spendTier(actor, ability, self) {
   await applyWorldIntents(spend.spentIds.map((id) => I.removeEffect(actor.id, id, "spent")), `skill:${ability.id}`);
   const token = EffectRegistry.get(spend.defId)?.name ?? spend.defId;
   const name = game.i18n.format(index > 0 ? "FGT.Tier.Spent" : "FGT.Tier.SpentNothing", {
-    n: spend.tier, token, ability: ability.name, rank: view.system?.rank ?? "",
+    n: spend.tier, token, ability: shownAbility(ability), rank: view.system?.rank ?? "",
   });
   return { ability: view, row: { unitId: actor.id, summary: { id: spend.defId, name, outcome: "applied", reason: null } } };
 }
@@ -350,7 +352,7 @@ export async function rollUseFailure(actor, ability, self) {
   if (roll <= risk.chance) return { ...risk, roll };
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.UseFailure.Held", {
-      name: ability.name, roll, chance: risk.chance, source: risk.source,
+      name: shownAbility(ability), roll, chance: risk.chance, source: risk.source,
     })}</p>`,
     speaker: publicSpeakerFor(actor),
   });
@@ -382,9 +384,9 @@ export function useFailurePatch(fails, ability, self) {
  */
 export async function postUseFailureCard(actor, ability, fails) {
   const lines = [game.i18n.format("FGT.UseFailure.Failed", {
-    name: ability.name, roll: fails.roll, chance: fails.chance, source: fails.source,
+    name: shownAbility(ability), roll: fails.roll, chance: fails.chance, source: fails.source,
   })];
-  if (fails.then === "lockThisTurn") lines.push(game.i18n.format("FGT.UseFailure.Locked", { name: ability.name }));
+  if (fails.then === "lockThisTurn") lines.push(game.i18n.format("FGT.UseFailure.Locked", { name: shownAbility(ability) }));
   if (fails.then === "endActions") {
     lines.push(game.i18n.format("FGT.UseFailure.ActionsEnded", { unit: publicIdentityOf(actor, currentBoard()).name }));
   }
@@ -439,7 +441,7 @@ export async function rollConcealmentBreak(actor, ability, self) {
   // not learn she is still concealed.
   if (roll.total > chance) {
     await ChatMessage.create({
-      content: `<p><strong>${ability.name}</strong>: rolled ${roll.total} vs ${chance}%.`
+      content: `<p><strong>${shownAbility(ability)}</strong>: rolled ${roll.total} vs ${chance}%.`
         + ` Presence Concealment holds.</p>`,
       speaker: publicSpeakerFor(actor),
       whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id),
@@ -451,7 +453,7 @@ export async function rollConcealmentBreak(actor, ability, self) {
   const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
   await deactivateConcealment(actor.id, DEACTIVATION_REASONS.skillUse);
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> gave `
+    content: `<p><strong>${shownAbility(ability)}</strong> gave `
       + `${publicIdentityOf(actor, currentBoard()).name} away —`
       + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
     speaker: publicSpeakerFor(actor),
@@ -509,6 +511,56 @@ export function resolveSkillTargets(ability, self, board, placement) {
   // A choice still owed refuses. Without this a Skill called from a macro ran
   // its phases against nobody and still paid its cost and cooldown (#129).
   return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
+}
+
+/**
+ * Take the Class of an enemy Servant she chooses in Range, and land what follows on
+ * it. A hidden Servant is no choice: Presence Concealment shuts it out of an enemy's
+ * Skill. The Class is read now and holds if that Servant falls (reading 19).
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} board
+ * @param {object} self
+ * @returns {Promise<object[]>} card rows
+ */
+async function takeClassOf(phase, ability, actor, board, self) {
+  const reach = typeof self.range === "number" ? self.range : (self.range?.panels ?? 1);
+  const inRange = (board.units ?? []).filter((u) => u.kind === "servant" && !u.defeated && !u.concealed
+    && relationOf(self, u, board) === "enemy" && unitDistance(self, u) <= reach);
+  if (inRange.length === 0) {
+    return [{ unitId: actor.id, summary: { id: "takeClassNone", name: game.i18n.format("FGT.TakeClass.NoServant", { ability: shownAbility(ability) }), outcome: "applied", reason: null } }];
+  }
+  const pickedId = inRange.length === 1 ? inRange[0].id : (await chooseFor(actor, {
+    title: ability.name, // fgt-name-ok: the caster's own prompt
+    hint: game.i18n.localize("FGT.TakeClass.Hint"),
+    count: 1,
+    // fgt-offer-ok: picks whom to read, which is no use of an ability
+    options: inRange.map((u) => ({ id: u.id, name: shownName(u, board) })),
+  }))?.[0] ?? inRange[0].id;
+  const targetUnit = inRange.find((u) => u.id === pickedId) ?? inRange[0];
+  const classes = [...(targetUnit.servantClasses ?? [])];
+  const rows = [];
+  const write = (intents) => applyWorldIntents(intents, `skill:${ability.id}:takeClass`);
+  rows.push(...await landEntry(entryOf({
+    id: "classTaken", duration: phase.duration, unremovable: true, bypassesImmunity: true, bypassChanceModifiers: true,
+    params: { classes },
+  }, { phase }), {
+    target: self, source: { unitId: actor.id, abilityId: ability.id }, caster: unitActor(actor.id), casterUnit: self,
+  }, { write, reread: () => unitOf(unitActor(actor.id), currentBoard()) }));
+  rows.push({ unitId: actor.id, summary: {
+    id: "takeClass",
+    name: game.i18n.format("FGT.TakeClass.Taken", { name: shownName(unitActor(actor.id), board), classes: classes.map((c) => game.i18n.localize(CONFIG.FGT?.servantClasses?.[c] ?? c)).join(", "), from: shownName(targetUnit, board) }),
+    outcome: "applied",
+    reason: null,
+  } });
+  for (const rule of phase.inflicts ?? []) {
+    rows.push(...await landEntry(entryOf(rule, { phase }), {
+      target: targetUnit, source: { unitId: actor.id, abilityId: ability.id }, caster: unitActor(actor.id), casterUnit: self,
+    }, { write, reread: () => unitOf(unitActor(targetUnit.id), currentBoard()) }));
+  }
+  return rows;
 }
 
 /**
@@ -694,6 +746,8 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       const chosen = targets?.[0]?.unitId ? board.units.find((u) => u.id === targets[0].unitId) ?? null : null;
       if (!chosen || !testPredicate(phase.chosenPredicate, { options: rollOptionsFor({ attacker: self, defender: chosen }) })) continue;
     }
+    // *"If there are no…, instead"*: this phase runs only at a count of 0 (#385 reading 13).
+    if (phase.whenCountZero && countOf(phase.whenCountZero, { board, self }) !== 0) continue;
     if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) {
       // Held back, and said so when the sheet names why: Unparalleled's effect is
       // not applied once another allied Servant has Attacked (#328 ruling 11).
@@ -718,7 +772,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         unitId: actor.id,
         summary: {
           id: "chance",
-          name: game.i18n.format("FGT.Phase.Chance", { label: phase.chance.label ?? ability.name, roll: roll.total, percent }),
+          name: game.i18n.format("FGT.Phase.Chance", { label: phase.chance.label ?? shownAbility(ability), roll: roll.total, percent }),
           outcome: hit ? "applied" : "failed",
           reason: hit ? null : game.i18n.localize("FGT.Phase.Missed"),
         },
@@ -996,7 +1050,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           if (target.unitId !== actor.id) break;
           const { transformUnit } = await import("./transform.mjs");
           const done = await transformUnit(actor.id, ability.system?.contentId ?? ability.id, { cause: "used" });
-          if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: ability.name }), outcome: "applied", reason: null } });
+          if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: shownAbility(ability) }), outcome: "applied", reason: null } });
           break;
         }
 
@@ -1011,7 +1065,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             ? resolveTicks(parseTick(String(phase.cooldownBonus)), { turnsPerRound: warRule("turnsPerRound") }) : 0;
           const open = await markFieldEnd(phase.field, actor.id, { cooldownBonus: bonus });
           if (open) {
-            const named = doc.items.find((i) => (i.system?.contentId ?? i.id) === phase.field)?.name ?? phase.field;
+            const named = shownAbility(doc.items.find((i) => (i.system?.contentId ?? i.id) === phase.field)) || phase.field;
             applied.push({ unitId: actor.id, summary: {
               id: "endField",
               name: game.i18n.format(bonus > 0 ? "FGT.Phase.FieldEndsAtTurnEndLonger" : "FGT.Phase.FieldEndsAtTurnEnd",
@@ -1109,6 +1163,28 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        // The free release from a Bug Space (#385 reading 37).
+        case "releaseHeld": {
+          const { pressRelease } = await import("./bug-space.mjs");
+          applied.push(...(await pressRelease(doc)).map((r) => ({ unitId: actor.id, ...r })));
+          break;
+        }
+
+        // Moon's Pupa, Effects 3 and 4 (#385 readings 16-19): she must choose an enemy
+        // Servant in Range if there is one, and with none the card says so.
+        case "takeClass": {
+          applied.push(...await takeClassOf(phase, ability, actor, board, self));
+          break;
+        }
+
+        // Atomicros's first door: every Skill stolen with Insect Eater goes back.
+        case "discardStolen": {
+          const { discardAllStolen } = await import("./stolen-skills.mjs");
+          const count = await discardAllStolen(doc);
+          if (count > 0) applied.push({ unitId: actor.id, summary: { id: "discardStolen", name: game.i18n.format("FGT.Theft.DiscardedAll", { count }), outcome: "applied", reason: null } });
+          break;
+        }
+
         case "cooldown": {
           const changes = phase.choose
             ? await chosenCooldowns(phase, ability, doc)
@@ -1119,7 +1195,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // On the card. Blood Temple's read *"NP Regen"* and nothing else: the
           // ⅔◈ it took off the Noble Phantasm left no line (#188).
           changes.forEach((c, n) => {
-            const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+            const name = shownAbility(unitActor(c.unitId)?.items?.get(c.abilityId)) || null;
             const line = cooldownLine(name, before[n], remainingOf(c));
             if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null } });
           });
@@ -1253,7 +1329,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const opened = Boolean(field?.fieldId ?? field?.id);
           applied.push({
             summary: {
-              id: "field", name: ability.name,
+              id: "field", name: shownAbility(ability),
               outcome: opened ? "applied" : "failed",
               // `declined` only when it really was: anything else is the field
               // failing to open, and saying "declined" for that hides it.
@@ -1369,7 +1445,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             const { endField } = await import("./fields.mjs");
             if ((board.fields ?? []).some((f) => f.id === contentId)) await endField(contentId);
             await item.update({ "system.expended": true });
-            applied.push({ summary: { id: "expend", name: item.name, outcome: "applied", reason: null } });
+            applied.push({ summary: { id: "expend", name: shownAbility(item), outcome: "applied", reason: null } });
           }
           break;
         }
@@ -1418,7 +1494,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // A roll outside any Combat Process, which a granted adjustment may
           // move (Expert of Many Specializations, #226 reading 10).
           const { offerRollAdjustment } = await import("./roll-adjust.mjs");
-          const moved = await offerRollAdjustment(snapshot, roll.total, { check: "evade", label: ability.name });
+          const moved = await offerRollAdjustment(snapshot, roll.total, { check: "evade", label: ability.name }); // fgt-name-ok: the caster's own prompt
           const plan = checkPlan(snapshot, "evade");
           const outcome = evade({
             roll: moved.roll,
@@ -1500,7 +1576,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const started = await startChannel(actor, ability, phase);
           applied.push({
             summary: {
-              id: "channel", name: ability.name,
+              id: "channel", name: shownAbility(ability),
               outcome: started ? "applied" : "failed",
               reason: started ? null : "alreadyChannelling",
             },
@@ -1532,7 +1608,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // because the alternative is a Noble-Phantasm-sized hole that looks
           // like an ability quietly doing less than its text says.
           console.error(`FGT | ${ability.name} has a damage phase and was used as a Skill.`);
-          ui.notifications?.error(game.i18n.format("FGT.Skill.DamagePhase", { name: ability.name }));
+          ui.notifications?.error(game.i18n.format("FGT.Skill.DamagePhase", { name: ability.name })); // fgt-name-ok: the GM's error
           break;
 
         default:
@@ -1613,7 +1689,7 @@ async function runRollTable(phase, ability, actor, target, board) {
     const rolled = new Set(results.map(String));
     const others = choicesIn(table).filter((o) => !rolled.has(String(o.roll)));
     const picked = others.length === 0 ? [] : await chooseFor(actor, {
-      title: ability.name,
+      title: ability.name, // fgt-name-ok: the caster's own prompt
       hint: game.i18n.format("FGT.RollTable.ThenChooseHint", { results: results.join(", ") }),
       count: 1,
       min: 0,
@@ -1656,7 +1732,7 @@ async function chooseRows(actor, table, ability, roll) {
 
   // Asked of the caster's player, wherever the Skill is running (#130).
   const picked = await chooseFor(actor, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: game.i18n.format("FGT.RollTable.ChooseHint", { roll }),
     count: 1,
     options: options.map((o) => ({
@@ -1696,7 +1772,7 @@ function effectLabel(spec) {
  */
 async function postRollCard(actor, ability, target, results) {
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> on ${shownName(target) || "the target"}: `
+    content: `<p><strong>${shownAbility(ability)}</strong> on ${shownName(target) || "the target"}: `
       + `rolled ${results.join(", ")}.</p>`,
     speaker: publicSpeakerFor(actor),
   });
@@ -1737,7 +1813,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const tick = currentMoment().tick ?? 0;
         const stayOf = () => unitOf(unitActor(target?.id), currentBoard())?.expiresAt ?? null;
         const before = stayOf();
-        const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, {
+        const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, { // fgt-name-ok: a rule's source, read by rules, never printed
           board, tick, turnsPerRound: warRule("turnsPerRound"),
         });
         if (intents.length > 0) await applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null });
@@ -1745,7 +1821,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const after = stayOf();
         const name = kind === "DurationDelta" && typeof before === "number" && typeof after === "number"
           ? game.i18n.format("FGT.Skill.StayExtended", { before: Math.max(0, before - tick), after: Math.max(0, after - tick) })
-          : game.i18n.format("FGT.Skill.ActionTookEffect", { ability: ability.name });
+          : game.i18n.format("FGT.Skill.ActionTookEffect", { ability: shownAbility(ability) });
         out.push({ unitId: target?.id, summary: { id: kind, name, outcome: intents.length > 0 ? "applied" : "noEffect", reason: null } });
         continue;
       }
@@ -1926,7 +2002,7 @@ export async function postCostCards(charged, { ability, self }) {
       const servant = self?.id ? unitActor(self.id) : null;
       const text = game.i18n.format("FGT.Cost.MasterScaled", {
         servant: foundry.utils.escapeHTML(servant ? shownName(servant, currentBoard()) : ""),
-        ability: foundry.utils.escapeHTML(ability?.name ?? ""),
+        ability: foundry.utils.escapeHTML(shownAbility(ability)),
         amount: cost.amount ?? 0, factor: cost.scaledBy, source: foundry.utils.escapeHTML(cost.scaledFrom ?? ""),
       });
       await ChatMessage.create({ content: `<div class="fgt-card"><p>${text}</p></div>` });
@@ -2014,8 +2090,8 @@ export async function postCard(actor, ability, targets, applied) {
     {
       caster: self.name,
       img: self.img,
-      ability: ability.name,
-      rank: ability.system?.rank ?? null,
+      ability: shownAbility(ability),
+      rank: shownAbilityRank(ability),
       targets: names,
       // Rendered empty on purpose: the hook fills it for whoever is looking.
       effects: [],
@@ -2058,7 +2134,7 @@ export async function postCard(actor, ability, targets, applied) {
     // filtered card ships the whole result to every client that can read them,
     // and `strict` (a whisper per audience) is the setting for a table that
     // wants more than that.
-    flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor) } },
+    flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor), casterId: actor.id, abilityId: ability.id } },
   });
 }
 
@@ -2176,7 +2252,7 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // three-turn Round.
       // A Count (`rules/count.mjs`): Van Gogh's *"⅓◈ * the stage of the Curse"*.
       const scale = countScaleOf(change);
-      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc) }) : 1;
+      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc), board, self: board ? unitOf(subject, board) : null }) : 1;
       const turns = perStack * (change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
         : change.countMatching // fgt-count-ok: presence only, sized by countMatchingTurns through the Count module
@@ -2407,7 +2483,7 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
   // Asked of the caster's player, wherever the Skill is running: a Skill runs on
   // the GM, and its player's decision is on that player's screen (#130).
   const picked = await chooseFor(actor, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: phase.prompt ? game.i18n.localize(phase.prompt) : "",
     count: phase.count ?? 1,
     options: options.map((o) => ({
@@ -2477,7 +2553,7 @@ async function chosenCooldowns(phase, ability, doc) {
   const shape = options.length === 1
     ? options[0].id
     : (await chooseFor(doc, {
-      title: ability.name,
+      title: ability.name, // fgt-name-ok: the caster's own prompt
       hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
       count: 1,
       // Localized, like every other authored label the dialogs render. It was
@@ -2501,7 +2577,7 @@ async function chosenCooldowns(phase, ability, doc) {
 
   // fgt-offer-ok: picks whose Cooldown to cut, which is no use of them
   const chosen = await chooseFor(doc, {
-    title: ability.name,
+    title: ability.name, // fgt-name-ok: the caster's own prompt
     hint: game.i18n.format("FGT.Skill.ChooseCooldownTargets", { turns }),
     // Fewer candidates than the shape asks for is not a refusal: reduce what
     // there is. The alternative is a Skill that cannot be used at all because
@@ -2841,7 +2917,7 @@ export async function resolveWithoutProcess({ ability, actor, targets, board, ov
   await applyWorldIntents([
     ...(perUnit ? cooldownIntents(ability, actor, applied.summoned ?? 0, self) : []),
     I.log({
-      kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name,
+      kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name, // fgt-name-ok: the GM's log
       targets: targets.map((t) => t.unitId), applied: applied.map((a) => a.summary), counter: true,
     }),
   ], `counter:${ability.id}`);
@@ -2896,7 +2972,7 @@ export async function endExpendedFields(ability) {
 export async function runDeactivationPayout(item, actor, endedBy) {
   const phases = item?.system?.onDeactivate?.[endedBy] ?? [];
   if (phases.length === 0) return [];
-  const payout = { id: item.id, name: item.name, system: { ...item.system, phases } };
+  const payout = { id: item.id, name: item.name, system: { ...item.system, phases } }; // fgt-name-ok: the payout's own working copy, never printed
   const board = currentBoard();
   const applied = await runPhases(payout, actor, [{ unitId: actor.id }], board);
   await postCard(actor, payout, [{ unitId: actor.id }], applied);

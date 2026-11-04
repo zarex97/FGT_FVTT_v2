@@ -63,7 +63,7 @@ export function counterOffer(items) {
     .filter(answersACounter)
     .map((item) => ({
       id: item.id,
-      name: item.name,
+      name: item.name, // fgt-name-ok: the owner's rung
       img: item.img ?? null,
       isNP: item.type === "noblePhantasm" || item.system?.isNP === true,
       isNormalAttack: false,

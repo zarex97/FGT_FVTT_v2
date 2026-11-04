@@ -52,8 +52,8 @@ describe("Mana Burst cuts the joint NP's clock, and it is one clock (#209 readin
       const lines = (w.messages.get(declared.messageId).getFlag("fgt", "effects") ?? [])
         .filter((e) => e.id === "cooldown").map((e) => e.name);
       expect(lines).toEqual([
-        "Dioscures Tyndaridae: Hymn of the Divine Twins: Cooldown 18 → 15",
-        "Dioscures Tyndaridae: Hymn of the Divine Twins: Cooldown 18 → 15",
+        expect.stringMatching(/^NP-\w{5}: Cooldown 18 → 15$/),
+        expect.stringMatching(/^NP-\w{5}: Cooldown 18 → 15$/),
       ]);
     }, MATCH);
   });

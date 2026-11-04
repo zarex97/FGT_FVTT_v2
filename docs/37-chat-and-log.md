@@ -8,6 +8,8 @@ Cards are not documents; they are ephemeral by Foundry's design — they scroll 
 
 A single card is read by many viewers, and each reads a different version of the same message. The redaction is by side, not by name: a row nobody claimed is a fact about the board (a facing bonus, terrain) and stays visible to everyone — dropping it would change the arithmetic a viewer can check, which is worse than revealing it (`module/rules/card-visibility.mjs:16-19`). Two visibility modes exist: "filtered" is one message that every client renders differently (fast, simple), and "strict" creates separate whispered messages per audience (slower, actually secure) (`module/rules/card-visibility.mjs:32`).
 
+**The Stored Card is a stranger's view (#388).** Every write runs on the active GM, so `cardContext` builds what a message keeps as nobody's: the observer's role, public names, a count of effects, no damage, no preview and no buttons. `fillAttackCard` draws the reader's own view over it, and a client that fails to draw keeps the safe copy. A client keeps its last draw on screen during the next, for every write to a message puts the Stored Card back, for 70 to 640 ms when measured. This guards the screen, not the console: `result` and `process` flags reach every client, and so does every Actor.
+
 ## Where it lives
 
 | File | Role |

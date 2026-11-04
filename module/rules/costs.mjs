@@ -291,7 +291,7 @@ export function canUseAbility({
   const suppressedCategory = (ability?.categorizedAs ?? [])
     .find((tag) => (unit?.suppressions ?? []).some((sup) => sup.scope === tag));
   if (suppressedCategory) {
-    return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory, name: ability?.name ?? ability?.slug ?? "" }, cost };
+    return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory, name: ability?.name ?? ability?.slug ?? "" }, cost }; // fgt-name-ok: the owner's refusal
   }
 
   // Every ability barred but the ones a lock names. Doppelganger: *"Skills and
@@ -302,7 +302,7 @@ export function canUseAbility({
   const lock = ability ? (unit?.suppressions ?? []).find((sup) => sup.scope === "abilityUse"
     && !(sup.except ?? []).some((slug) => slug === ability.slug || slug === ability.contentId)) : null;
   if (lock) {
-    return { ok: false, reason: "abilityLocked", detail: { by: lock.source ?? "", name: ability.name ?? ability.slug ?? "" }, cost };
+    return { ok: false, reason: "abilityLocked", detail: { by: lock.source ?? "", name: ability.name ?? ability.slug ?? "" }, cost }; // fgt-name-ok: the owner's refusal
   }
 
   if (clockRunning === false) {

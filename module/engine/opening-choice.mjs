@@ -18,6 +18,7 @@ import { currentBoard, unitActor } from "./board.mjs";
 import { chooseFor } from "./ask.mjs";
 import { currentWar } from "./war.mjs";
 import { picksOwed } from "../rules/summon-grants.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /** The prefix of an owed summon-roll pick in `openingChoices.due` (#347). */
 const GRANT = "grant:";
@@ -129,9 +130,9 @@ export async function askOpeningChoices(actorId) {
       on: game.i18n.localize(item.system.openingChoice.on ?? "FGT.OpeningChoice.On"),
     };
     const picked = await chooseFor(actor, {
-      title: item.name,
+      title: item.name, // fgt-name-ok: the Unit's own player's prompt
       // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
-      hint: game.i18n.format("FGT.OpeningChoice.Hint", { name: actor.name, ability: item.name }),
+      hint: game.i18n.format("FGT.OpeningChoice.Hint", { name: actor.name, ability: item.name }), // fgt-name-ok: the Unit's own player's prompt
       count: 1,
       min: 1,
       options: [{ id: "off", name: labels.off }, { id: "on", name: labels.on }],
@@ -161,7 +162,7 @@ async function placeField(actor, item) {
   if (!self?.panel) return false;
   const panels = chosenCentres(self, board);
   if (panels.length === 0) return false;
-  const name = item.system.field.name ?? item.name;
+  const name = item.system.field.name ?? shownAbility(item);
   const answer = await askOwner(actor, {
     kind: "pickPanels", panels, labels: [name],
     // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
@@ -240,7 +241,7 @@ async function applyChoice(actor, item, active, label) {
     I.setMode(actor.id, item.id, active, "openingChoice"),
     I.log({
       kind: "ability", event: "openingChoice",
-      unitId: actor.id, abilityId: item.id, name: item.name, active,
+      unitId: actor.id, abilityId: item.id, name: item.name, active, // fgt-name-ok: the GM's log
     }),
   ], "openingChoice");
   await settle(actor, item.id);
@@ -251,7 +252,7 @@ async function applyChoice(actor, item, active, label) {
     .map((u) => u.id);
   await ChatMessage.create({
     // fgt-name-ok: whispered to the GM and the Unit's owners
-    content: `<p>${game.i18n.format("FGT.OpeningChoice.Chosen", { name: actor.name, ability: item.name, choice: label })}</p>`,
+    content: `<p>${game.i18n.format("FGT.OpeningChoice.Chosen", { name: actor.name, ability: shownAbility(item), choice: label })}</p>`,
     whisper,
   });
 }

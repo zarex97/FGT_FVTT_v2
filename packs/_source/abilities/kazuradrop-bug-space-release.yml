@@ -1,0 +1,23 @@
+# The release, Gully Trap's last sentence (#385 G1.rel*).
+#
+# > "During Kazuradrop's Turn, she can release any Units caught inside Bug Space onto any
+# > panel within a 2 panel area of herself. This Action does not have a Cooldown."
+#
+# No use of the NP, so NP Seal does not stop it, and Stun does (reading 37). No list of
+# her Skills offers it. It shares Gully Trap's public tag, for it is that NP's text.
+schema: 1
+id: kazuradrop-bug-space-release
+name: "Release from Bug Space"
+kind: skill
+slug: bugSpaceRelease
+notASkill: true
+publicTagAs: kazuradrop-gully-trap
+countsAsAct: false
+copyable: { allowed: false, reason: unique }
+timing: { window: ownTurn }
+description: |
+  During Kazuradrop's Turn, she can release any Units caught inside Bug Space onto any panel within a 2 panel area of
+  herself. This Action does not have a Cooldown.
+phases:
+  - kind: releaseHeld
+    target: self

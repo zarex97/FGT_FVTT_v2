@@ -101,6 +101,61 @@ export function unitNameReads(text) {
   return out;
 }
 
+/** Variables that hold an ability Item, by the names the codebase gives them. */
+const ABILITY_HOLDERS = ["ability", "item", "abilityDoc", "sourceItem", "cancelling", "np", "skill", "spell"];
+
+/** An ability's display name, read raw. */
+// ...or reached in one chain: `actor.items.get(id)?.name` (#387, found live on a Cooldown row).
+export const ABILITY_NAME_READ = new RegExp(String.raw`\b(?:${ABILITY_HOLDERS.join("|")})\??\.name\b|\bitems\??\.(?:get|find)\(.*\)\??\.name\b`);
+
+/** A line that goes to the console, or stops the run: no player reads it. */
+const CONSOLE_LINE = /\bconsole\.\w+\(|\bthrow new\b/;
+
+/**
+ * Files whose every ability name is the owner's or the GM's, and why (#387). A
+ * sheet and a bar are rendered for their owner. A line the table reads asks
+ * `engine/public-ability.mjs#shownAbility`.
+ */
+const ABILITY_FILES = [
+  { file: "engine/public-ability.mjs", why: "the public name's own definition" },
+  { file: "rules/np-strength.mjs", why: "ability names in the GM's balance report" },
+  { file: "engine/game-log.mjs", why: "the game log, read by the GM's log viewer" },
+  { file: "apps/log-viewer.mjs", why: "the GM's log viewer" },
+  { file: "apps/ability-editor/editor.mjs", why: "the GM's authoring tool" },
+  { file: "apps/yaml-export.mjs", why: "the GM's authoring tool" },
+  { file: "apps/actor-sheet/context.mjs", why: "a sheet renders for its viewer, and its one cross-Unit row asks the door" },
+  { file: "apps/actor-sheet/sheet.mjs", why: "the owner's own notices" },
+  { file: "apps/hud/action-bar.mjs", why: "the owner's own bar" },
+  { file: "apps/hud/present.mjs", why: "the owner's own bar" },
+  { file: "apps/tier-dialog.mjs", why: "the owner's own dialog" },
+  { file: "apps/copy-dialog.mjs", why: "the GM's stage, and its player's stage asks `publicRow`" },
+];
+
+/**
+ * Every unmarked read of an ability's real name in one file's text (#387): the
+ * name reveals its bearer as surely as a True Name does.
+ *
+ * @param {string} text
+ * @returns {Array<{line: number, expression: string, problem: string}>}
+ */
+export function abilityNameReads(text) {
+  const out = [];
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  lines.forEach((line, n) => {
+    if (COMMENT.test(line) || CONSOLE_LINE.test(line)) return;
+    const match = line.replace(MARKER, "").match(ABILITY_NAME_READ);
+    if (!match) return;
+    if (line.match(MARKER) ?? (n > 0 ? lines[n - 1].match(MARKER) : null)) return;
+    out.push({
+      line: n + 1,
+      expression: match[0],
+      problem: "prints an ability's real name, which reveals its Unit: ask `shownAbility`, "
+        + "or say why it is safe with `// fgt-name-ok: <reason>`",
+    });
+  });
+  return out;
+}
+
 /** The marker a speakerless card carries, with its reason. */
 const SPEAKER_MARKER = /\/\/\s*fgt-speaker-ok:\s*\S/;
 
@@ -158,6 +213,7 @@ async function* walk(dir) {
 
 async function main() {
   const allowed = new Set(FILES.map((f) => f.file));
+  const abilityAllowed = new Set(ABILITY_FILES.map((f) => f.file));
   const problems = [];
   let files = 0;
   for (const dir of DIRS) {
@@ -168,6 +224,9 @@ async function main() {
       const text = await readFile(path, "utf8");
       for (const p of unitNameReads(text)) {
         problems.push(`module/${rel}:${p.line}: \`${p.expression}\` ${p.problem}`);
+      }
+      if (!abilityAllowed.has(rel)) {
+        for (const p of abilityNameReads(text)) problems.push(`module/${rel}:${p.line}: \`${p.expression}\` ${p.problem}`);
       }
       if (rel.startsWith("apps/")) {
         for (const p of speakerlessCards(text)) problems.push(`module/${rel}:${p.line}: ${p.problem}`);

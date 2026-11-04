@@ -6,12 +6,10 @@
  * three surfaces need the same answer and each had been deciding it alone: a
  * placed token's texture, an attack card and a skill card.
  *
- * The rule those three share is that **none of them can render per viewer.** A
- * token's texture is one field on one document; a chat message is one document
- * every client reads identically. Foundry has no per-viewer rendering for
- * either, and building it is the shadow-actor pattern Ch. 38 assesses
- * and defers. So all three show the PUBLIC identity — including to the unit's
- * own owner, whose card is the same card the opponent is reading.
+ * What is stored is the PUBLIC identity: a token's texture is one field on one
+ * document, and a chat message is one document. A card is then re-rendered per
+ * client, so its owner reads their own Unit's truth there
+ * (`public-ability.mjs#nameForViewer`, #387 ruling 63). A token cannot.
  *
  * That is the one place this differs from `apps/actor-sheet/context.mjs`,
  * which DOES exempt the owner: a sheet is rendered per viewer and can afford

@@ -89,6 +89,7 @@ const COMMON = Object.freeze([
   { key: "unmetLine", type: "text" },
   // Asked of the Unit the use was aimed at (Fox's Wedding, #353).
   { key: "chosenPredicate", type: "predicateList" },
+  { key: "whenCountZero", type: "raw" },
 ]);
 
 /**
@@ -254,6 +255,16 @@ export const PHASE_DESCRIPTORS = describeTable([
     // choice other than the one selected by the die"* (#339 ruling 4). Skill path.
     { key: "thenChoose", type: "checkbox" },
   ]),
+  // Bug Space (#385, `engine/bug-space.mjs`).
+  entry("capture", 20, "Takes the Unit it hit into its user's Bug Space.", []),
+  entry("releaseHeld", 20, "Asks whom to release from its user's Bug Space, and where.", []),
+  // Moon's Pupa (#385, `engine/skill-use.mjs#takeClassOf`).
+  entry("takeClass", 20, "Takes the Class of an enemy Servant in Range for a time, and lands what follows on it.", [
+    { key: "duration", type: "text" },
+    { key: "inflicts", type: "raw" },
+  ]),
+  // Atomicros's first door (#385, `engine/stolen-skills.mjs`).
+  entry("discardStolen", 20, "Gives back every Skill its user holds by Insect Eater.", []),
   // Enuma Elish's lists (#374, `rules/listed-abilities.mjs`). Attack path.
   entry("strikeListedAbilities", 20, "Seals the listed abilities a Unit it hit carries, and removes what they caused.", [
     { key: "seal", type: "text" },
