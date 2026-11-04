@@ -79,7 +79,7 @@ table does not exist (Summer Habetrot) · a sheet binds only its owner · an Emp
 
 **Live, 2026-11-04.** On the Gilgamesh Audit scene, as Player1. **Found pressing, each fixed:** a stored card held the real names, built on the GM's client; a Cooldown row printed another Unit's NP, a read in one chain the guard missed, so the guard grew; Pixie's charges came through as none; one tag read as *(Wave)* on the Capture's card; a row read *"No effects were applied"* over a release; a steal's line ended in *": failed"*; the list printed `@rank`, and *"the Golden Hind"* passed the name removal. The GM's load takes over a minute, since the world sends 50 MB.
 
-**Staged, not played:** a Home Base, Shielder and Beast Classes, an Outsider Attribute, a True Name BB, the War's Region and Debuff ChDwn. No BB is built yet, and she presses BB's own clauses when she is. **The Attacks' numbers are read from each card's breakdown, the Magic Resistance chances from a landing called directly on the GM page.**
+**Staged, not played:** a Home Base, Shielder and Beast Classes, an Outsider Attribute, a True Name BB, the War's Region and Debuff ChDwn. No BB is built yet, and she presses BB's own clauses when she is. **The Attacks' numbers are read from each card's breakdown, the Magic Resistance chances from a landing called directly on the GM page.** To press an exclusion, the Attack was reopened and the Turn's record kept, for the budget otherwise refuses first. **Observed, for no press reaches them:** G1.item and G1.steal, a capture is a field and no Item, and SE.p.limit.
 
 ## Readings
 
@@ -175,17 +175,17 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 - [x] **AE.dealt.attr** · Damage dealt to a Unit with the Outsider Attribute is +50% · *Pressed: Asterios staged Outsider: atkUp 50*
 - [x] **AE.dealt.skill** · …or with the Existence Outside the Domain Skill · *Pressed: Van Gogh: atkUp 50*
-- [x] **AE.dealt.np** · …including NP · *Observed: npValue 50 on the ruled file*
+- [x] **AE.dealt.np** · …including NP · *Pressed: Wave on Van Gogh: atkUp 50*
 - [x] **AE.taken.attr** · Damage received from a Unit with the Outsider Attribute is -50% · *Pressed: Asterios staged Outsider: defUp -50*
 - [x] **AE.taken.skill** · …or with the Existence Outside the Domain Skill · *Pressed: Van Gogh: defUp -50*
-- [x] **AE.taken.np** · …including NP · *Observed: npValue 50 on the ruled file*
+- [x] **AE.taken.np** · …including NP · *Pressed: Hrunting from EMIYA staged Outsider: defUp -50*
 - [x] **AE.neg** · Negated, both halves, if she is not the Alter Ego Class (Q) · *Pressed: as a Rider, Van Gogh takes no atkUp; negated on the board*
 
 ## Magic Resistance — Class Skill, Rank A *(Passive 1 + 2)*
 
 - [x] **MR.1.neg** · MAG damage from a MAG Rank of up to A is negated · *Pressed: Kingprotea's MAG Attack Skill: all 262 taken off*
 - [x] **MR.1.else** · Otherwise MAG damage taken is -50% · *Pressed: Van Gogh, MAG above A: half*
-- [x] **MR.1.np** · Also affects NP · *Observed: the shared file, its NP path pressed on Gilgamesh*
+- [x] **MR.1.np** · Also affects NP · *Pressed: Nursery Rhyme's Tale, MAG A: Negated by Magic Resistance, -693. Hrunting, exempt: no term*
 - [x] **MR.2** · Chance of being inflicted by debuffs is -25% · *Pressed: Stun 75 of 100*
 - [x] **MR.2.death** · Also affects Instakill and Death · *Pressed: Instakill from MAG: 75*
 - [x] **MR.2.str** · …unless from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance · *Pressed: Instakill from STR: 100, unreduced*
@@ -195,22 +195,22 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 ## Territory Creation — Class Skill, Rank EX *(Passive 1 + 2)*
 
 - [x] **TC.1** · In her Home Base, damage dealt is +6d20 · *Pressed: flat 93, 27 of it Charisma*
-- [x] **TC.1.np** · …including NP · *Observed: no attack:kind in the rule*
+- [x] **TC.1.np** · …including NP · *Pressed: Wave in her base: flat 60, 87, 53, with 27 Charisma*
 - [x] **TC.1.out** · Outside it, nothing · *Pressed: flat 27 off her base*
 - [x] **TC.2** · While she is on the field, damage taken by allied Units in their Home Base is further -(3d10+30) · *Pressed: Proto Gil in base: -44*
-- [x] **TC.2.np** · …including NP · *Observed: Kingprotea's file, the rule names no kind*
+- [x] **TC.2.np** · …including NP · *Pressed: Wave on Proto Gil in base: -39. Hrunting on her: -47*
 - [x] **TC.2.out** · An ally outside its Home Base, nothing · *Pressed: Proto Gil off base: none*
-- [x] **TC.note** · Several allied Territory Creations: only the highest Rank · *Observed: group and highestOnly on the file*
+- [x] **TC.note** · Several allied Territory Creations: only the highest Rank · *Pressed: Nursery Rhyme staged allied, Rank A: one term, -51, above A's 50*
 
 ## Repulsion for One's Kin — Rank EX *(Passive 1 + 2)*
 
 - [x] **RK.bb** · Damage dealt to BB is +30% (Q) · *Pressed: Drake staged True Name BB: atkUp 30*
 - [x] **RK.sf** · …and to Sakura Five Units (Q) · *Pressed: Kingprotea: atkUp 30*
-- [x] **RK.1.np** · …including NP · *Observed: npValue 30*
-- [x] **RK.1.ally** · …allied or enemy (Q) · *Observed: the rule names no side, and Wave reached Proto Gil*
+- [x] **RK.1.np** · …including NP · *Pressed: Wave on Kingprotea: atkUp 30*
+- [x] **RK.1.ally** · …allied or enemy (Q) · *Pressed: Wave on allied Proto Gil staged BB: atkUp 30*
 - [x] **RK.1.out** · Any other Unit, nothing · *Pressed: Drake: no 30*
 - [x] **RK.class** · Damage dealt to Units of her own Servant Class is +70% · *Pressed: Kingprotea: atkUp 70*
-- [x] **RK.class.np** · …including NP · *Observed: npValue 70*
+- [x] **RK.class.np** · …including NP · *Pressed: Wave on Kingprotea: atkUp 70*
 - [x] **RK.class.now** · Her Class as it stands now, Moon's Pupa's included (Q) · *Pressed: as a Rider on Drake: atkUp 70*
 - [x] **RK.class.other** · Another Class, nothing · *Pressed: Alter Ego on Asterios: no 70*
 - [x] **RK.shielder** · No effect against the Shielder Class (Q) · *Pressed: both Shielder: 30 and no 70*
@@ -219,7 +219,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 ## Pixie Finger — Rank A *(Active)*
 
-- [x] **PF.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **PF.turn** · Used during her Turn · *Pressed: on the other side's Turn: notOwnTurn*
 - [x] **PF.area** · All enemy Units in a 3x3 directly next to her · *Pressed: east 3x3: Drake and Kingprotea*
 - [x] **PF.enemy** · An ally in the area is untouched · *Pressed: Proto Gil in it, untouched*
 - [x] **PF.1** · 1: NP Cooldown of each is +⅓◈ (Q) · *Pressed: every NP 0 to 1*
@@ -237,7 +237,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 ## Sakura Eater — Rank A *(Active + Passive)*
 
-- [x] **SE.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **SE.turn** · Used during her Turn · *Pressed: on the other side's Turn: notOwnTurn*
 - [x] **SE.1** · 1: NP Cooldown -2◈ · *Pressed: NPs -6*
 - [x] **SE.2** · 2: For every BB and other Sakura Five Unit within a 3 panel area of herself, NP Cooldown further -2◈ (Q) · *Pressed: Kingprotea at 2: a further -6*
 - [x] **SE.2.other** · …she does not count herself (Q) · *Pressed: alone: no further cut*
@@ -250,7 +250,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 ## Moon's Pupa — Rank A *(Active)*
 
-- [x] **MP.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **MP.turn** · Used during her Turn · *Pressed: on the other side's Turn: notOwnTurn*
 - [x] **MP.1** · 1: Removes all debuffs from herself · *Pressed: Def Dwn removed*
 - [x] **MP.2.hp** · 2: Restores her Health by 35% of maximum · *Pressed: 100 to 275*
 - [x] **MP.2.agi** · …and her Agility by 35% of maximum · *Pressed: 2 to 7*
@@ -301,8 +301,8 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **G1.max** · At most three Units inside (Q) · *Pressed: *Bug Space is full.**
 - [x] **G1.clock** · Cooldown 4◈ (Q) · *Pressed: 12*
 - [x] **G1.ex.2** · Not on the same Turn as Method 2 · *Pressed: Wave refused by name*
-- [x] **G1.ex.am** · Not on the same Turn as Atomicros Muryan Foot · *Observed: declared on both*
-- [x] **G1.master** · Does not consume Master's Health · *Observed: Master unchanged*
+- [x] **G1.ex.am** · Not on the same Turn as Atomicros Muryan Foot · *Pressed: Attack reopened, Atomicros refused by name*
+- [x] **G1.master** · Does not consume Master's Health · *Pressed: Master 91 to 91*
 - [x] **G1.rel** · During her Turn she can release any Units inside (Q) · *Pressed: chosen from a list*
 - [x] **G1.rel.where** · …onto any panel within a 2 panel area of herself · *Pressed: panel picked, (13, 13)*
 - [x] **G1.rel.cd** · …with no Cooldown · *Pressed: no clock*
@@ -315,13 +315,13 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **G2.dmg** · 3.5x damage to all Units in it, allies too · *Pressed: Asterios 474, Proto Gil 496*
 - [x] **G2.inside** · …and to Units within Bug Space when the NP was used (Q) · *Pressed: four Processes, no reaction from inside*
 - [x] **G2.a** · a: Atk Dwn for 1◈: damage dealt -20% · *Pressed: Atk Dwn*
-- [x] **G2.a.np** · …if NP, -10% · *Observed: npMagnitude 10*
+- [x] **G2.a.np** · …if NP, -10% · *Pressed: Proto Gil's NP under it: atkDwn -10*
 - [x] **G2.b** · b: Def Dwn for 1◈: damage taken +30% · *Pressed: Def Dwn 30*
 - [x] **G2.c** · c: 40% chance of Stun for ⅓◈ · *Pressed: Stun rolled*
 - [x] **G2.all** · All three on all affected Units, those inside too (Q) · *Pressed: on Drake inside*
 - [x] **G2.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q) · *Pressed: Karl (11, 13), Drake (10, 13)*
 - [x] **G2.clock** · Cooldown 6◈ (Q) · *Pressed: 18*
-- [x] **G2.ex** · Not on the same Turn as Method 1 · *Observed: declared*
+- [x] **G2.ex** · Not on the same Turn as Method 1 · *Pressed: Attack reopened, Method 1 refused by name*
 - [x] **G2.master** · Consumes Master's Health at Rank B (Q) · *Pressed: Master 121 to 81*
 
 ## Atomicros Muryan Foot: Shrinking World — Rank EX, NP [Anti-Unit]
@@ -331,7 +331,7 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **AM.door1.discard** · …and discard every Skill stolen with Insect Eater, and enter the Form (Q) · *Pressed: 3 back; Stun refuses a free Action*
 - [x] **AM.door2** · Having defeated a total of two BB and/or Sakura Five Units (Q) · *Pressed: Kin Defeated 1 to 2*
 - [x] **AM.door2.when** · …she enters it automatically at the end of the Combat Phase · *Pressed: on after the Process*
-- [x] **AM.keep** · The Form has no end printed (Q) · *Observed: cannotDeactivate*
+- [x] **AM.keep** · The Form has no end printed (Q) · *Pressed: toggle disabled; a second use refused, 7 Tokens kept*
 - [x] **AM.mov** · In Form: MOV +1 · *Pressed: 6*
 - [x] **AM.agi** · …Agility Check rolls -3 · *Observed: both -3 on the board in Form, none out of it*
 - [x] **AM.ie** · …Insect Eater's base chance +15% · *Pressed: 30 on Asterios*
@@ -341,19 +341,19 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 - [x] **AM.dmg** · 5x damage to all Units in it, allies too · *Pressed: Asterios 927*
 - [x] **AM.inside** · …and to Units within Bug Space when the NP was used (Q) · *Pressed: Proto Gil from inside, 722*
 - [x] **AM.a** · a: Atk Dwn for 1◈: damage dealt -30% · *Pressed: Atk Dwn*
-- [x] **AM.a.np** · …if NP, -15% · *Observed: npMagnitude 15*
+- [x] **AM.a.np** · …if NP, -15% · *Pressed: Proto Gil's NP under it: atkDwn -15*
 - [x] **AM.b** · b: Def Dwn for 1◈: damage taken +40% · *Pressed: Def Dwn 40*
 - [x] **AM.c** · c: 60% chance of Stun for 1◈ · *Pressed: Stun rolled*
 - [x] **AM.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q) · *Pressed: Proto Gil (10, 16)*
 - [x] **AM.cd** · Cooldown 8◈ · *Pressed: 24*
-- [x] **AM.ex** · Not on the same Turn as Method 1 · *Observed: declared*
+- [x] **AM.ex** · Not on the same Turn as Method 1 · *Pressed: Attack reopened, Method 1 refused by name*
 
 ## Enuma Elish against Bug Space — Gilgamesh's sheet, pressed on her
 
 - [x] **EE.bug.real** · Bug Space's bearer affected by Enuma Elish: Skill Seal (Ea) for 3◈ (Q) · *Pressed: hit on the board: Seal (Ea) on Capture*
 - [x] **EE.bug.lifted** · …and everything that Skill caused is removed from all Units (Q) · *Pressed: Proto Gil forced out*
-- [x] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Pressed: offered at his Turn, used*
+- [x] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Pressed: offered at his Turn, used. Master at 31: no offer. Master at 5 on the press: *"Archer stays inside Bug Space"*, nobody out*
 - [x] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Pressed: Servant attacks 1*
 - [x] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Pressed: Gilgamesh (13, 15), Proto Gil (12, 15)*
 - [x] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Pressed: three seals, on the use*
-- [x] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Observed: the row's removesCaused*
+- [x] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Pressed: Drake's Atk Dwn and Def Dwn gone, *"Atk Dwn is removed from Rider."**
