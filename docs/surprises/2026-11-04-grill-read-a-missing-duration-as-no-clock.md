@@ -3,7 +3,8 @@ id: 2026-11-04-grill-read-a-missing-duration-as-no-clock
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Gilgamesh's Q7 recommended that Gate of Babylon's *"6. Freeze"* and *"12. Sleep"*, printing no Turns, stay untimed: other sheets print Freeze untimed, and `freeze.yml` has no default duration.
 **Actual:** The user: *"They do have timers, unlike poison and curse, normally stated as Stun. Typo, put them for 1◈."* Curse and Poison are stages and run until removed; a status that stops a Unit Acting has a clock, like the rows around it. The same round's Q13 was a typo too: *"the missing 'next to' Is a typo."*

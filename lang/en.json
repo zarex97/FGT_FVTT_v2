@@ -283,6 +283,7 @@
   "FGT.Delivery.ranged": "Ranged",
   "FGT.Delivery.melee": "Melee",
   "FGT.Delivery.special": "Special",
+  "FGT.Attack.EmptyAim": "{ability}: no Unit is seen in the area.",
   "FGT.Attack.NoTarget": "Target a unit first (select it and press T, or right-click → Target).",
   "FGT.Pending.Title": "Awaiting you",
   "FGT.Pending.Jump": "Go to this card",

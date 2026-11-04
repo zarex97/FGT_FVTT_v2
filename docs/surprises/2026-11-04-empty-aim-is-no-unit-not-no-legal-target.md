@@ -3,7 +3,8 @@ id: 2026-11-04-empty-aim-is-no-unit-not-no-legal-target
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** The grill round on the empty swing asked whether an area Attack may be aimed *"where no legal target stands"*. It also said no ability uses `targetsRequired: false`.
 **Actual:** The user: *"No, no where there are no Legal Targets, but where there are No Targets at all, or not visible ones."* A visible Unit that cannot be hit still refuses the aim. `RIDE_SPEC` does use the key: *"A ride that reaches nobody is legal, and spends the action."*
