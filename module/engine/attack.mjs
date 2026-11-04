@@ -1552,6 +1552,7 @@ async function declareProcesses({
   const platformFactors = platformFactorsOf(targets);
   const caughtConcealed = new Set((targets?.units ?? []).filter((t) => t.concealedAoE).map((t) => t.unitId));
   const caughtByArea = new Set((targets?.units ?? []).filter((t) => t.caughtByArea).map((t) => t.unitId));
+  const unseenByAttacker = new Set((targets?.units ?? []).filter((t) => t.unseen).map((t) => t.unitId));
   const spec = Object.keys(platformFactors).length > 0 ? { ...counterSpec, platformFactors } : counterSpec;
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -1642,6 +1643,8 @@ async function declareProcesses({
       // alone is still an AoE Attack for Presence Concealment's coin, though
       // `isAoE` -- distinct defenders -- is false for it.
       if (caughtConcealed.has(withCone.defenderId)) withCone.caughtConcealed = true;
+      // Its card waits for the coin, on the attacker's side (#381).
+      if (unseenByAttacker.has(withCone.defenderId)) withCone.unseenByAttacker = true;
       // What the use did, one record per Process, saved with it (#320, Q18):
       // the declaration's commit facts, and this Process's own landings later.
       withCone.use = structuredClone(use ?? emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId }));
@@ -1693,6 +1696,22 @@ async function declareProcesses({
     attackerId, attack: spec, abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
   });
 
+  // AN EMPTY AIM (#381). Said alike whether the area holds nobody or a Unit its
+  // user cannot see, or the line would tell them which. With nobody in it, the
+  // use is over: paid, its clock started, its Attack spent, and a Phase closed.
+  if (targets?.emptyAim) {
+    const closed = targetIds.length === 0
+      ? { ...states[0], state: "done", groupId: states[0].groupId ?? foundry.utils.randomID() }
+      : null;
+    // One line either way: the Phase a close needs rides on it, unseen.
+    await postEmptyAim(attacker, ability, closed);
+    if (closed) {
+      await fireCombatPhaseEnd(closed);
+      await endConcealmentAfterAttack(closed);
+      return { groupId: closed.groupId, processes: [] };
+    }
+  }
+
   const placementSays = {
     plainDamage: Boolean(placement?.plainDamage),
     forbidReactions: [...(placement?.forbidReactions ?? [])],
@@ -1730,6 +1749,7 @@ async function declareProcesses({
         (live?.units ?? []).find((u) => u.id === attackerId) ?? null,
       ),
       caughtConcealed: caughtConcealed.has(bound.defenderId) || undefined,
+      unseenByAttacker: unseenByAttacker.has(bound.defenderId) || undefined,
       caughtByArea: caughtByArea.has(bound.defenderId) || undefined,
     };
     const state = carryDeclarationBoosts(declared, boostWindow);
@@ -1755,7 +1775,8 @@ async function declareProcesses({
     // declaration, because the sheet says the attacker states it "during its
     // Attack" -- and because what it forbids (a Block) has to be settled before
     // the defender is shown their rung.
-    const offered = await offerWeakPoint(withReactions, { board });
+    // Not of a Unit its attacker cannot see: the question would name it (#381).
+    const offered = withReactions.unseenByAttacker ? withReactions : await offerWeakPoint(withReactions, { board });
     // Aimed at an object, the defender's reactions are asked again: what
     // answers only such an Attack is offered now (Substitution, #323).
     const aimed = offered.aimedAt && !withReactions.aimedAt
@@ -4344,7 +4365,8 @@ async function fireAttackPerformed(siblings) {
     // is a clock the Attack turned too (#320).
     const rows = await applyWithLines(intents, "attackPerformed");
     if (rows.length === 0) continue;
-    const { message, st } = processes.at(-1);
+    // On a card its attacker can read, where there is one (#381).
+    const { message, st } = processes.filter((p) => !p.st.unseenByAttacker).at(-1) ?? processes.at(-1);
     await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
     await updateAttackCard(message, st);
   }
@@ -10559,6 +10581,22 @@ async function resolveEmptiedUnit(unitId) {
  * @param {{met: number, which: number[], total: number}} criteria
  * @returns {Promise<void>}
  */
+/**
+ * Say an area Attack was aimed where its user sees no Unit (#381).
+ *
+ * @param {object} actor
+ * @param {object|null} ability
+ * @param {object|null} closed the finished Process of a use that caught nobody
+ * @returns {Promise<void>}
+ */
+async function postEmptyAim(actor, ability, closed) {
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Attack.EmptyAim", { ability: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack") })}</p>`,
+    speaker: publicSpeakerFor(actor),
+    ...(closed ? { flags: { fgt: { process: process.serialize(closed) } } } : {}),
+  });
+}
+
 /**
  * Say which Rank a use was chosen at, and what that Rank sets.
  *

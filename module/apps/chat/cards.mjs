@@ -21,7 +21,7 @@ import { isCovering } from "../../rules/cover.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
 import { warRule } from "../../engine/war.mjs";
-import { markSystemCard, viewerRole } from "./surface.mjs";
+import { markSystemCard, viewerRole, unseenCard } from "./surface.mjs";
 import { playNoblePhantasmCutIn } from "./cut-in.mjs";
 import { isClassicUI, uiTemplate } from "../ui-style.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
@@ -419,6 +419,17 @@ function fillAttackCard(message, html) {
   if (!raw) return;
 
   const state = process.deserialize(raw);
+  // Closed to the attacker's side until the coin opens it (#381).
+  if (unseenCard({
+    state,
+    result: message.getFlag("fgt", "result") ?? null,
+    isGM: game.user.isGM,
+    seesDefender: Boolean(game.actors.get(state.defenderId)?.testUserPermission?.(game.user, "OBSERVER")),
+  })) {
+    html.style.display = "none";
+    return;
+  }
+  html.style.removeProperty("display");
   const attacker = game.actors.get(state.attackerId);
   const ability = state.attack?.abilityId ? attacker?.items.get(state.attack.abilityId) : null;
 
