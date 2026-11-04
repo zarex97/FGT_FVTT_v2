@@ -3,7 +3,8 @@ id: 2026-11-04-empty-aim-closing-line-told-the-aimer
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** An Empty Aim reads the same to its user whether the area holds nobody or a Unit they cannot see.
 **Actual:** Player1 read *"Gate of Babylon: King's Treasure strikes nothing."* only when the area truly held nobody. With a concealed Unit caught, that line never came, so its absence told them someone was there.
