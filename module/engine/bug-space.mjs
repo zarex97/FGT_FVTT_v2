@@ -15,6 +15,7 @@ import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { currentBoard, currentMoment, unitActor, unitOf } from "./board.mjs";
 import { publicSpeakerFor, shownName } from "./public-identity.mjs";
+import { pressGate } from "./press-gate.mjs";
 import { forcedLandings } from "../rules/bug-space.mjs";
 
 /**
@@ -237,8 +238,10 @@ export function offerFromInside(factionId) {
   if (!factionId) return;
   const held = (globalThis.game?.actors ?? []).filter((a) => a.system?.heldIn && a.system?.factionId === factionId);
   for (const actor of held) {
+    // The offer asks what the press asks: a Master who cannot pay got the offer, and
+    // pressing it emptied Bug Space for nothing (found pressing EE.muryan.remove).
     const item = [...(actor.items ?? [])].find((i) => i.system?.fromInsideBugSpace
-      && (i.system?.cooldown?.remaining ?? 0) <= 0);
+      && pressGate(actor, i, { asAttack: true, billsBudget: true }).ok);
     if (item) void askFromInside(actor, item);
   }
 }
@@ -256,7 +259,7 @@ async function askFromInside(actor, item) {
     hint: game.i18n.localize("FGT.BugSpace.FromInsideHint"),
     min: 0,
     count: 1,
-    // fgt-offer-ok: the use is asked its gate when it declares, `resolveAttack`'s
+    // fgt-offer-ok: `offerFromInside` asked this ability's gate before it asked this
     // fgt-name-ok: the Unit's own player's prompt
     options: [{ id: "use", name: item.name }],
   });
@@ -276,6 +279,21 @@ export async function useFromInside(actor, item) {
   const holder = unitActor(actor.system?.heldIn);
   if (!holder) return;
   const spec = item.system.fromInsideBugSpace;
+  // Everyone coming out cannot be undone, so the gate is asked again first: the Turn
+  // goes on while the player decides, and a Master can be hit below the price.
+  const gate = pressGate(actor, item, { asAttack: true, billsBudget: true });
+  if (!gate.ok) {
+    const { usageRefusal } = await import("./attack-preflight.mjs");
+    await ChatMessage.create({
+      content: `<div class="fgt-card"><p>${game.i18n.format("FGT.BugSpace.FromInsideRefused", {
+        name: shownName(actor, currentBoard()),
+        reason: gate.usage.ok ? gate.budget.reason : usageRefusal(gate.usage, actor),
+      })}</p></div>`,
+      speaker: publicSpeakerFor(actor),
+      whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id),
+    });
+    return;
+  }
   await forceOut(holder, heldBy(holder.id));
   const { resolveAttack, sealFromInside } = await import("./attack.mjs");
   await resolveAttack({ attackerId: actor.id, abilityId: item.id, placement: { pathTargets: [holder.id] } });
