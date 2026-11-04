@@ -117,6 +117,9 @@ export function grantedKeys(actor) {
  * @returns {boolean}
  */
 export function grantHeld(actor, item) {
+  // A Stolen Skill is not its owner's until it comes back (#385 reading 26): this
+  // is the door every reader of a Unit's abilities passes, its use and its passives.
+  if (item?.system?.stolenBy) return false;
   const key = item?.system?.summonGrant ?? null;
   return !key || grantedKeys(actor).has(key);
 }

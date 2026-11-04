@@ -42,7 +42,6 @@ const READ_ELSEWHERE = {
 /** Declared fields with no writer by name, and what writes them instead. */
 const WRITTEN_ELSEWHERE = {
   biography: "typed on the sheet by the player",
-  publicTagAs: "authored by Kazuradrop's Method 2 (#385), whose build follows #387 on one branch",
   countsAsAct: "an authoring override (Ch. 17's \"unless stated\") that no content states yet",
 };
 

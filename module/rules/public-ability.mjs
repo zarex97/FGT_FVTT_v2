@@ -110,17 +110,22 @@ function replaceName(text, name, word) {
  * @param {string[]} [bearer.names] what the Unit is called: True Name, sheet name
  * @param {string[]} [bearer.others] every other Servant's name: *"Karna"* in a Skill names Arjuna by his rival
  * @param {string} [bearer.ownName] this ability's own name
+ * @param {string|null} [bearer.rank] what a template's `@rank` reads
  * @param {Array<{id?: string, name: string, tag: string}>} [bearer.abilities] its other abilities
  * @returns {string}
  */
-export function scrubbedText(text, { names = [], others = [], ownName = "", abilities = [] } = {}) {
+export function scrubbedText(text, { names = [], others = [], ownName = "", abilities = [], rank = null } = {}) {
   const byId = new Map(abilities.map((a) => [a.id, a.tag]));
   let out = String(text ?? "")
     .replace(/@ability\[([^\]]*)\]\{[^}]*\}/g, (_, id) => byId.get(id) ?? "another ability")
-    .replace(/@effect\[[^\]]*\]\{([^}]*)\}/g, "$1");
+    .replace(/@effect\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/@rank\b/g, rank ?? "its Rank");
   const swaps = [
     ...(ownName ? [{ name: ownName, word: "this Skill" }] : []),
     ...abilities.map((a) => ({ name: a.name, word: a.tag })), // fgt-name-ok: an ability, not a Unit
+    // The name before its colon says as much: *"the Golden Hind"*, of *"Golden Hind: Wild Hunt"*.
+    ...[ownName, ...abilities.map((a) => a.name)].filter((n) => n?.includes(":")) // fgt-name-ok: an ability, not a Unit
+      .map((n) => ({ name: n.split(":")[0].trim(), word: "another ability" })),
     ...names.flatMap((n) => [n, ...String(n).split(/\s+/).filter((part) => part.length >= 4)])
       .map((name) => ({ name, word: "this Unit" })),
     ...others.map((name) => ({ name, word: "another Unit" })),

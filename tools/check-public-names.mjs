@@ -105,7 +105,8 @@ export function unitNameReads(text) {
 const ABILITY_HOLDERS = ["ability", "item", "abilityDoc", "sourceItem", "cancelling", "np", "skill", "spell"];
 
 /** An ability's display name, read raw. */
-export const ABILITY_NAME_READ = new RegExp(String.raw`\b(?:${ABILITY_HOLDERS.join("|")})\??\.name\b`);
+// ...or reached in one chain: `actor.items.get(id)?.name` (#387, found live on a Cooldown row).
+export const ABILITY_NAME_READ = new RegExp(String.raw`\b(?:${ABILITY_HOLDERS.join("|")})\??\.name\b|\bitems\??\.(?:get|find)\(.*\)\??\.name\b`);
 
 /** A line that goes to the console, or stops the run: no player reads it. */
 const CONSOLE_LINE = /\bconsole\.\w+\(|\bthrow new\b/;

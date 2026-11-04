@@ -1,0 +1,40 @@
+# Gully Trap Funny Muryan: Expanding World, Rank B, Method 1 (#385 G1.*).
+#
+# The ability that creates Bug Space, so Enuma Elish's row reaches whoever holds it
+# (reading 42). Any Unit, any size, and Evade alone stops it, as Gray's Mythos (33). Its
+# second window is the rescue: at the start of an ally's Damage Step, no Evade roll, no
+# damage, no riders (34, 35). Two clocks: *"Cannot be used on the same Turn as Effect 1"*
+# would mean nothing with one (36). Method 2 shares its public tag (60).
+schema: 1
+id: kazuradrop-gully-trap
+name: "Gully Trap Funny Muryan: Expanding World (Capture)"
+rank: B
+kind: noblePhantasm
+slug: gullyTrapCapture
+isNP: true
+npTags: [antiUnit]
+noMasterCost: true
+cooldown: "4◈"
+timing: { window: [ownTurn, allyDamageStep], radius: 2 }
+sameTurnExclusive: [kazuradrop-gully-trap-wave, kazuradrop-atomicros]
+combatProcess: { reactions: [evade] }
+bugSpace:
+  capacity: 3
+  capacityWhile:
+    - { mode: atomicrosForm, capacity: 5 }
+requirements:
+  - { kind: bugSpaceRoom }
+description: |
+  1. (Non-damaging) Counts as Kazuradrop's Attack for the Turn. Used on a Unit directly next to herself. If this NP was
+  not successfully Evaded, Kazuradrop captures the targeted Unit inside her Bug Space. All effects, durations, and
+  Cooldowns are paused & have no effect on Units within Bug Space. If an allied Unit within a 2 panel area of herself is
+  about to receive an Attack, at the start of the Damage Step, Kazuradrop can use this NP to capture that allied Unit into
+  Bug Space. The maximum number of Units that can be held inside Bug Space is three. Cooldown: 4◈ Turns. Cannot be used on
+  the same Turn as Effect 2 or Atomicros Muryan Foot. Does not consume Master's Health to use.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: chosen, count: 1 }
+phases:
+  - kind: capture
+    target: reuse

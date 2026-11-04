@@ -21,6 +21,7 @@ import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { warRule, currentWar } from "./war.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { resourceLabel } from "../domain/resources.mjs";
+import { shownAbility } from "./public-ability.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -563,7 +564,7 @@ function remainingOf(unitId, abilityId) {
  */
 function clockLines(clocks) {
   return clocks.flatMap((c) => {
-    const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+    const name = shownAbility(unitActor(c.unitId)?.items?.get(c.abilityId)) || null;
     const line = cooldownLine(name, c.before, remainingOf(c.unitId, c.abilityId));
     // A die that chose the clock is on the card beside it: *"one random Spell"*.
     const chance = c.picked ? game.i18n.format("FGT.Cooldown.PickedAtRandom", { roll: c.picked.roll, of: c.picked.of }) : null;
@@ -1266,6 +1267,7 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       if (io.destroyPlatformsOf) await io.destroyPlatformsOf(unitId);
       // What its abilities do once it has fallen: Antares Snipe (#326).
       if (io.notePosthumous) await io.notePosthumous(unitId, intents[0].killerId ?? null);
+      if (io.noteFinalDefeat) await io.noteFinalDefeat(unitId, intents[0].killerId ?? null);
       // ...and a teaching it was in ends with it (#326 ruling 11b).
       if (io.noteTeachingDefeat) await io.noteTeachingDefeat(unitId);
       // ...and what it inflicted that ends with it: Curse (Bolg) (#339).

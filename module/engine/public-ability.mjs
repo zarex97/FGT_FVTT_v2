@@ -31,7 +31,9 @@ function revealed(actor) {
  * @returns {string}
  */
 export function abilityTag(item) {
-  return publicTagOf(item, { warId: currentWar()?.id ?? null, unitId: item?.parent?.id ?? null });
+  // A Stolen Skill keeps its tag (ruling 60): the table sees it change hands.
+  const unitId = item?.system?.stolenFrom?.unitId ?? item?.parent?.id ?? null;
+  return publicTagOf(item, { warId: currentWar()?.id ?? null, unitId });
 }
 
 /**
@@ -103,9 +105,13 @@ function truthMap() {
   const map = new Map();
   const add = (actor) => {
     if (!readsTruthOf(actor)) return;
-    for (const item of actor.items ?? []) {
-      if (item.type !== "ability" && item.type !== "noblePhantasm") continue;
-      map.set(abilityTag(item), { name: item.name, rank: item.system?.rank ?? null }); // fgt-name-ok: this viewer's truth
+    const items = [...(actor.items ?? [])].filter((i) => i.type === "ability" || i.type === "noblePhantasm");
+    const shared = new Set(items.map((i) => i.system?.publicTagAs).filter(Boolean));
+    for (const item of items) {
+      if (item.system?.publicTagAs) continue;
+      // One printed NP on two clocks reads as that NP, not one use of it (ruling 60).
+      const name = shared.has(item.system?.contentId) ? item.name.replace(/\s*\([^)]*\)$/, "") : item.name; // fgt-name-ok: this viewer's truth
+      map.set(abilityTag(item), { name, rank: item.system?.rank ?? null });
     }
   };
   for (const actor of game.actors ?? []) add(actor);
@@ -180,6 +186,7 @@ export function publicRow(item, owner) {
     detail: scrubbedText(held.system?.description ?? "", {
       names: [owner?.system?.trueName, owner?.name].filter(Boolean), // fgt-name-ok: scrubbed out of the text
       others: everyServantName(owner),
+      rank: held.system?.rank ?? null,
       ownName: held.name, // fgt-name-ok: scrubbed out of the text
       abilities,
     }),

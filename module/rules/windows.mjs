@@ -57,6 +57,13 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "When an allied Unit nearby is about to be hit — the bearer is neither attacker nor defender.",
   }),
+  // Bug Space's rescue (#385 readings 34, 35): at the start of an allied Unit's
+  // Damage Step, so an Evade opens no window. Its bearer is neither side.
+  allyDamageStep: Object.freeze({
+    id: "allyDamageStep",
+    dispatched: true,
+    hint: "At the start of an allied Unit's Damage Step, when that Unit is about to receive an Attack.",
+  }),
   damageStep: Object.freeze({
     id: "damageStep",
     dispatched: true,
@@ -124,6 +131,9 @@ export const ABILITY_WINDOW_IDS = Object.freeze(Object.keys(ABILITY_WINDOWS));
 
 /** The window an ability must name to be offered as a defender's reaction. */
 export const REACTION_WINDOW = ABILITY_WINDOWS.whenAttacked.id;
+
+/** The window at the start of an allied Unit's Damage Step. */
+export const ALLY_DAMAGE_STEP_WINDOW = ABILITY_WINDOWS.allyDamageStep.id;
 
 /** The window for an ability somebody else's peril triggers. */
 export const ALLY_WINDOW = ABILITY_WINDOWS.whenAllyAttacked.id;

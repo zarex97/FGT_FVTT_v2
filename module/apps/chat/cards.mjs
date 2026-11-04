@@ -108,6 +108,8 @@ async function deliveryOfProcess(state, board) {
  * @returns {Promise<object>}
  */
 async function cardContext({
+  // Only on the client reading it (`fillAttackCard`): what a message stores is public (#387).
+  forViewer = false,
   state, attacker, ability, targets, result = null, message = null, names = null,
 }) {
   const prompt = pendingPrompt(state);
@@ -149,11 +151,11 @@ async function cardContext({
     // match's audit record (Ch. 37) -- it has to stay readable after a unit is
     // gone, which is precisely when somebody goes back to read it.
     // Its owner reads their own Unit's true name (#387 ruling 63): this context is built on the viewer's client.
-    attackerName: (attacker ? nameForViewer(attacker, publicIdentityOf(attacker, board).name) : names?.attacker) ?? "Unknown",
-    defenderName: (defender ? nameForViewer(defender, publicIdentityOf(defender, board).name) : names?.defender) ?? "—",
+    attackerName: (attacker ? (forViewer ? nameForViewer(attacker, publicIdentityOf(attacker, board).name) : publicIdentityOf(attacker, board).name) : names?.attacker) ?? "Unknown",
+    defenderName: (defender ? (forViewer ? nameForViewer(defender, publicIdentityOf(defender, board).name) : publicIdentityOf(defender, board).name) : names?.defender) ?? "—",
     // The tag, whoever reads: `swapAbilityTags` gives the entitled the name (#387).
     abilityName: ability ? shownAbility(ability) : game.i18n.localize("FGT.Chat.NormalAttack"),
-    abilityRank: readsTruthOf(attacker) ? (ability?.system?.rank ?? null) : shownAbilityRank(ability),
+    abilityRank: forViewer && readsTruthOf(attacker) ? (ability?.system?.rank ?? null) : shownAbilityRank(ability),
     // Ranged, Melee or Special against THIS defender (#281): the Attack
     // Description's answer, the one the platforms and Gravity Manipulation read.
     delivery: (await deliveryOfProcess(state, board)) ?? message?.getFlag?.("fgt", "delivery") ?? null,
@@ -439,6 +441,7 @@ function fillAttackCard(message, html) {
   const ability = state.attack?.abilityId ? attacker?.items.get(state.attack.abilityId) : null;
 
   cardContext({
+    forViewer: true,
     state,
     attacker,
     ability,

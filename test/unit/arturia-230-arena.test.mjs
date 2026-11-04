@@ -220,7 +220,8 @@ describe("Utopia cuts NP Cooldown per Unit hit, played (KU.4; reading 7)", () =>
       // no line anywhere (#230, live, Excalibur's own 23 -> 21).
       const lines = (w.messages.get(declared.processes[0].messageId).getFlag("fgt", "effects") ?? [])
         .filter((e) => e.id === "cooldown").map((e) => e.name);
-      expect(lines).toContain("Strike Air: Hammer of the Wind King: Cooldown 10 → 9");
+      // By its public tag (#387), never its name.
+      expect(lines).toContainEqual(expect.stringMatching(/^[NS][PK]-\w{5}: Cooldown 10 → 9$/));
     }, MATCH);
   });
 });

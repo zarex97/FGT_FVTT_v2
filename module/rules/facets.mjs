@@ -338,6 +338,13 @@ export const FACETS = Object.freeze([
     prose: "{subject} is a {class}-class Servant",
   }),
   facet({
+    id: "group",
+    // A group a sheet names by its members: *"BB and 'Sakura Five' Units"* (#385).
+    segments: [{ name: "group", value: closed("UNIT_GROUP_NAMES") }],
+    english: "Belongs to a group a sheet names by True Name: BB or the Sakura Five.",
+    prose: "{subject} is one of the {group}",
+  }),
+  facet({
     id: "classGroup",
     // *"Standard Class Servants"*, *"Extra-class Servants"*, *"Knight-class"* (#314).
     segments: [{ name: "group", value: closed("CLASS_GROUPS") }],

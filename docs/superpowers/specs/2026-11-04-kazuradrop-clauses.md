@@ -77,6 +77,10 @@ per successful Attack: a Block, a hit for 0 and an Instakill count, an Evade doe
 the Turn after the Turn of use (#187 reading 5) · riders land on a hit, not a hurt (§46.4-LI) · the class affinity
 table does not exist (Summer Habetrot) · a sheet binds only its owner · an Empty Aim is legal for a damaging area (#381).
 
+**Live, 2026-11-04.** On the Gilgamesh Audit scene, as Player1. **Found pressing, each fixed:** a stored card held the real names, built on the GM's client; a Cooldown row printed another Unit's NP, a read in one chain the guard missed, so the guard grew; Pixie's charges came through as none; one tag read as *(Wave)* on the Capture's card; a row read *"No effects were applied"* over a release; a steal's line ended in *": failed"*; the list printed `@rank`, and *"the Golden Hind"* passed the name removal. The GM's load takes over a minute, since the world sends 50 MB.
+
+**Staged, not played:** Home Base, Shielder and Beast Classes, an Outsider Attribute. **Left to tests, no board can produce them today:** BB, for no BB is built, and the Moon Cell and Debuff ChDwn terms.
+
 ## Readings
 
 Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *"Q22:B"* is read as 12, the question holding A and B.
@@ -151,205 +155,205 @@ Ruled by the user 2026-11-04, as recommended but 12, 42, 47 and 48. The user's *
 
 ## Statblock
 
-- [ ] **ST.name** · True Name: Kazuradrop
-- [ ] **ST.class** · Class: Alter Ego (the sheet's folder and her own sentence)
-- [ ] **ST.region** · Region: Moon
-- [ ] **ST.align** · Alignment: Lawful Good
-- [ ] **ST.param** · STR E, END E, AGI C, MAG B, LUC C
-- [ ] **ST.attr** · Attributes: Female, Servant, [Earth], Humanoid, Non-Hominidae, Mechanical, Fae, Child
-- [ ] **ST.hominidae** · Non-Hominidae withholds Hominidae, on the board
-- [ ] **ST.hp** · Base Health 500 (END E, the table agrees)
-- [ ] **ST.mov** · MOV 5
-- [ ] **ST.range** · Range 3 panels, 1 target
-- [ ] **ST.ba** · Base Attack STR 50, MAG 175 (the tables agree)
-- [ ] **ST.sus** · Sustainability: 2◈
-- [ ] **ST.na** · Normal Attacks use Base Attack (MAG)
-- [ ] **ST.tokens** · Eater Tokens: 0, maximum 7
-- [ ] **ST.items** · Items held: none (Q)
+- [x] **ST.name** · True Name: Kazuradrop · *Observed: Sheet, as Player1*
+- [x] **ST.class** · Class: Alter Ego (the sheet's folder and her own sentence) · *Observed: Board: alterEgo*
+- [x] **ST.region** · Region: Moon · *Observed: Board: moon*
+- [x] **ST.align** · Alignment: Lawful Good · *Observed: Board*
+- [x] **ST.param** · STR E, END E, AGI C, MAG B, LUC C · *Observed: Board*
+- [x] **ST.attr** · Attributes: Female, Servant, [Earth], Humanoid, Non-Hominidae, Mechanical, Fae, Child · *Observed: Board, the eight and the closure's magus and spirit*
+- [x] **ST.hominidae** · Non-Hominidae withholds Hominidae, on the board · *Observed: Board: no hominidae*
+- [x] **ST.hp** · Base Health 500 (END E, the table agrees) · *Observed: Board: 500*
+- [x] **ST.mov** · MOV 5 · *Observed: Board: 5*
+- [x] **ST.range** · Range 3 panels, 1 target · *Observed: Board: 3*
+- [x] **ST.ba** · Base Attack STR 50, MAG 175 (the tables agree) · *Observed: Board: 50, 175*
+- [x] **ST.sus** · Sustainability: 2◈ · *Pressed: a Free Servant fell at tick 18, six Ticks on*
+- [x] **ST.na** · Normal Attacks use Base Attack (MAG) · *Pressed: BA(MAG) 175 on every card*
+- [x] **ST.tokens** · Eater Tokens: 0, maximum 7 · *Observed: Board: 0/7*
+- [x] **ST.items** · Items held: none (Q) · *Observed: Sheet: none*
 
 ## Alter Ego — Class Skill *(Passive)*
 
-- [ ] **AE.dealt.attr** · Damage dealt to a Unit with the Outsider Attribute is +50%
-- [ ] **AE.dealt.skill** · …or with the Existence Outside the Domain Skill
-- [ ] **AE.dealt.np** · …including NP
-- [ ] **AE.taken.attr** · Damage received from a Unit with the Outsider Attribute is -50%
-- [ ] **AE.taken.skill** · …or with the Existence Outside the Domain Skill
-- [ ] **AE.taken.np** · …including NP
-- [ ] **AE.neg** · Negated, both halves, if she is not the Alter Ego Class (Q)
+- [x] **AE.dealt.attr** · Damage dealt to a Unit with the Outsider Attribute is +50% · *Pressed: Asterios staged Outsider: atkUp 50*
+- [x] **AE.dealt.skill** · …or with the Existence Outside the Domain Skill · *Pressed: Van Gogh: atkUp 50*
+- [x] **AE.dealt.np** · …including NP · *Observed: npValue 50 on the ruled file*
+- [x] **AE.taken.attr** · Damage received from a Unit with the Outsider Attribute is -50% · *Pressed: Asterios staged Outsider: defUp -50*
+- [x] **AE.taken.skill** · …or with the Existence Outside the Domain Skill · *Pressed: Van Gogh: defUp -50*
+- [x] **AE.taken.np** · …including NP · *Observed: npValue 50 on the ruled file*
+- [x] **AE.neg** · Negated, both halves, if she is not the Alter Ego Class (Q) · *Pressed: as a Rider, Van Gogh takes no atkUp; negated on the board*
 
 ## Magic Resistance — Class Skill, Rank A *(Passive 1 + 2)*
 
-- [ ] **MR.1.neg** · MAG damage from a MAG Rank of up to A is negated
-- [ ] **MR.1.else** · Otherwise MAG damage taken is -50%
-- [ ] **MR.1.np** · Also affects NP
-- [ ] **MR.2** · Chance of being inflicted by debuffs is -25%
-- [ ] **MR.2.death** · Also affects Instakill and Death
-- [ ] **MR.2.str** · …unless from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance
-- [ ] **MR.2.erase** · Erase is completely unaffected
-- [ ] **MR.2.note** · Other debuffs from those sources still have their chance reduced
+- [x] **MR.1.neg** · MAG damage from a MAG Rank of up to A is negated · *Pressed: Kingprotea's MAG Attack Skill: all 262 taken off*
+- [x] **MR.1.else** · Otherwise MAG damage taken is -50% · *Pressed: Van Gogh, MAG above A: half*
+- [x] **MR.1.np** · Also affects NP · *Observed: the shared file, its NP path pressed on Gilgamesh*
+- [x] **MR.2** · Chance of being inflicted by debuffs is -25% · *Pressed: Stun 75 of 100*
+- [x] **MR.2.death** · Also affects Instakill and Death · *Pressed: Instakill from MAG: 75*
+- [x] **MR.2.str** · …unless from an Attack, Attack Skill, Spell or NP that deals STR damage or is not affected by Magic Resistance · *Pressed: Instakill from STR: 100, unreduced*
+- [x] **MR.2.erase** · Erase is completely unaffected · *Pressed: Erase 100*
+- [x] **MR.2.note** · Other debuffs from those sources still have their chance reduced · *Pressed: Stun from STR: 65 of 90*
 
 ## Territory Creation — Class Skill, Rank EX *(Passive 1 + 2)*
 
-- [ ] **TC.1** · In her Home Base, damage dealt is +6d20
-- [ ] **TC.1.np** · …including NP
-- [ ] **TC.1.out** · Outside it, nothing
-- [ ] **TC.2** · While she is on the field, damage taken by allied Units in their Home Base is further -(3d10+30)
-- [ ] **TC.2.np** · …including NP
-- [ ] **TC.2.out** · An ally outside its Home Base, nothing
-- [ ] **TC.note** · Several allied Territory Creations: only the highest Rank
+- [x] **TC.1** · In her Home Base, damage dealt is +6d20 · *Pressed: flat 93, 27 of it Charisma*
+- [x] **TC.1.np** · …including NP · *Observed: no attack:kind in the rule*
+- [x] **TC.1.out** · Outside it, nothing · *Pressed: flat 27 off her base*
+- [x] **TC.2** · While she is on the field, damage taken by allied Units in their Home Base is further -(3d10+30) · *Pressed: Proto Gil in base: -44*
+- [x] **TC.2.np** · …including NP · *Observed: Kingprotea's file, the rule names no kind*
+- [x] **TC.2.out** · An ally outside its Home Base, nothing · *Pressed: Proto Gil off base: none*
+- [x] **TC.note** · Several allied Territory Creations: only the highest Rank · *Observed: group and highestOnly on the file*
 
 ## Repulsion for One's Kin — Rank EX *(Passive 1 + 2)*
 
-- [ ] **RK.bb** · Damage dealt to BB is +30% (Q)
-- [ ] **RK.sf** · …and to Sakura Five Units (Q)
-- [ ] **RK.1.np** · …including NP
-- [ ] **RK.1.ally** · …allied or enemy (Q)
-- [ ] **RK.1.out** · Any other Unit, nothing
-- [ ] **RK.class** · Damage dealt to Units of her own Servant Class is +70%
-- [ ] **RK.class.np** · …including NP
-- [ ] **RK.class.now** · Her Class as it stands now, Moon's Pupa's included (Q)
-- [ ] **RK.class.other** · Another Class, nothing
-- [ ] **RK.shielder** · No effect against the Shielder Class (Q)
-- [ ] **RK.beast** · No effect against the Beast Class (Q)
-- [ ] **RK.stack** · Passive 1 and Passive 2 on one Unit add (Q)
+- [x] **RK.bb** · Damage dealt to BB is +30% (Q) · *Observed: test on groupsOf; no BB is built*
+- [x] **RK.sf** · …and to Sakura Five Units (Q) · *Pressed: Kingprotea: atkUp 30*
+- [x] **RK.1.np** · …including NP · *Observed: npValue 30*
+- [x] **RK.1.ally** · …allied or enemy (Q) · *Observed: the rule names no side, and Wave reached Proto Gil*
+- [x] **RK.1.out** · Any other Unit, nothing · *Pressed: Drake: no 30*
+- [x] **RK.class** · Damage dealt to Units of her own Servant Class is +70% · *Pressed: Kingprotea: atkUp 70*
+- [x] **RK.class.np** · …including NP · *Observed: npValue 70*
+- [x] **RK.class.now** · Her Class as it stands now, Moon's Pupa's included (Q) · *Pressed: as a Rider on Drake: atkUp 70*
+- [x] **RK.class.other** · Another Class, nothing · *Pressed: Alter Ego on Asterios: no 70*
+- [x] **RK.shielder** · No effect against the Shielder Class (Q) · *Pressed: both Shielder: 30 and no 70*
+- [x] **RK.beast** · No effect against the Beast Class (Q) · *Pressed: both Beast: no 70*
+- [x] **RK.stack** · Passive 1 and Passive 2 on one Unit add (Q) · *Pressed: 30 and 70 together on Kingprotea*
 
 ## Pixie Finger — Rank A *(Active)*
 
-- [ ] **PF.turn** · Used during her Turn
-- [ ] **PF.area** · All enemy Units in a 3x3 directly next to her
-- [ ] **PF.enemy** · An ally in the area is untouched
-- [ ] **PF.1** · 1: NP Cooldown of each is +⅓◈ (Q)
-- [ ] **PF.2** · 2: Def Dwn (C) for ⅓◈: damage taken +30%
-- [ ] **PF.2.agi** · …and Agility -1 whenever successfully Attacked
-- [ ] **PF.3** · 3: Crit ResDwn for ⅓◈: Crit Damage taken +50%
-- [ ] **PF.4** · 4: Debuff ChUp on herself for 1◈: chance of inflicting debuffs +30%
-- [ ] **PF.4.order** · …after Effects 2 and 3 of this use (Q)
-- [ ] **PF.5** · 5: the Pixie buff on herself, 2 times (Q)
-- [ ] **PF.5.when** · At the start of her Turn it inflicts (Q)
-- [ ] **PF.5.area** · …on all enemy Units within a 2 panel area of herself (Q)
-- [ ] **PF.5.what** · …Effects 2 and 3, and not Effect 1
-- [ ] **PF.5.spent** · A charge goes each time; none left, the buff ends (Q)
-- [ ] **PF.cd** · Cooldown 4◈
+- [x] **PF.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **PF.area** · All enemy Units in a 3x3 directly next to her · *Pressed: east 3x3: Drake and Kingprotea*
+- [x] **PF.enemy** · An ally in the area is untouched · *Pressed: Proto Gil in it, untouched*
+- [x] **PF.1** · 1: NP Cooldown of each is +⅓◈ (Q) · *Pressed: every NP 0 to 1*
+- [x] **PF.2** · 2: Def Dwn (C) for ⅓◈: damage taken +30% · *Pressed: Def Dwn (C) 30*
+- [x] **PF.2.agi** · …and Agility -1 whenever successfully Attacked · *Pressed: Agility 18 to 17 on the next Attack*
+- [x] **PF.3** · 3: Crit ResDwn for ⅓◈: Crit Damage taken +50% · *Pressed: Crit ResDwn 50*
+- [x] **PF.4** · 4: Debuff ChUp on herself for 1◈: chance of inflicting debuffs +30% · *Pressed: Debuff ChUp 30, to tick 16*
+- [x] **PF.4.order** · …after Effects 2 and 3 of this use (Q) · *Pressed: 10% on the use, 40% on the tick*
+- [x] **PF.5** · 5: the Pixie buff on herself, 2 times (Q) · *Pressed: 2 charges*
+- [x] **PF.5.when** · At the start of her Turn it inflicts (Q) · *Pressed: fired at her Turn, not at the two between*
+- [x] **PF.5.area** · …on all enemy Units within a 2 panel area of herself (Q) · *Pressed: within 2 only*
+- [x] **PF.5.what** · …Effects 2 and 3, and not Effect 1 · *Pressed: no NP clock moved*
+- [x] **PF.5.spent** · A charge goes each time; none left, the buff ends (Q) · *Pressed: no enemy near: *Pixie fires: 0 left.* and the buff is gone*
+- [x] **PF.cd** · Cooldown 4◈ · *Pressed: 12*
 
 ## Sakura Eater — Rank A *(Active + Passive)*
 
-- [ ] **SE.turn** · Used during her Turn
-- [ ] **SE.1** · 1: NP Cooldown -2◈
-- [ ] **SE.2** · 2: For every BB and other Sakura Five Unit within a 3 panel area of herself, NP Cooldown further -2◈ (Q)
-- [ ] **SE.2.other** · …she does not count herself (Q)
-- [ ] **SE.3** · 3: If there are none, Skill Cooldown -⅓◈ instead (Q)
-- [ ] **SE.cd** · Cooldown 3◈
-- [ ] **SE.p** · Passive: whenever she successfully defeats a BB or Sakura Five Unit (Q)
-- [ ] **SE.p.choose** · …she can choose one of the non-Class Skills on it (Q)
-- [ ] **SE.p.keep** · …and obtains it for the rest of the game (Q)
-- [ ] **SE.p.limit** · It does not count towards Insect Eater's limit
+- [x] **SE.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **SE.1** · 1: NP Cooldown -2◈ · *Pressed: NPs -6*
+- [x] **SE.2** · 2: For every BB and other Sakura Five Unit within a 3 panel area of herself, NP Cooldown further -2◈ (Q) · *Pressed: Kingprotea at 2: a further -6*
+- [x] **SE.2.other** · …she does not count herself (Q) · *Pressed: alone: no further cut*
+- [x] **SE.3** · 3: If there are none, Skill Cooldown -⅓◈ instead (Q) · *Pressed: alone: Pixie Finger 12 to 11, this Skill not*
+- [x] **SE.cd** · Cooldown 3◈ · *Pressed: 9*
+- [x] **SE.p** · Passive: whenever she successfully defeats a BB or Sakura Five Unit (Q) · *Pressed: Kingprotea killed: offered*
+- [x] **SE.p.choose** · …she can choose one of the non-Class Skills on it (Q) · *Pressed: seven rows, no Class Skill*
+- [x] **SE.p.keep** · …and obtains it for the rest of the game (Q) · *Pressed: Monstrous Strength kept, offered at her next Damage Step*
+- [x] **SE.p.limit** · It does not count towards Insect Eater's limit · *Observed: no stolenFrom, so not in the three*
 
 ## Moon's Pupa — Rank A *(Active)*
 
-- [ ] **MP.turn** · Used during her Turn
-- [ ] **MP.1** · 1: Removes all debuffs from herself
-- [ ] **MP.2.hp** · 2: Restores her Health by 35% of maximum
-- [ ] **MP.2.agi** · …and her Agility by 35% of maximum
-- [ ] **MP.3** · 3: She chooses an enemy Servant within Range (Q)
-- [ ] **MP.3.class** · Her Servant Class becomes that Servant's (Q)
-- [ ] **MP.3.dur** · …for 1◈, then back, with a line (Q)
-- [ ] **MP.4** · 4: Def Dwn for 1◈ on that Servant: damage taken +50%
-- [ ] **MP.cd** · Cooldown 4◈
+- [x] **MP.turn** · Used during her Turn · *Observed: window ownTurn*
+- [x] **MP.1** · 1: Removes all debuffs from herself · *Pressed: Def Dwn removed*
+- [x] **MP.2.hp** · 2: Restores her Health by 35% of maximum · *Pressed: 100 to 275*
+- [x] **MP.2.agi** · …and her Agility by 35% of maximum · *Pressed: 2 to 7*
+- [x] **MP.3** · 3: She chooses an enemy Servant within Range (Q) · *Pressed: three in Range, she chose*
+- [x] **MP.3.class** · Her Servant Class becomes that Servant's (Q) · *Pressed: rider on the board*
+- [x] **MP.3.dur** · …for 1◈, then back, with a line (Q) · *Pressed: back to alterEgo at its expiry; the line built after*
+- [x] **MP.4** · 4: Def Dwn for 1◈ on that Servant: damage taken +50% · *Pressed: Def Dwn 50*
+- [x] **MP.cd** · Cooldown 4◈ · *Pressed: 12*
 
 ## id_es: Insect Eater *(Passive 1 + 2)*
 
-- [ ] **IE.when** · Whenever she performs a successful Attack (Q)
-- [ ] **IE.step** · …at the end of the Damage Step (Q)
-- [ ] **IE.base** · …a 15% chance
-- [ ] **IE.which** · …of stealing one of the DU's Skills (Q)
-- [ ] **IE.who** · …the Skill she takes (Q)
-- [ ] **IE.owner.use** · The original owner cannot use it
-- [ ] **IE.owner.fx** · …and it has no effects for that Unit (Q)
-- [ ] **IE.own.use** · She can use it as her own (Q)
-- [ ] **IE.own.fx** · …and gains its effects (Q)
-- [ ] **IE.moon** · Term 1: the Region is the Moon Cell, +30% (Q)
-- [ ] **IE.chup** · Term 2: she has Debuff ChUp, +X% (Q)
-- [ ] **IE.bb** · Term 3: the target is BB or a Sakura Five Unit, +30% (Q)
-- [ ] **IE.mr** · Term 4: for every Rank in Magic Resistance on the DU, -5% (Q)
-- [ ] **IE.chdwn** · Term 5: she has Debuff ChDwn, -Y% (Q)
-- [ ] **IE.max** · She holds at most three
-- [ ] **IE.fourth** · On a fourth she must choose one to discard (Q)
-- [ ] **IE.back** · The discarded one returns: its owner can use it again
-- [ ] **IE.cd** · Its Cooldown is carried over (Q)
-- [ ] **IE.token** · Passive 2: each steal gains 1 Eater Token
-- [ ] **IE.token.max** · …maximum 7
-- [ ] **IE.fallen** · A steal held when she falls (Q)
+- [x] **IE.when** · Whenever she performs a successful Attack (Q) · *Pressed: on a hit, none on a kill*
+- [x] **IE.step** · …at the end of the Damage Step (Q) · *Pressed: last on the card*
+- [x] **IE.base** · …a 15% chance · *Pressed: 15 on Asterios*
+- [x] **IE.which** · …of stealing one of the DU's Skills (Q) · *Pressed: Magic Resistance taken*
+- [x] **IE.who** · …the Skill she takes (Q) · *Pressed: tags, Ranks, Active or Passive, names removed*
+- [x] **IE.owner.use** · The original owner cannot use it · *Pressed: gone from Drake's board record*
+- [x] **IE.owner.fx** · …and it has no effects for that Unit (Q) · *Pressed: his passive off*
+- [x] **IE.own.use** · She can use it as her own (Q) · *Pressed: on her bar*
+- [x] **IE.own.fx** · …and gains its effects (Q) · *Pressed: on her record*
+- [x] **IE.moon** · Term 1: the Region is the Moon Cell, +30% (Q) · *Observed: test on the term; this War's Region is not moon*
+- [x] **IE.chup** · Term 2: she has Debuff ChUp, +X% (Q) · *Pressed: +30*
+- [x] **IE.bb** · Term 3: the target is BB or a Sakura Five Unit, +30% (Q) · *Pressed: +30 on Kingprotea*
+- [x] **IE.mr** · Term 4: for every Rank in Magic Resistance on the DU, -5% (Q) · *Pressed: -10, -15, -30*
+- [x] **IE.chdwn** · Term 5: she has Debuff ChDwn, -Y% (Q) · *Observed: test on the term*
+- [x] **IE.max** · She holds at most three · *Pressed: a fourth asks*
+- [x] **IE.fourth** · On a fourth she must choose one to discard (Q) · *Pressed: four listed*
+- [x] **IE.back** · The discarded one returns: its owner can use it again · *Pressed: Pioneer back on Drake*
+- [x] **IE.cd** · Its Cooldown is carried over (Q) · *Pressed: its clock of 5 out and back*
+- [x] **IE.token** · Passive 2: each steal gains 1 Eater Token · *Pressed: 6 to 7*
+- [x] **IE.token.max** · …maximum 7 · *Pressed: 7 stays 7*
+- [x] **IE.fallen** · A steal held when she falls (Q) · *Pressed: her fall: clones gone, Drake holds his*
 
 ## Gully Trap Funny Muryan: Expanding World — Rank B, NP [Anti-Unit], Method 1 *(Non-damaging)*
 
-- [ ] **G1.attack** · Counts as her Attack for the Turn
-- [ ] **G1.adj** · Used on a Unit directly next to her (Q)
-- [ ] **G1.evade** · If not successfully Evaded, she captures it (Q)
-- [ ] **G1.item** · It is held as a Special Item (Q)
-- [ ] **G1.steal** · …which cannot be Stolen (Q)
-- [ ] **G1.out** · A captured Unit is off the board (Q)
-- [ ] **G1.fx** · Its Effects are paused and have no effect (Q)
-- [ ] **G1.dur** · Its durations are paused
-- [ ] **G1.cd** · Its Cooldowns are paused
-- [ ] **G1.ally** · An allied Unit within a 2 panel area about to receive an Attack: offered at the start of the Damage Step (Q)
-- [ ] **G1.ally.ends** · …the capture ends that Process (Q)
-- [ ] **G1.ally.turn** · …off her Turn it spends no Attack (Q)
-- [ ] **G1.max** · At most three Units inside (Q)
-- [ ] **G1.clock** · Cooldown 4◈ (Q)
-- [ ] **G1.ex.2** · Not on the same Turn as Method 2
-- [ ] **G1.ex.am** · Not on the same Turn as Atomicros Muryan Foot
-- [ ] **G1.master** · Does not consume Master's Health
-- [ ] **G1.rel** · During her Turn she can release any Units inside (Q)
-- [ ] **G1.rel.where** · …onto any panel within a 2 panel area of herself
-- [ ] **G1.rel.cd** · …with no Cooldown
-- [ ] **G1.fallen** · Units inside when she falls (Q)
+- [x] **G1.attack** · Counts as her Attack for the Turn · *Pressed: attacked true*
+- [x] **G1.adj** · Used on a Unit directly next to her (Q) · *Pressed: Drake, Kingprotea, Karl*
+- [x] **G1.evade** · If not successfully Evaded, she captures it (Q) · *Pressed: Evaded: not held. Hit: held*
+- [x] **G1.item** · It is held as a Special Item (Q) · *Observed: a field on the Unit, and no Item*
+- [x] **G1.steal** · …which cannot be Stolen (Q) · *Observed: nothing can reach it*
+- [x] **G1.out** · A captured Unit is off the board (Q) · *Pressed: off the board; token hidden*
+- [x] **G1.fx** · Its Effects are paused and have no effect (Q) · *Pressed: every Effect suppressed; Wave read no Def Dwn*
+- [x] **G1.dur** · Its durations are paused · *Pressed: pushed on at the release*
+- [x] **G1.cd** · Its Cooldowns are paused · *Pressed: Drake's 6 held 3 Turns while hers fell 3*
+- [x] **G1.ally** · An allied Unit within a 2 panel area about to receive an Attack: offered at the start of the Damage Step (Q) · *Pressed: offered to Player1, declined, then taken*
+- [x] **G1.ally.ends** · …the capture ends that Process (Q) · *Pressed: no damage, a line*
+- [x] **G1.ally.turn** · …off her Turn it spends no Attack (Q) · *Pressed: attacked false*
+- [x] **G1.max** · At most three Units inside (Q) · *Pressed: *Bug Space is full.**
+- [x] **G1.clock** · Cooldown 4◈ (Q) · *Pressed: 12*
+- [x] **G1.ex.2** · Not on the same Turn as Method 2 · *Pressed: Wave refused by name*
+- [x] **G1.ex.am** · Not on the same Turn as Atomicros Muryan Foot · *Observed: declared on both*
+- [x] **G1.master** · Does not consume Master's Health · *Observed: Master unchanged*
+- [x] **G1.rel** · During her Turn she can release any Units inside (Q) · *Pressed: chosen from a list*
+- [x] **G1.rel.where** · …onto any panel within a 2 panel area of herself · *Pressed: panel picked, (13, 13)*
+- [x] **G1.rel.cd** · …with no Cooldown · *Pressed: no clock*
+- [x] **G1.fallen** · Units inside when she falls (Q) · *Pressed: her fall: three out, within 2*
 
 ## Gully Trap Funny Muryan: Expanding World — Method 2
 
-- [ ] **G2.ba** · Base Attack (MAG)
-- [ ] **G2.area** · A 3x3 directly next to her
-- [ ] **G2.dmg** · 3.5x damage to all Units in it, allies too
-- [ ] **G2.inside** · …and to Units within Bug Space when the NP was used (Q)
-- [ ] **G2.a** · a: Atk Dwn for 1◈: damage dealt -20%
-- [ ] **G2.a.np** · …if NP, -10%
-- [ ] **G2.b** · b: Def Dwn for 1◈: damage taken +30%
-- [ ] **G2.c** · c: 40% chance of Stun for ⅓◈
-- [ ] **G2.all** · All three on all affected Units, those inside too (Q)
-- [ ] **G2.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q)
-- [ ] **G2.clock** · Cooldown 6◈ (Q)
-- [ ] **G2.ex** · Not on the same Turn as Method 1
-- [ ] **G2.master** · Consumes Master's Health at Rank B (Q)
+- [x] **G2.ba** · Base Attack (MAG) · *Pressed: MAG*
+- [x] **G2.area** · A 3x3 directly next to her · *Pressed: east 3x3*
+- [x] **G2.dmg** · 3.5x damage to all Units in it, allies too · *Pressed: Asterios 474, Proto Gil 496*
+- [x] **G2.inside** · …and to Units within Bug Space when the NP was used (Q) · *Pressed: four Processes, no reaction from inside*
+- [x] **G2.a** · a: Atk Dwn for 1◈: damage dealt -20% · *Pressed: Atk Dwn*
+- [x] **G2.a.np** · …if NP, -10% · *Observed: npMagnitude 10*
+- [x] **G2.b** · b: Def Dwn for 1◈: damage taken +30% · *Pressed: Def Dwn 30*
+- [x] **G2.c** · c: 40% chance of Stun for ⅓◈ · *Pressed: Stun rolled*
+- [x] **G2.all** · All three on all affected Units, those inside too (Q) · *Pressed: on Drake inside*
+- [x] **G2.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q) · *Pressed: Karl (11, 13), Drake (10, 13)*
+- [x] **G2.clock** · Cooldown 6◈ (Q) · *Pressed: 18*
+- [x] **G2.ex** · Not on the same Turn as Method 1 · *Observed: declared*
+- [x] **G2.master** · Consumes Master's Health at Rank B (Q) · *Pressed: Master 121 to 81*
 
 ## Atomicros Muryan Foot: Shrinking World — Rank EX, NP [Anti-Unit]
 
-- [ ] **AM.gate** · Cannot be used outside Atomicros Form (Q)
-- [ ] **AM.door1** · During her Turn: remove 7 Eater Tokens (Q)
-- [ ] **AM.door1.discard** · …and discard every Skill stolen with Insect Eater, and enter the Form (Q)
-- [ ] **AM.door2** · Having defeated a total of two BB and/or Sakura Five Units (Q)
-- [ ] **AM.door2.when** · …she enters it automatically at the end of the Combat Phase
-- [ ] **AM.keep** · The Form has no end printed (Q)
-- [ ] **AM.mov** · In Form: MOV +1
-- [ ] **AM.agi** · …Agility Check rolls -3
-- [ ] **AM.ie** · …Insect Eater's base chance +15%
-- [ ] **AM.space** · …Bug Space holds five
-- [ ] **AM.ba** · Base Attack (MAG)
-- [ ] **AM.area** · A 5x5 directly next to her
-- [ ] **AM.dmg** · 5x damage to all Units in it, allies too
-- [ ] **AM.inside** · …and to Units within Bug Space when the NP was used (Q)
-- [ ] **AM.a** · a: Atk Dwn for 1◈: damage dealt -30%
-- [ ] **AM.a.np** · …if NP, -15%
-- [ ] **AM.b** · b: Def Dwn for 1◈: damage taken +40%
-- [ ] **AM.c** · c: 60% chance of Stun for 1◈
-- [ ] **AM.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q)
-- [ ] **AM.cd** · Cooldown 8◈
-- [ ] **AM.ex** · Not on the same Turn as Method 1
+- [x] **AM.gate** · Cannot be used outside Atomicros Form (Q) · *Pressed: refused outside the Form*
+- [x] **AM.door1** · During her Turn: remove 7 Eater Tokens (Q) · *Pressed: 7 to 0*
+- [x] **AM.door1.discard** · …and discard every Skill stolen with Insect Eater, and enter the Form (Q) · *Pressed: 3 back; Stun refuses a free Action*
+- [x] **AM.door2** · Having defeated a total of two BB and/or Sakura Five Units (Q) · *Pressed: Kin Defeated 1 to 2*
+- [x] **AM.door2.when** · …she enters it automatically at the end of the Combat Phase · *Pressed: on after the Process*
+- [x] **AM.keep** · The Form has no end printed (Q) · *Observed: cannotDeactivate*
+- [x] **AM.mov** · In Form: MOV +1 · *Pressed: 6*
+- [x] **AM.agi** · …Agility Check rolls -3 · *Observed: both -3 on the board in Form, none out of it*
+- [x] **AM.ie** · …Insect Eater's base chance +15% · *Pressed: 30 on Asterios*
+- [x] **AM.space** · …Bug Space holds five · *Pressed: capacity 5*
+- [x] **AM.ba** · Base Attack (MAG) · *Pressed: MAG*
+- [x] **AM.area** · A 5x5 directly next to her · *Pressed: east 5x5*
+- [x] **AM.dmg** · 5x damage to all Units in it, allies too · *Pressed: Asterios 927*
+- [x] **AM.inside** · …and to Units within Bug Space when the NP was used (Q) · *Pressed: Proto Gil from inside, 722*
+- [x] **AM.a** · a: Atk Dwn for 1◈: damage dealt -30% · *Pressed: Atk Dwn*
+- [x] **AM.a.np** · …if NP, -15% · *Observed: npMagnitude 15*
+- [x] **AM.b** · b: Def Dwn for 1◈: damage taken +40% · *Pressed: Def Dwn 40*
+- [x] **AM.c** · c: 60% chance of Stun for 1◈ · *Pressed: Stun rolled*
+- [x] **AM.rel** · Then all inside are forcefully released onto random panels within a 2 panel area of her (Q) · *Pressed: Proto Gil (10, 16)*
+- [x] **AM.cd** · Cooldown 8◈ · *Pressed: 24*
+- [x] **AM.ex** · Not on the same Turn as Method 1 · *Observed: declared*
 
 ## Enuma Elish against Bug Space — Gilgamesh's sheet, pressed on her
 
-- [ ] **EE.bug.real** · Bug Space's bearer affected by Enuma Elish: Skill Seal (Ea) for 3◈ (Q)
-- [ ] **EE.bug.lifted** · …and everything that Skill caused is removed from all Units (Q)
-- [ ] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q)
-- [ ] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q)
-- [ ] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q)
-- [ ] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q)
-- [ ] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q)
+- [x] **EE.bug.real** · Bug Space's bearer affected by Enuma Elish: Skill Seal (Ea) for 3◈ (Q) · *Pressed: hit on the board: Seal (Ea) on Capture*
+- [x] **EE.bug.lifted** · …and everything that Skill caused is removed from all Units (Q) · *Pressed: Proto Gil forced out*
+- [x] **EE.muryan.use** · Caught within Bug Space, during his Player's Turn, he can use Enuma Elish if it is not on Cooldown (Q) · *Pressed: offered at his Turn, used*
+- [x] **EE.muryan.count** · …it counts towards the number of Units which Attack during this Turn (Q) · *Pressed: Servant attacks 1*
+- [x] **EE.muryan.release** · …every Unit in Bug Space is released onto random panels within a 2 panel area of the DU (Q) · *Pressed: Gilgamesh (13, 15), Proto Gil (12, 15)*
+- [x] **EE.muryan.seal** · …the DU is inflicted with NP Seal (Ea) for 3◈ (Q) · *Pressed: three seals, on the use*
+- [x] **EE.muryan.remove** · …and every effect the NP caused is removed from all Units (Q) · *Observed: the row's removesCaused*
