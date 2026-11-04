@@ -1,0 +1,25 @@
+# Appendix A §A.12
+# "MOV -3; Agility Checks +1d6; 50 Fixed damage at the end of any turn it Acts; all
+# damage taken -10% including NP."
+#
+# Gate of Babylon's row 20 is the first to inflict it (#374). An Evade is an Agility
+# Check under its own name, so the d6 is authored for both, Goddess of War's rolled
+# shape: higher is worse.
+schema: 1
+id: crystallize
+name: "Crystallize"
+description: |
+  MOV is reduced by 3. Agility Checks are increased by 1d6. Takes 50 Fixed damage at the end of any Turn it Acts. All
+  damage taken is reduced by 10% including NP.
+polarity: debuff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+periodic: { when: turnEnd, amount: 50, actedOnly: true, bypassModifiers: true }
+rules:
+  - { key: MovDelta, value: -3 }
+  - { key: CheckModifier, check: evade, roll: { key: crystallizeEvade, formula: "1d6" } }
+  - { key: CheckModifier, check: agility, roll: { key: crystallizeAgility, formula: "1d6" } }
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 10, npValue: 10 }

@@ -22,6 +22,7 @@ import { actionSourceFor } from "../rules/platforms.mjs";
 import { unitFrom, unitActor } from "./board.mjs";
 import { pressGate, abilityKind } from "./press-gate.mjs";
 import { warRule } from "./war.mjs";
+import { chosenTierView } from "../rules/tiers.mjs";
 import { magSealOf, usesMagOnly } from "../rules/mag-seal.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
@@ -73,7 +74,12 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // stage and the cost gate about it one at a time -- is four chances to
   // disagree with each other.
   const substituted = abilityId ? null : replacingNormalAttack(self, attacker, board);
-  const ability = abilityId ? attacker.items.get(abilityId) : substituted;
+  // The ability as the Rank its user chose reads (#374): the gate below prices
+  // that Rank, and the cost and the clock are paid at it. A choice no tier holds
+  // is refused: the answer crossed a socket.
+  const held = abilityId ? attacker.items.get(abilityId) : substituted;
+  const ability = chosenTierView(held, placement?.tier);
+  if (held && !ability) return refuse(game.i18n.format("FGT.Tier.NoneChosen", { ability: held.name }));
 
   // Pale Rider's Riding EX passive 3: *"Pale Rider cannot perform Normal
   // Attacks."* Refused ahead of the budget, so the message names the rule

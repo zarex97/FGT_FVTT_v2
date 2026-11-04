@@ -1,0 +1,21 @@
+# Gate of Babylon: Golden Armor (#374). His name for it begins with his NP's, and
+# its heading has no "(NP)": a Skill, and passive, so no Seal touches it (reading 28).
+#
+# Passive 1 is a stage-4 defence with an NP figure. Passive 3 is Tiwaz's RankShift at
+# two grades, E to C, so the tables give C's 30% and 15% as the printed block does.
+# The E block's Instakill, Death and Erase lines stay in force at C.
+schema: 1
+id: gilgamesh-golden-armor
+name: "Gate of Babylon: Golden Armor"
+kind: skill
+slug: goldenArmor
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) All damage taken is reduced by 50%; if NP, 30%.
+  (Passive 2) Gilgamesh is Immune to @effect[petrify]{Petrify}.
+  (Passive 3) The Rank of @ability[class-magic-resistance]{Magic Resistance} is increased from E to C.
+passiveRules:
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 50, npValue: 30 }
+  - { key: Immunity, effects: [petrify] }
+  - { key: RankShift, ability: magicResistance, grades: 2 }

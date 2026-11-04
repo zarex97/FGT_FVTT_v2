@@ -22,6 +22,7 @@
 
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { currentBoard, unitOf, unitActor } from "./board.mjs";
+import { fieldSealed } from "../rules/listed-abilities.mjs";
 import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
@@ -1272,6 +1273,8 @@ export async function runFieldEvents(event, {
 
   for (const field of view.fields ?? []) {
     if (fieldIds && !fieldIds.includes(field.id)) continue;
+    // It stands, and does nothing while its ability is sealed (#374 reading 20).
+    if (fieldSealed(field, view)) continue;
     for (const spec of field.interiorEvents ?? []) {
       if (spec.event !== event) continue;
       // *"If an enemy Unit ended its Turn within the Contagion area, OR at the

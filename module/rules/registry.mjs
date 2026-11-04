@@ -75,6 +75,8 @@ export const EffectRegistry = {
         resetsSiblings: Boolean(sys.resetsSiblings),
         // Read by `rules/tiers.mjs#tierSpend` (Mermaid Tokens, #372).
         spentForTier: sys.spentForTier ?? null,
+        // Read by `engine/attack.mjs#wokenBy` (Sleep and its derivatives, #374).
+        wokenByAttackDamage: Boolean(sys.wokenByAttackDamage),
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

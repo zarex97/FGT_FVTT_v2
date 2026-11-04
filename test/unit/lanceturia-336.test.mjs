@@ -45,7 +45,7 @@ describe("the sheet, projected (ST.*)", () => {
     await withSubjects([{ from: "lanceturia", id: AR }], ({ world: w }) => {
       const ids = w.actor(AR).items.map((i) => i.system.contentId);
       expect(ids).toEqual(expect.arrayContaining([
-        "class-magic-resistance", "class-riding", "arturia-vivians-blessing", "arturia-charisma",
+        "class-magic-resistance", "class-riding", "arturia-vivians-blessing", "charisma-passive",
         "lanceturia-mana-burst", "lanceturia-torrent-of-light", "lanceturia-wild-hunt", "lanceturia-blessings",
         "lanceturia-invisible-air", "lanceturia-strike-air", "lanceturia-rhongomyniad",
       ]));

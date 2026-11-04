@@ -768,11 +768,22 @@ async function resolveElements(intents) {
  */
 export async function resolveHealing(intents) {
   const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0 && i.healingScaled === undefined;
-  if (!intents.some(heal)) return intents;
+  // Gashed: *"Health and Agility cannot be restored"* (#374 reading 11). Health is
+  // the `HealingReceived` below; a pool has no heal to scale, so it is held here.
+  const restore = (i) => i.t === "statDelta" && i.stat === "agility.value" && i.delta > 0 && i.unitId;
+  if (!intents.some(heal) && !intents.some(restore)) return intents;
   if (typeof game === "undefined" || !game?.actors) return intents;
   const { unitOf, currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   return intents.map((intent) => {
+    if (restore(intent)) {
+      const actor = unitActor(intent.unitId);
+      const barred = actor ? (unitOf(actor, board)?.barsRestore ?? []).find((b) => `${b.stat}.value` === intent.stat) : null;
+      if (!barred) return intent;
+      const name = EffectRegistry.get(barred.source)?.name ?? barred.source;
+      return I.log({ kind: "cardLine", unitId: intent.unitId, source: name,
+        line: { key: "FGT.Effect.RestoreBarred", data: { source: name } } });
+    }
     if (!heal(intent)) return intent;
     const actor = unitActor(intent.unitId);
     if (!actor) return intent;

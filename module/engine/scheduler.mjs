@@ -471,6 +471,16 @@ export function fireEvent(event, units, ctx) {
       // On its Skill's own clock (#328 ruling 10): silent while it runs.
       if (handler.ownCooldown && onCooldown(u, handler.abilityId)) continue;
 
+      // Addle: *"Negates all automatically-activating skills and effects"*
+      // (Appendix A, #374 reading 11): anything authored `automatic: true`. Last
+      // of the gates, so what would not have fired says nothing; what would have
+      // is a line.
+      if (handler.automatic && (u.effects ?? []).includes("addle")) {
+        out.push(I.log({ kind: "cardLine", unitId: u.id, source: handler.source,
+          line: { key: "FGT.Effect.AddleHolds", data: { source: handler.source ?? "" } } }));
+        continue;
+      }
+
       // One boundary, one firing. A handler on `[turnEnd, actedTurnEnd]` hears
       // both passes when its bearer Acted on its own Turn, and the sentence is
       // one clause: NP DmUp (GAO) lost two charges where its sheet says one
@@ -1390,6 +1400,14 @@ const ACTIONS = Object.freeze({
         const full = max === null ? 0 : resolveTicks(parseTick(String(max)), c);
         return full > 0 ? [{ ...I.cooldown(u.id, id, full, "set"), source: h.source }] : [];
       });
+    }
+
+    // A named clock with nothing on it, where its sheet's fallback is what the
+    // reader is waiting on: Golden Rule's Treasury (#374 reading 26).
+    if (a.saysWhenClear && a.ability && !(((u.abilities ?? []).find((x) => x.id === named)?.cooldownRemaining ?? 0) > 0)) {
+      const name = (u.abilities ?? []).find((x) => x.id === named)?.name ?? a.ability;
+      return [I.log({ kind: "cardLine", unitId: u.id, source: h.source,
+        line: { key: "FGT.Cooldown.NamedClear", data: { ability: name } } })];
     }
 
     // `source` so the card that reports the Turn end can name it: Self-Replenishment's
@@ -2583,6 +2601,8 @@ export function tickPeriodics(units, when, ctx) {
         : sideOf(u) !== ctx.activeFactionId && widened;
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
+      // *"At the end of its turn"*, and only its: Nightmare (#374 reading 11).
+      if (spec.ownTurnOnly && sideOf(u) !== ctx.activeFactionId) continue;
       // Curse's *"every ⅓◈"*, from the Turn it landed (`rules/periodic.mjs`).
       if (!periodicDue(spec, e, ctx.tick ?? 0, ctx.turnsPerRound ?? 3)) continue;
 
@@ -2756,7 +2776,7 @@ export function regionScale(amount, scaledRegion, warRegion) {
 export function periodicDamageFor(instance, unit, effectDef = null) {
   const spec = periodicOf(effectDef?.(instance?.defId));
   if (!spec) return null;
-  return amplify(spec.amount(instance), instance.defId, unit, effectDef, instance);
+  return amplify(spec.amount(instance, unit), instance.defId, unit, effectDef, instance);
 }
 
 

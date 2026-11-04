@@ -50,7 +50,7 @@ import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
-import { tableFor, entriesFor, choicesIn, effectsOf, rollFaces } from "../rules/roll-table.mjs";
+import { tableFor, rollsTable, entriesFor, choicesIn, effectsOf, rollFaces } from "../rules/roll-table.mjs";
 import { applyWorldIntents, cooldownLine, statChangeLine } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
@@ -1571,7 +1571,10 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
  */
 async function runRollTable(phase, ability, actor, target, board) {
   const self = unitOf(actor, board);
-  const table = tableFor(phase, relationOf(self, target, board));
+  const relation = relationOf(self, target, board);
+  // Who rolls at all, the attack path's rule (`attack.mjs#rollTableAgainst`, #374).
+  if (!rollsTable(phase, relation)) return [];
+  const table = tableFor(phase, relation);
   if (!table) {
     console.warn(`FGT | ${ability.name} has a rollTable phase with no table for this target.`);
     return [];

@@ -1,0 +1,43 @@
+# Golden Rule, Rank A (#374). Proto Gil's Crit cut and NP Regen; his fallback moves
+# Enki, this one cuts Treasury of Babylon's clock.
+#
+# > "(Passive) Whenever Gilgamesh performs a Crit, reduce his NP Cooldown by 1 Turn. If
+# > none of his NP are on Cooldown, reduce the Cooldown of 'Treasury of Babylon' by 1
+# > Turn."
+#
+# Each Crit counts (#232 reading 8). "None of his NP" is all three of Gate of Babylon,
+# Enuma Elish and Enkidu (`self:npOnCooldown`). With Treasury clear too, the card says
+# it cut nothing (reading 26).
+schema: 1
+id: gilgamesh-golden-rule
+name: "Golden Rule"
+rank: A
+kind: skill
+slug: goldenRule
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Whenever Gilgamesh performs a Crit, reduce his NP Cooldown by 1 Turn. If none of his NP are on Cooldown,
+  reduce the Cooldown of 'Treasury of Babylon' by 1 Turn.
+  (Active) Used during your Turn. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 2 Turns at
+  the end of every Turn. Cooldown: 4◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit", "self:npOnCooldown"]
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1 }
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit", "not:self:npOnCooldown"]
+    then:
+      - { key: CooldownDelta, ability: proto-gil-treasury-of-babylon, delta: -1, saysWhenClear: true }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npRegen, duration: "1◈", magnitude: 2 }

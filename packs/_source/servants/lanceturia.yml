@@ -37,7 +37,7 @@ abilities:
   - { ref: arturia-vivians-blessing }
   - { ref: lanceturia-mana-burst }
   - { ref: lanceturia-torrent-of-light }
-  - { ref: arturia-charisma }
+  - { ref: charisma-passive, rank: B, flat: 20 }
   - { ref: lanceturia-wild-hunt }
   - { ref: lanceturia-blessings }
   - { ref: lanceturia-invisible-air }
