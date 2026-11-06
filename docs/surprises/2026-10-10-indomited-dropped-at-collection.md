@@ -12,10 +12,10 @@ pattern: hidden-timing-rule
 **Actual:** "Nemo is defeated and revived by guts, with 250 Health." NP Cooldown stayed 12; Indomited
 still held its one use. His projection had no `unitRevived` handler at all.
 
-**Cause:** `module/rules/elements.mjs:229 @ 08ea4b1` — `DEFERRED_PREFIXES` decides which predicates wait
+**Cause:** `module/rules/elements.mjs:229 @ 50c5731` — `DEFERRED_PREFIXES` decides which predicates wait
 for the event; `revival:` was not among them, so `revival:source:guts` was answered at collection time
 against options that can never hold it, and the handler was dropped. `nemo.test.mjs` asserted the YAML's
 predicate, not the projection.
 
-**Fix:** `module/rules/elements.mjs @ d162f50` — `revival:` is deferred; a test projects Indomited
+**Fix:** `module/rules/elements.mjs @ efd49e2` — `revival:` is deferred; a test projects Indomited
 through `withSubjects` and fires `unitRevived` with and without the Guts source.

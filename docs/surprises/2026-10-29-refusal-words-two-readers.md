@@ -12,10 +12,10 @@ pattern: two-readers-one-rule
 every notice ended *"in force.."*; a step out of the Amaterasu Area read *"passes through a panel this Unit may not
 enter"*; the Decoy read *"Ruler is the attacker is compelled to attack another unit"*.
 
-**Cause:** `module/apps/actor-sheet/sheet.mjs:665 @ 60958e67`: `refusalWords` worded `prevented` from the bare key, not
+**Cause:** `module/apps/actor-sheet/sheet.mjs:665 @ bd007c46`: `refusalWords` worded `prevented` from the bare key, not
 from `present.mjs#abilityState`, and kept each key's own full stop; the movement and targeting refusals had no words
 for a sealed field or a compulsion's target.
 
-**Fix:** `module/apps/actor-sheet/sheet.mjs:665 @ ebad7a6b` asks `abilityState` and drops the stop;
+**Fix:** `module/apps/actor-sheet/sheet.mjs:665 @ 9871bce7` asks `abilityState` and drops the stop;
 `module/rules/movement.mjs:580` names the field; `module/rules/targeting/resolve.mjs:261` names whom the attacker
 must attack. The field line re-pressed live; the other two wait on a re-press.

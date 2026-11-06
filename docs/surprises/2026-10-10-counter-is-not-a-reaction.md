@@ -14,7 +14,7 @@ pattern: producer-without-consumer
 never changes `state.reaction`, so the option never appears and the refund pays after a Counter as well.
 The live Counter could not be pressed in time over CDP (the prompt's timer), so this was found by reading.
 
-**Cause:** `module/engine/attack.mjs:1631 @ 08ea4b1` — `runAfterProcessPhases` read only `rollOptions`.
+**Cause:** `module/engine/attack.mjs:1631 @ 50c5731` — `runAfterProcessPhases` read only `rollOptions`.
 
-**Fix:** `module/engine/attack.mjs @ d162f50` — the option is added when the history holds the
+**Fix:** `module/engine/attack.mjs @ efd49e2` — the option is added when the history holds the
 `counter` rung's `counter` event.

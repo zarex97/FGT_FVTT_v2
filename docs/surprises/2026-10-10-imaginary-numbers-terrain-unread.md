@@ -13,8 +13,8 @@ Protection, Voyager of the Storm, Journey's Guidance and the Noble Phantasm take
 **Actual:** submerged at tick 2, Nemo's options held `self:skillActive:zeroSail` and no terrain at all.
 `grep terrainTags module` found nothing.
 
-**Cause:** `packs/_source/platforms/storm-border.yml:38 @ 08ea4b1` authors `terrainTags`, and no reader
+**Cause:** `packs/_source/platforms/storm-border.yml:38 @ 50c5731` authors `terrainTags`, and no reader
 exists. The unit tests asserted the YAML, not a projection.
 
-**Fix:** `module/rules/terrain.mjs:306 @ d162f50` — `annotateTerrain` adds the dimension's tags to
+**Fix:** `module/rules/terrain.mjs:306 @ efd49e2` — `annotateTerrain` adds the dimension's tags to
 every Unit on its Level.

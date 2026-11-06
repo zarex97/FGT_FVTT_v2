@@ -18,10 +18,10 @@ commit, `git status` showed 25 changed files that were not this session's (`modu
 commit would land on `claude/hundred-face-clauses`. Pointing `HEAD` back and committing through a
 private index was refused by the permission check (*"Modify Shared Resources"*).
 
-**Cause:** `.git/HEAD @ cf20cfc` — a branch is one per working copy, not one per session. Two sessions
+**Cause:** `.git/HEAD @ fdeb4d8` — a branch is one per working copy, not one per session. Two sessions
 in one directory share `HEAD`, the index and every file, and nothing warns either of them.
 
-**Fix:** `.git/worktrees/FGT_FVTT_v2-hassan @ cf20cfc` — the user chose a separate worktree. The
+**Fix:** `.git/worktrees/FGT_FVTT_v2-hassan @ fdeb4d8` — the user chose a separate worktree. The
 main working copy went back to `claude/emiya-open-208` (same commit, so no file moved), and
 `claude/hundred-face-clauses` was checked out in `../FGT_FVTT_v2-hassan` with only this session's
 files carried over. "Work in another branch" means its own worktree whenever another session may

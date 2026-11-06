@@ -68,6 +68,12 @@ See `docs/agents/vps.md`. A Claude Code cloud session is the third: a throwaway 
 Foundry with `fvtt-up` / `fvtt-down` and takes the world with `fvtt-world pull|push`, set up by
 `tools/cloud/setup.sh`. See `docs/agents/cloud.md`.
 
+### Attribution
+
+Commits and pull requests carry no AI-tool credit: no trailer, no session link, no `Claude` author. This
+history was rewritten on 2026-11-06, so a clone from before it is replaced, never pulled. See ADR-0007 and
+`docs/agents/history-rewrite.md`.
+
 ### Domain docs
 
 Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.

@@ -8,5 +8,5 @@ pattern: assumed-shape
 ---
 **Expected:** A rewind returns each Unit's Health to what it was, its maximum included.
 **Actual:** The Glass Game, working at last, wrote Van Gogh from 599/1250 to *299/299*: his recorded state at tick 24 read `{value: 299, max: 299}`.
-**Cause:** `module/rules/history.mjs#pool @ eebbb988` turned a flattened number into `{value: n, max: n}`; the board projects Health, Agility and Luck as their value with the maximum beside it (`maxHealth`, `maxAgility`, and no `maxLuck` at all). Every record after the first full one carried max = value.
-**Fix:** `module/rules/history.mjs#snapshotUnit @ 7755ebb4` reads each maximum from the projection; `module/rules/snapshot.mjs @ 7755ebb4` projects `maxLuck`. Van Gogh's 1250 restored by hand in the audit world.
+**Cause:** `module/rules/history.mjs#pool @ 6c5306e1` turned a flattened number into `{value: n, max: n}`; the board projects Health, Agility and Luck as their value with the maximum beside it (`maxHealth`, `maxAgility`, and no `maxLuck` at all). Every record after the first full one carried max = value.
+**Fix:** `module/rules/history.mjs#snapshotUnit @ 4ee3ca9a` reads each maximum from the projection; `module/rules/snapshot.mjs @ 4ee3ca9a` projects `maxLuck`. Van Gogh's 1250 restored by hand in the audit world.

@@ -8,5 +8,5 @@ pattern: producer-without-consumer
 ---
 **Expected:** A Burn refused by Burn Immune reads "Burn Immune" on the card.
 **Actual:** The card read "Burn (burn Immune)".
-**Cause:** `module/engine/effect-applier.mjs:582 @ a17cfa57` — `findImmunity` named a named immunity by `def.id`.
-**Fix:** `module/engine/effect-applier.mjs:583 @ a17cfa57` — by `def.name`, the id only when there is none.
+**Cause:** `module/engine/effect-applier.mjs:582 @ 4b4588d7` — `findImmunity` named a named immunity by `def.id`.
+**Fix:** `module/engine/effect-applier.mjs:583 @ 4b4588d7` — by `def.name`, the id only when there is none.

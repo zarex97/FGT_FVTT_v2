@@ -10,8 +10,8 @@ pattern: hidden-timing-rule
 Horrors the miss sends.
 **Actual:** "5 of 5 Elder Horror appear around Caster." was posted first, then "Caster rolls 56 against 10% for
 Prelati's Spellbook: Gigantic Horror: it does not happen."
-**Cause:** `module/engine/applier.mjs:1187 @ d97795b9` — the log intent ran its side effects (`summonAround`,
+**Cause:** `module/engine/applier.mjs:1187 @ ce40e2d7` — the log intent ran its side effects (`summonAround`,
 `split`, `transform`) inside the loop before `io.log` posted the batch's lines, so a consequence was said before
 the line that caused it.
-**Fix:** `module/engine/applier.mjs:1197 @ 965a7cc5` — `io.log` posts the batch first, then the side effects
+**Fix:** `module/engine/applier.mjs:1197 @ 0c5e1ad7` — `io.log` posts the batch first, then the side effects
 run; test "the missed die is said before the Elder Horrors it brings".

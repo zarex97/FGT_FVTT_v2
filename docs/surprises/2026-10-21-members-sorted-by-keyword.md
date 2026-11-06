@@ -16,7 +16,7 @@ that the keyword pass had filed as Members. The engine has no Class option (#286
 (#287), no mode extension or count end (#288), no hidden statblock (#289) and no summon split (#290). It also
 found three more outcome-sized cooldowns (#285).
 
-**Cause:** `.claude/skills/survey-class/SKILL.md @ 3530fb5b` step 2 said *"Judge a group by its head"*. It did not
+**Cause:** `.claude/skills/survey-class/SKILL.md @ 1c8fff12` step 2 said *"Judge a group by its head"*. It did not
 forbid a keyword lead, and `tools/sheet-kin.mjs` clipped what it showed. A keyword names the Shape a Clause
 mentions, not whether the engine runs it.
 

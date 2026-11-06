@@ -28,6 +28,25 @@ It installs Node 24 at `/opt/node24` and three commands:
 The setup script cannot read the environment's variables, so the licence is read by `fvtt-up`, in the
 session. Set `foundry_license` among the environment's variables.
 
+## No credit in a session's commits
+
+A session does not read `~/.claude/settings.json`, so this repository commits the `attribution` key in
+`.claude/settings.json`, which removes the commit trailer, the pull request line and the session link. A
+cloud thread in a project does not read that file, and neither does a session across several repositories:
+`CLAUDE.md` says the rule for those. Another repository needs the key committed in its own file.
+
+That key does not choose the author: sessions here have committed as `Claude <noreply@anthropic.com>`.
+Set the Git identity among the environment's variables, which reach every repository the environment opens:
+
+```
+GIT_AUTHOR_NAME=zarex97
+GIT_AUTHOR_EMAIL=131675618+zarex97@users.noreply.github.com
+GIT_COMMITTER_NAME=zarex97
+GIT_COMMITTER_EMAIL=131675618+zarex97@users.noreply.github.com
+```
+
+In a session, `git var GIT_AUTHOR_IDENT` shows what the next commit will carry. See ADR-0007.
+
 ## Moving the world
 
 A session cannot be reached from outside and the PC cannot be attached to one, so a world travels through

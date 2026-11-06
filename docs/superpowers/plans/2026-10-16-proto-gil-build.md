@@ -2,7 +2,7 @@
 
 **2026-10-16.** Builds the 103 Clauses of `docs/superpowers/specs/2026-10-16-proto-gil-clauses.md` (issue
 #232) under its 22 rulings, then presses every one live. Worktree `../wt-protogil`, branch
-`claude/protogil-audit`, from `d490972`. Built by me, one piece at a time, no agents.
+`claude/protogil-audit`, from `31ac787`. Built by me, one piece at a time, no agents.
 
 **The rule for every piece:** reuse the generic path another sheet already uses; where it falls
 short, extend it generically so the next sheet with the same words gets it for free. Each extension

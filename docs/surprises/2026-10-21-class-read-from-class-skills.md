@@ -14,7 +14,7 @@ Class Skills: Durga *"Saber, could be Rider"* (Magic Resistance A, Riding A), Si
 and Sieg is my second. Fifteen of the sixteen sheets print no Class at all; only Lanceturia's does, *"Arturia
 (Lancer)"*.
 
-**Cause:** `char_orig_sheets/Copia de Durga.md @ 0c3914eb` — a Class Skill is not a Class: Riding and Magic Resistance
+**Cause:** `char_orig_sheets/Copia de Durga.md @ eb6d1364` — a Class Skill is not a Class: Riding and Magic Resistance
 sit on Archers, Sabers and Riders alike, and this game's sheets bend the defaults. It is the Anastasia & Viy shape
 again (a Class the sheet never prints, filled in by inference), caught this time because the readings were asked.
 

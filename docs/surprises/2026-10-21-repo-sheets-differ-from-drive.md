@@ -15,7 +15,7 @@ a buff, and it carries no-Day-Night alternates and an "Old Effect" Numeral of th
 lines, Achilles and Penthesilea on 63 each.
 
 **Cause:** `char_orig_sheets/by-class/Saber/Gawain.md` (exported 2026-10-21) against `char_orig_sheets/Copia de
-Gawain.md @ 3530fb5b`. The repo copies are snapshots taken when each sheet was added. Nothing tracks the Drive text
+Gawain.md @ 1c8fff12`. The repo copies are snapshots taken when each sheet was added. Nothing tracks the Drive text
 after that, so a sheet edited in Drive leaves its built Servant on the old text unseen. Which side is newer for each
 sheet is not yet known. The user said some Drive files needed adjusting before they could be read.
 

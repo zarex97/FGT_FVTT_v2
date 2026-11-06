@@ -10,6 +10,6 @@ pattern: two-readers-one-rule
 as the destruction card beside it did.
 **Actual:** the roll read *"Gilles's Luck Check fails: Prelati's Spellbook is destroyed."* on a public card while
 his identity was concealed.
-**Cause:** `module/engine/weak-point.mjs:198 @ 965a7cc5` — `resolveObjectAim` named him by `defenderDoc.name`, the
+**Cause:** `module/engine/weak-point.mjs:198 @ 0c5e1ad7` — `resolveObjectAim` named him by `defenderDoc.name`, the
 document's name, not `shownName`, the one reader of a Unit's public name.
-**Fix:** `module/engine/weak-point.mjs:198 @ 965a7cc5` — the name is `shownName(defenderDoc, view)`.
+**Fix:** `module/engine/weak-point.mjs:198 @ 0c5e1ad7` — the name is `shownName(defenderDoc, view)`.

@@ -10,7 +10,7 @@ pattern: claim-without-reading-the-path
 to halve that cut (#243 reading 11).
 **Actual:** Probed through `computeDamage`: 300 in, Invuln on the defender, a Normal Attack 0, an NP **300**. No
 stage read Invuln against an NP.
-**Cause:** `module/rules/damage/pipeline.mjs:1193 @ a27e058f` said *"The NP halving already happened at stage 15"*
+**Cause:** `module/rules/damage/pipeline.mjs:1193 @ 72cbaca6` said *"The NP halving already happened at stage 15"*
 and skipped the NP; stage 15 has no Invuln reader, nor does any other file. Ch. 22 repeated the comment.
-**Fix:** `module/rules/damage/pipeline.mjs:1198 @ 5101f86f` cuts an NP by 50%, by 25% under Penetration;
+**Fix:** `module/rules/damage/pipeline.mjs:1198 @ 24f8c657` cuts an NP by 50%, by 25% under Penetration;
 `kiritsugu-243-rulings.test.mjs` asserts 150 and 225.

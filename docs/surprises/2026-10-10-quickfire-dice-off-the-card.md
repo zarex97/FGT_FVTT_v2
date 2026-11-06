@@ -11,8 +11,8 @@ pattern: producer-without-consumer
 
 **Actual:** the breakdown read "6 of 6 dice at 2+" and the card had no Rolls section at all.
 
-**Cause:** `module/engine/attack.mjs:1565 @ 08ea4b1` wrote the record to `state.rollLog`; the card renders
+**Cause:** `module/engine/attack.mjs:1565 @ 50c5731` wrote the record to `state.rollLog`; the card renders
 `state.rolls` (`module/apps/chat/cards.mjs:167`), which `rollRecords` fills.
 
-**Fix:** `module/engine/attack.mjs @ d162f50` — the threshold record rides `result.modifierRolls` into
+**Fix:** `module/engine/attack.mjs @ efd49e2` — the threshold record rides `result.modifierRolls` into
 `rollRecords`, beside the modifier dice.

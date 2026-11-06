@@ -25,7 +25,7 @@ const servant = (system = {}, items = []) => ({
 const master = { id: "m", name: "Master", type: "master", system: {} };
 
 describe("a write the test world used to accept, and Foundry drops", () => {
-  it("throws on a write beneath a scalar field (abf8ac2)", async () => {
+  it("throws on a write beneath a scalar field (9105c33)", async () => {
     await withWorld({ actors: [master] }, async (w) => {
       await expect(w.actor("Master").update({ "system.commandSpells.value": 1 })).rejects.toThrow(/commandSpells/);
     });

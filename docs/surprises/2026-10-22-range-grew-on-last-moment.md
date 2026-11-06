@@ -10,8 +10,8 @@ pattern: hidden-timing-rule
 of the next Round"*: a Round with Nemo beside it at every Turn's end holds the growth back.
 **Actual:** Nemo stood next to the Gigantic Horror through Round 25; it was moved off in the GM's slot, the Round's
 last Turn, and "No Unit came within reach of Caster this Round: its Range grows to 4." followed.
-**Cause:** `module/engine/form-range.mjs:24 @ d97795b9` — `growFormRanges` read the board once, as the Round ended:
+**Cause:** `module/engine/form-range.mjs:24 @ ce40e2d7` — `growFormRanges` read the board once, as the Round ended:
 the last moment stood in for the whole Round, and the unit test called it with nothing in between.
-**Fix:** `module/engine/form-range.mjs @ 965a7cc5` — `noteFormReach` marks the Round (`formRangeSeen`) at every
+**Fix:** `module/engine/form-range.mjs @ 0c5e1ad7` — `noteFormReach` marks the Round (`formRangeSeen`) at every
 Turn's end with a Unit in reach, and the Round's end grows only an unmarked Round; test "a Unit in reach at any
 Turn's end holds that Round's growth, though it left before the Round ended".

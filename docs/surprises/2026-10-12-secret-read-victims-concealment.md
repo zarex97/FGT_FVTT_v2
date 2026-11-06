@@ -8,5 +8,5 @@ pattern: assumed-shape
 ---
 **Expected:** Serenity concealed, her Turn ends, Zabaniya P2's aura inflicts Secret Poison on every Unit within 2.
 **Actual:** five Units took Poison, every instance `visibility: public`, `attributionHidden: false`, `sourceUnitId` hers. The Poison was open while she was concealed.
-**Cause:** `module/engine/scheduler.mjs:1252 @ 50a76fe` — `concealedNow(u)`; for a `target: nearby` action `dispatch` hands each recipient in as `u` and the bearer as `c.bearer`, so it asked whether the victim was concealed.
-**Fix:** `module/engine/scheduler.mjs:1255 @ 62aa8fc` — `concealedNow(c.bearer ?? u)`, the inflicter's concealment.
+**Cause:** `module/engine/scheduler.mjs:1252 @ b2a2d74` — `concealedNow(u)`; for a `target: nearby` action `dispatch` hands each recipient in as `u` and the bearer as `c.bearer`, so it asked whether the victim was concealed.
+**Fix:** `module/engine/scheduler.mjs:1255 @ a075b41` — `concealedNow(c.bearer ?? u)`, the inflicter's concealment.

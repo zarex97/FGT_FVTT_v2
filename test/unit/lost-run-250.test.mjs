@@ -5,7 +5,7 @@
  *
  * Found live during #249: Rain of Light's Processes wrote the damage, then held
  * the Command Spell window; the GM page was reloaded, `react` answered again,
- * and Kingprotea took the damage twice (1700 → 986 → 487). After 12f979b2 wrote
+ * and Kingprotea took the damage twice (1700 → 986 → 487). After 7f8e2aa8 wrote
  * the held rung before holding it, the same reload left Medea's card at
  * `injury` for good (pressed 2026-10-19): no run was left to drive it.
  */

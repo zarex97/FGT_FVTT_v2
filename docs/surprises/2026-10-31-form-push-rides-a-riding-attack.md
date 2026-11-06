@@ -8,5 +8,5 @@ pattern: generic-path-escapes-special-case
 ---
 **Expected:** Ruling 10: the Form's 2x2 and knockback do not add to her Riding Attack.
 **Actual:** 'AlterEgo is knocked back 1 panel by Pretender.' after her ride (tick 6).
-**Cause:** `packs/_source/effects/shisarot-form.yml:73 @ 7b1e3c86` — the push's predicate was `attack:kind:normal`, and a ride is one.
-**Fix:** `packs/_source/effects/shisarot-form.yml:73 @ fd0d2bbe` — `not:attack:kind:ridingAttack`; pressed live at tick 14: no push.
+**Cause:** `packs/_source/effects/shisarot-form.yml:73 @ 219a56dc` — the push's predicate was `attack:kind:normal`, and a ride is one.
+**Fix:** `packs/_source/effects/shisarot-form.yml:73 @ 9d2236d7` — `not:attack:kind:ridingAttack`; pressed live at tick 14: no push.

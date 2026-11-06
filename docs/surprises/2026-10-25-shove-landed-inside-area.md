@@ -10,8 +10,8 @@ pattern: assumed-shape
 **Actual:** Caladbolg's 3x3 around Drake at (5,5), her Master at (5,6): the shove landed the Master on (4,5), inside
 the blast. Found writing `test/unit/cover-shove-press.test.mjs`, asked for by the user to check Cover and the shove
 away from the live match.
-**Cause:** `module/engine/attack.mjs:2720 @ cc1d8e41` — `resolveCover` took "the area" to be the panels its
+**Cause:** `module/engine/attack.mjs:2720 @ 901bea6d` — `resolveCover` took "the area" to be the panels its
 defenders stand on, so every empty panel of the area read as outside it, for the shove and for "the Servant is
 within the NP area".
-**Fix:** `module/engine/attack.mjs:2730 @ d3452f94` — the area is the attack's own `areaPanels`, the defenders'
+**Fix:** `module/engine/attack.mjs:2730 @ 5ed93116` — the area is the attack's own `areaPanels`, the defenders'
 panels only when it carries none. The test fails without it.

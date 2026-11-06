@@ -10,7 +10,7 @@ pattern: two-readers-one-rule
 Units within a 2 panel area"*, enemies among them, and Presence Concealment clause 7 refuses an Active Skill
 *"targeting/affecting an enemy Unit"*.
 **Actual:** `canUseWhileConcealed` on his live Affection answered `{ok: true}`.
-**Cause:** `module/rules/concealment.mjs#canUseWhileConcealed @ a27e058f` read only the ability's own `targeting`
+**Cause:** `module/rules/concealment.mjs#canUseWhileConcealed @ 72cbaca6` read only the ability's own `targeting`
 (himself); the phase that reaches the enemies carries a `targeting` of its own, which the use path reads
 (`skill-use.mjs#phaseTargets`) and clause 7 did not.
-**Fix:** `module/rules/concealment.mjs#canUseWhileConcealed @ 5101f86f` reads every phase's targeting as well.
+**Fix:** `module/rules/concealment.mjs#canUseWhileConcealed @ 24f8c657` reads every phase's targeting as well.

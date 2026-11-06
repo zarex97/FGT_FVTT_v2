@@ -13,9 +13,9 @@ the user restated it on 2026-10-22. `rules/environment.mjs#phase` alternates fro
 Day and all its odd Rounds were Day. The `none` choice, *"playing without the Day-Night cycle"*, had no writer
 either.
 
-**Cause:** `module/data/misc.mjs:174 @ 8815e1de`. `phase` was declared with a reader in
-`module/engine/board.mjs:498 @ 8815e1de`, and the setup path (`engine/war-setup.mjs#commitWar`) never wrote it.
+**Cause:** `module/data/misc.mjs:174 @ c24c9f29`. `phase` was declared with a reader in
+`module/engine/board.mjs:498 @ c24c9f29`, and the setup path (`engine/war-setup.mjs#commitWar`) never wrote it.
 
-**Fix:** `module/engine/war-setup.mjs#flipOpeningPhase @ c0e8ac9e`. `commitWar` flips `1d2` and says the
+**Fix:** `module/engine/war-setup.mjs#flipOpeningPhase @ 05da5e9e`. `commitWar` flips `1d2` and says the
 result on a card. The War Rule `dayNightCycle` switches the cycle off, read by `rules/environment.mjs#roundPhase`
 (#314).

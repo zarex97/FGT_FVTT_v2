@@ -13,8 +13,8 @@ is the Resurface control.
 stood, Nemo and his Master were still on its Level, and `self:skillActive:zeroSail` was false — so
 Voyager of the Storm's and Journey's Guidance's Storm Border branches stopped reaching anyone aboard.
 
-**Cause:** `packs/_source/abilities/nemo-zero-sail.yml @ 08ea4b1` is an ordinary mode, which its owner
+**Cause:** `packs/_source/abilities/nemo-zero-sail.yml @ 50c5731` is an ordinary mode, which its owner
 may toggle; nothing tied the switch to the dimension.
 
-**Fix:** `packs/_source/abilities/nemo-zero-sail.yml @ d162f50` — `deactivation: { byOwner: false }`;
+**Fix:** `packs/_source/abilities/nemo-zero-sail.yml @ efd49e2` — `deactivation: { byOwner: false }`;
 the resurface switches it off on the forced path.

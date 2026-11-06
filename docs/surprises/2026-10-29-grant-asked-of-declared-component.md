@@ -12,9 +12,9 @@ Attack; `tamamo-353.test.mjs` said so.
 **Actual:** Player1's Normal Attack on Arturia at Range 3: *"Negated by Magic Resistance"*, `resistance:magicResistance
 −211.4`, 0 dealt.
 
-**Cause:** `module/engine/attack.mjs:8193 @ 60958e67`: the conditional grant was asked of the component the declaration
+**Cause:** `module/engine/attack.mjs:8193 @ bd007c46`: the conditional grant was asked of the component the declaration
 stamps (`str`, before any distance), filled from the band only when it was missing. The test handed `attackFacts` a
 state with no component, which no caller does.
 
-**Fix:** `module/engine/attack.mjs:8193 @ ebad7a6b`: a Normal Attack's grant is asked of the band at this distance,
+**Fix:** `module/engine/attack.mjs:8193 @ 9871bce7`: a Normal Attack's grant is asked of the band at this distance,
 always. The test now states `component: "str"` as the declaration does, and a second plays the Attack.

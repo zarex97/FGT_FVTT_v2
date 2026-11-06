@@ -2,7 +2,7 @@
 
 **2026-10-16.** Builds the 119 Clauses of `docs/superpowers/specs/2026-10-16-arturia-clauses.md` under
 its 25 rulings, then presses every one live. Worktree `../wt-arturia`, branch `claude/arturia-audit`,
-from `b4464ed`. Built by me, one piece at a time, no agents.
+from `9c4043f`. Built by me, one piece at a time, no agents.
 
 **The rule for every piece:** reuse the generic path another sheet already uses; where it falls
 short, extend it generically so the next sheet with the same words gets it for free. Each extension

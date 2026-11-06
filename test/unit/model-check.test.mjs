@@ -87,7 +87,7 @@ describe("the model check", () => {
     expect(problems.map((p) => p.message).join("\n")).toMatch(/system\.mov/);
   });
 
-  it("keeps an authored null exactly as authored (46a26a8)", async () => {
+  it("keeps an authored null exactly as authored (73bc35d)", async () => {
     const out = compileDocument(servant({ type: "platform", id: "probe-platform", footprint: null }), "platforms", new Map());
     expect(out.system.footprint).toBeNull();
   });

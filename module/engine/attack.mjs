@@ -6011,7 +6011,7 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   //
   // And a Unit with NO Health is not at 0 (#180). Pale Rider's null read as 0
   // here, so any hit on him -- even one his nature negated to 0 -- ran the
-  // defeat chain, and Asterios defeated him with a 0. Hidden until 6376e1a,
+  // defeat chain, and Asterios defeated him with a 0. Hidden until eef7d99,
   // because until then a stale 1500 sat where his null belongs.
   if (isUndamageable(defender)) return [];
   const remaining = currentHealth(defender) - damage;

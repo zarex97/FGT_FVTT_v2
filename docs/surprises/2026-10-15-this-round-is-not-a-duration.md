@@ -13,9 +13,9 @@ pattern: passes-for-the-wrong-reason
 EMIYA used while holding AC or BC would have thrown inside the Damage Step (reproduced: Hrunting on a Unit with AC held
 in the arena, `FGT | Cannot parse duration "thisRound"`). The guard was green the whole time.
 
-**Cause:** `test/unit/content-ticks.test.mjs:19 @ 7231295` — the guard walks keys named `ticks` only, and an
-`ApplyEffect` hands `parseTick` its `duration`. `packs/_source/effects/activated-circuits.yml:55 @ 7231295` and
+**Cause:** `test/unit/content-ticks.test.mjs:19 @ 1f1a549` — the guard walks keys named `ticks` only, and an
+`ApplyEffect` hands `parseTick` its `duration`. `packs/_source/effects/activated-circuits.yml:55 @ 1f1a549` and
 `blazing-circuits.yml:40` authored the one string in the corpus that is neither a ◈ span nor a named event.
 
-**Fix:** `test/unit/content-ticks.test.mjs:19 @ d9a77c1` — the guard reads `duration` and `defaultDuration` too (it
-finds exactly those two); the Circuits say `until roundEnd` (`packs/_source/effects/ac-next-np.yml @ d9a77c1`).
+**Fix:** `test/unit/content-ticks.test.mjs:19 @ 22a42ca` — the guard reads `duration` and `defaultDuration` too (it
+finds exactly those two); the Circuits say `until roundEnd` (`packs/_source/effects/ac-next-np.yml @ 22a42ca`).

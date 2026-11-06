@@ -10,8 +10,8 @@ pattern: role-keyed-on-type
 **Actual:** R50, card "Conquest: Lancer is now contracted to Master of Saber of Faction 1 and fights for Faction 1.
 Master of Saber of Faction 1 gains 3 Command Spell(s) usable only on Lancer." — he was re-contracted to the Master he
 had just killed, who lay defeated.
-**Cause:** `module/rules/contract.mjs:185 @ 630495df` — Conquest asked who claims for the killer (its own Master) and
+**Cause:** `module/rules/contract.mjs:185 @ ae843342` — Conquest asked who claims for the killer (its own Master) and
 never whether the dead Master was that very Master: a killer's role read off its `masterId`, not off the contract it
 was breaking.
-**Fix:** `module/rules/contract.mjs:189 @ 2f18de06` — a Servant that kills its own Master conquers nobody
+**Fix:** `module/rules/contract.mjs:189 @ 2f651e0b` — a Servant that kills its own Master conquers nobody
 (`ownMaster`); its Servants go Free, with the card "No Conquest: {killer} killed its own Master".

@@ -16,7 +16,7 @@ import { playAttack } from "../helpers/process.mjs";
 beforeAll(prepareSubjects, 120_000);
 const round4 = (faction) => ({ tokens: true, combat: { round: 4, started: true, system: { globalTurn: 10 }, actingFactionId: faction } });
 
-describe("P1 — a phase's resistance exemption reaches its riders (#199 reading 11, fix 50a76fe)", () => {
+describe("P1 — a phase's resistance exemption reaches its riders (#199 reading 11, fix b2a2d74)", () => {
   // Zabaniya's riders ignore Magic Resistance: *"cannot be resisted by Magic
   // Resistance"*. Scáthach's only resistance is her Magic Resistance (25).
   // Every die lands on 38: Skill Seal's 50% lands when the exemption holds,
@@ -39,7 +39,7 @@ describe("P1 — a phase's resistance exemption reaches its riders (#199 reading
   });
 });
 
-describe("P2 — a ring's chance is read wherever a rider lands (fix d162f50)", () => {
+describe("P2 — a ring's chance is read wherever a rider lands (fix efd49e2)", () => {
   // Triton's Conch: Deafen at 100% on the inner ring, 50% on the outer.
   // Every die lands on 70: the inner target is Deafened and the outer is not.
   it("Deafens the inner ring and resists on the outer one at 70", async () => {
@@ -67,7 +67,7 @@ describe("P2 — a ring's chance is read wherever a rider lands (fix d162f50)", 
   });
 });
 
-describe("P3 — Normal-Attack riders stay off a Noble Phantasm (#199, fix 62aa8fc)", () => {
+describe("P3 — Normal-Attack riders stay off a Noble Phantasm (#199, fix a075b41)", () => {
   // Serenity's Projectile poisons on a successful NORMAL Attack. Pressed live,
   // her Zabaniya fired them too: the hearer's options carried an invented
   // `attack:kind:normal`. Every die lands on 1, so every rider that may fire does.

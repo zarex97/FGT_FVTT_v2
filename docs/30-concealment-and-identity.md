@@ -130,7 +130,7 @@ and Sasaki's sheets print it, the War's Classic/Revised pick decides whether eve
 **Through, not onto (#226 reading 28).** *"Move to any panel regardless of enemy Master-Servant positions"* lets a
 concealed Unit walk through occupied panels and past a guarded Master, never end its Move on another Unit, for every
 holder of Presence Concealment. `rules/movement.mjs#canStopOn` reads `STOPS_ON_OCCUPIED`, which holds Huge Scale
-only; `canPassThrough` and the Master-guard check still read `IGNORES_BLOCKING`. Since `c09981e` it could stop there.
+only; `canPassThrough` and the Master-guard check still read `IGNORES_BLOCKING`. Since `2f3d9be` it could stop there.
 
 **A roll line is public too (#230).** A Process's roll records ship on the card every client reads, so their lines
 name each Unit as the table knows it (`attack.mjs#shownName`, through `publicIdentityOf`): "Saber's Instinct: 50

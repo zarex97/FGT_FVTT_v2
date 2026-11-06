@@ -22,7 +22,7 @@
 
 ## Baseline
 
-`npx vitest run` is **2679 passing** at branch head (`9dc81dd`). A task that moves that number without adding tests has broken something.
+`npx vitest run` is **2679 passing** at branch head (`4602833`). A task that moves that number without adding tests has broken something.
 
 ## World fixtures
 

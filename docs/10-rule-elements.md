@@ -91,9 +91,9 @@ a general field-level drift test as a follow-up, since this fix closed the one i
 the class.
 
 **Copying a fixed list of fields out of an authored rule.** Seven Silent Drops had this shape:
-`r.effect ?? r` dropped the `duration` and `magnitude` beside a nested effect (f0bfedf, ed4a77b);
-an `Aura` copied a list without `check` (8037d25); `CheckModifier` dropped `roll` (75713bb);
-`CritModifier` had no `component` (46a26a8). Every executor builds its contribution field by field,
+`r.effect ?? r` dropped the `duration` and `magnitude` beside a nested effect (0de3c50, 4a8feb3);
+an `Aura` copied a list without `check` (4c2df37); `CheckModifier` dropped `roll` (21cf8c2);
+`CritModifier` had no `component` (73bc35d). Every executor builds its contribution field by field,
 so any key it does not name is gone. **This is now enforced.** `test/unit/rule-survival.test.mjs`
 runs every rule element in the real corpus through the real `collectContributions`, and every phase
 through `effectSpecsOf`, inside a Proxy that records each authored path anything reads. A leaf that

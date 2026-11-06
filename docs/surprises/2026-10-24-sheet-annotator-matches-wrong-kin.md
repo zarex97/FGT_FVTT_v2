@@ -13,7 +13,7 @@ Clause to the key that runs it and a built precedent (deepenings plan Q6/Q13), s
 RH.dmg ("None met: 3x damage plus 200") came back `Ability.delivery · gap: none (#281)`, though the Range wall
 (#234) and the criteria multiplier (#319) run them. RH.c2 read `Phase.applyEffects: negate an Attack`. 36 of 100
 Clauses got no Kin, all six criteria among them, though `field.criteria` runs them.
-**Cause:** `tools/lib/capabilities.mjs:584 @ 20ab1afc`: when no sheet Clause sits under the same Ability heading
+**Cause:** `tools/lib/capabilities.mjs:584 @ 615ae9b3`: when no sheet Clause sits under the same Ability heading
 it scores the short claim against every Clause of the sheet, and a few shared words ("used during … Turn") pick
 another Ability's Clause; `:601` then takes the first ledger verdict of that Clause's Kin group, never the key
 named by the claim. A short claim has too few word pairs to anchor either step.

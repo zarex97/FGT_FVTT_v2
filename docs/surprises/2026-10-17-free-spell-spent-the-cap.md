@@ -9,8 +9,8 @@ pattern: two-readers-one-rule
 **Expected:** On Faction 2's Turn Player1 took Return Fire with Penetration as the free Spell, then Reinforcement at
 the shot's Combat Phase: the free Spell *"does not count towards the one Thaumaturgy Spell usage per Turn"*.
 **Actual:** GM console *"Thaumaturgy: Reinforcement cannot be used: categoryUseLimit."*; no N.Atk Up on the shot.
-**Cause:** `module/engine/skill-use.mjs:228 @ a27e058f` recorded the free use like any other, and
-`module/rules/costs.mjs#categoryLimitFor @ a27e058f` counted every recorded use: the exemption covered the free use's
+**Cause:** `module/engine/skill-use.mjs:228 @ 72cbaca6` recorded the free use like any other, and
+`module/rules/costs.mjs#categoryLimitFor @ 72cbaca6` counted every recorded use: the exemption covered the free use's
 own gate and not the count the next use reads.
-**Fix:** `module/engine/io.mjs#recordUse @ 5101f86f` keeps `turnState.categoryExempt`, declared on the DataModel and
-`TURN_RECORD`; `module/rules/costs.mjs#categoryLimitFor @ 5101f86f` reads it off.
+**Fix:** `module/engine/io.mjs#recordUse @ 24f8c657` keeps `turnState.categoryExempt`, declared on the DataModel and
+`TURN_RECORD`; `module/rules/costs.mjs#categoryLimitFor @ 24f8c657` reads it off.

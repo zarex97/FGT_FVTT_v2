@@ -10,7 +10,7 @@ pattern: rule-word-read-one-way
 successful Evade, so a Master who does nothing or Blocks is shoved or covered too.
 **Actual:** Cover ran only after a failed Evade roll, or an Attack nobody may Evade. A Master who answered Do nothing
 took the blast with its Servant beside it.
-**Cause:** `module/engine/attack.mjs:2107 @ cc1d8e41` — `answerRung` called `resolveCover` from the Evade branch and
+**Cause:** `module/engine/attack.mjs:2107 @ 901bea6d` — `answerRung` called `resolveCover` from the Evade branch and
 for `unavoidable` only; "fails to Evade" had been read as "rolled an Evade and failed".
-**Fix:** `module/engine/attack.mjs @ d3452f94`, `answerRung` — Do nothing and Block call `resolveCover` too. Test:
+**Fix:** `module/engine/attack.mjs @ 5ed93116`, `answerRung` — Do nothing and Block call `resolveCover` too. Test:
 `test/unit/cover-shove-press.test.mjs`.

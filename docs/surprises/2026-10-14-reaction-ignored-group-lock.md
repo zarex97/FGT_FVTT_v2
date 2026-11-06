@@ -8,5 +8,5 @@ pattern: two-readers-one-rule
 ---
 **Expected:** With the Monstrous Snake copy cooling, the Eye of the Mind copy is locked ("Cannot be used if Wisdom of Dún Scáith (Skill 2) … is on Cooldown"), as the bar said.
 **Actual:** Karna's Brahmastra card offered "Eye of the Mind (False) (copied)" as a reaction.
-**Cause:** `module/rules/reactions.mjs:72 @ 4983091` — a reaction checks only the requirement kinds in `SELF_REQUIREMENTS`, and `abilityOffCooldown` was not one; the bar's gate reads every requirement.
-**Fix:** `module/rules/reactions.mjs:72 @ cde0483` — `abilityOffCooldown` joins the list, checked with the ability itself so it can leave itself out.
+**Cause:** `module/rules/reactions.mjs:72 @ 7c6fb2e` — a reaction checks only the requirement kinds in `SELF_REQUIREMENTS`, and `abilityOffCooldown` was not one; the bar's gate reads every requirement.
+**Fix:** `module/rules/reactions.mjs:72 @ 424d068` — `abilityOffCooldown` joins the list, checked with the ability itself so it can leave itself out.

@@ -8,5 +8,5 @@ pattern: generic-path-escapes-special-case
 ---
 **Expected:** The forest affects *"all enemy Units within a 2 panel area"*: a defeated Unit is no longer one.
 **Actual:** Heracles was defeated on tick 25 and his body stood its one Turn; Round 8's end read *"Berserker: Nameless Forest: resisted, rolled 97 vs 90%"*: the forest rolled on the body.
-**Cause:** `module/engine/scheduler.mjs#targetsOf @ eebbb988`, case `nearby`, filtered by distance and relation only; bodies stay on the board one Turn (`clearBodies`, #65 ruling 25), inside every radius.
-**Fix:** `module/engine/scheduler.mjs#targetsOf @ 7755ebb4` leaves defeated Units out; `nursery-247-rulings.test.mjs` ends a Round beside a body and a live foe.
+**Cause:** `module/engine/scheduler.mjs#targetsOf @ 6c5306e1`, case `nearby`, filtered by distance and relation only; bodies stay on the board one Turn (`clearBodies`, #65 ruling 25), inside every radius.
+**Fix:** `module/engine/scheduler.mjs#targetsOf @ 4ee3ca9a` leaves defeated Units out; `nursery-247-rulings.test.mjs` ends a Round beside a body and a live foe.

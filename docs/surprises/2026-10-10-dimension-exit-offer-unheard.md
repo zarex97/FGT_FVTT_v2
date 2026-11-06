@@ -12,8 +12,8 @@ pattern: producer-without-consumer
 **Actual:** reading the code for the #191 audit, `runDimensionClock` only raised
 `fgtDimensionExitOffer`, and `grep` found no `Hooks.on` for it anywhere. Nothing ever surfaced.
 
-**Cause:** `module/engine/dimension.mjs:417 @ 08ea4b1` — the boundary handed the decision to a placement
+**Cause:** `module/engine/dimension.mjs:417 @ 50c5731` — the boundary handed the decision to a placement
 layer through a hook, and that layer was never written. The unit tests covered the pure half only.
 
-**Fix:** `module/engine/dimension.mjs:807 @ d162f50` — the clock carries out a plan pressed on Nemo's
+**Fix:** `module/engine/dimension.mjs:807 @ efd49e2` — the clock carries out a plan pressed on Nemo's
 Resurface control, or surfaces on his panel at the ceiling; nothing waits on a listener.

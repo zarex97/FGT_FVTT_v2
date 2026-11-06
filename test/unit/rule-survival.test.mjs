@@ -4,9 +4,9 @@
  *
  * Seven Silent Drops had one shape: code that copied a FIXED list of fields out
  * of an authored rule and never looked at the rest. `r.effect ?? r` dropped the
- * `duration` and `magnitude` beside a nested effect (f0bfedf, ed4a77b); an Aura
- * copied a list without `check` (8037d25); CheckModifier dropped `roll`
- * (75713bb); a CritModifier had no `component` (46a26a8).
+ * `duration` and `magnitude` beside a nested effect (0de3c50, 4a8feb3); an Aura
+ * copied a list without `check` (4c2df37); CheckModifier dropped `roll`
+ * (21cf8c2); a CritModifier had no `component` (73bc35d).
  *
  * So every rule element in the REAL corpus is run through the REAL collection —
  * `collectContributions`, which orders it, tests it, normalizes it and hands it
