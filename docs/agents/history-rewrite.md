@@ -1,7 +1,7 @@
 # Rewriting a repository's history
 
-On 2026-11-06 this repository's history was rewritten to remove AI-tool credits (ADR-0007). Every commit
-ID changed, and file contents did not. This page is how to catch up a clone, and how to run the same
+On 2026-11-06 this repository's history and eleven of the owner's others were rewritten to remove AI-tool
+credits (ADR-0007). Commit IDs changed, and file contents did not. This page is how to catch up a clone, and how to run the same
 rewrite on another repository.
 
 ## Catching up a clone made before the rewrite
@@ -23,7 +23,7 @@ a report written outside this repository may be an old one: the map translates i
 1. Back up every ref, the pull refs too: `git clone --mirror`, then `git bundle create <file> --all` into a folder outside the clone.
 2. Rewrite a `git clone --bare`, which holds branches and tags and no pull refs. `git-filter-repo` with `--mailmap`, `--message-callback` and `--prune-empty never --prune-degenerate never`, so no commit is dropped.
 3. Check against the mirror, commit by commit through `commit-map`: same tree, same parents, same dates. Search the new messages for what should be gone and read each hit: a sentence naming `claude.ai/code` is not a credit.
-4. Switch off whatever a push sets off: Actions, and any host that deploys from a branch. Railway's documented auto-deploy switch is on the dashboard.
+4. Switch off whatever a push sets off: Actions, and any host that deploys from a branch. Railway's documented auto-deploy switch is on the dashboard, and its CLI has none. A force-push does start a Railway deployment: on 2026-11-06, six services rebuilt and came back `SUCCESS`, and two were `SKIPPED` with *"No changes to watched files"*, which leaves the live deployment running. Skipped is not failed.
 5. Force-push branches and tags with `--atomic` and `--force-with-lease=<ref>:<old-id>` for each ref, so a ref that moved since the backup refuses the push.
 6. Leave Actions off until GitHub has drained the push. The runs are created after the push returns, not during it. Switch them back on only when no new run has appeared for some minutes, then cancel any run that landed.
 7. Move every other clone's branches through `commit-map`, after fetching: a ref cannot point at a commit not yet in the clone.
