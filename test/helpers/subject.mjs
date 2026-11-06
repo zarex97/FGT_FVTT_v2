@@ -4,9 +4,9 @@
  *
  * A fixture written in the shape a reader expects can only confirm that reader.
  * At least eight Silent Drops hid behind one: an Aura's post-executor shape
- * hand-written WITH the `check` the executor dropped (8037d25), a document shape
- * where the reader was handed a flattened snapshot (7c76746), `grantedSteps` and
- * `unremovable` injected by hand (610c3b6, #80), a fixture that was "my
+ * hand-written WITH the `check` the executor dropped (4c2df37), a document shape
+ * where the reader was handed a flattened snapshot (836e39d), `grantedSteps` and
+ * `unremovable` injected by hand (cd08bd5, #80), a fixture that was "my
  * assumption, which can only confirm my assumption" (#19). Every fix that stuck
  * made the test go through real content and the real projection.
  *

@@ -802,11 +802,11 @@ unit on a scene to see for the first time.
 As of this checkpoint, landed and verified (each live in `FGT_2026`, each with passing unit
 tests, full suite green, lint clean):
 
-- **Task 11 (summon variant)** — done, committed (`0ca6bef`).
+- **Task 11 (summon variant)** — done, committed (`d34c929`).
 - **Task 18 (servant file)** — done for the base stats/identity; abilities list is partial
   (grows as each ability below lands). Committed alongside Task 11.
 - **Task 19 (Presence Concealment)** — done, reuses `class-presence-concealment` unmodified.
-- **Task 20 (Item Construction / poison item / Queen's Poison)** — done, committed (`9f91584`).
+- **Task 20 (Item Construction / poison item / Queen's Poison)** — done, committed (`5302fcf`).
   Found and fixed two real, previously-dead engine gaps along the way: the `itemGrant` ability
   phase kind did not exist (nothing let an ability CREATE an item), and `engine/items.mjs`'s
   `toIntents` never resolved a `consumeEffect`'s short-form `{id, duration}` into the

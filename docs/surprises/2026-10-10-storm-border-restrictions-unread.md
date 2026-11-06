@@ -17,5 +17,5 @@ and nothing reads it; the `ForbidCreating` executor (`module/rules/elements.mjs:
 an element on a Unit's own abilities. The second Storm Border key found unread this audit, after
 `terrainTags`.
 
-**Fix:** `module/rules/snapshot.mjs#annotatePlatforms @ d162f50` — every Unit on a dimension's Level
+**Fix:** `module/rules/snapshot.mjs#annotatePlatforms @ efd49e2` — every Unit on a dimension's Level
 runs the dimension's restrictions through the executors and keeps their suppressions.

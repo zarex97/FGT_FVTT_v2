@@ -13,8 +13,8 @@ Ceremonial Reformation raises Max Health.
 `MODIFIABLE_PATHS` (health, agility, luck and the stats), so a delta on any other `.max` is added again on every
 preparation, the Detect defect's shape.
 
-**Cause:** `module/rules/derived.mjs:212 @ 60958e67`: the list of maximums the preparation resets holds no resource pool,
+**Cause:** `module/rules/derived.mjs:212 @ bd007c46`: the list of maximums the preparation resets holds no resource pool,
 and nothing refused a `MaxDelta` outside it.
 
-**Fix:** `tools/lib/content.mjs:1598 @ ebad7a6b`: a `MaxDelta` whose `.max` the preparation does not reset is
+**Fix:** `tools/lib/content.mjs:1598 @ 9871bce7`: a `MaxDelta` whose `.max` the preparation does not reset is
 refused. Yata no Kagami stores the maximum at 6 and its field's `onEnd` puts it back to 3.

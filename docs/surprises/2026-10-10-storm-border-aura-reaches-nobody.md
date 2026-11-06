@@ -13,9 +13,9 @@ for ⅓◈, through the `sCritUpStormBorder` aura on Nemo.
 modifier — not his Master, not Medea, not Nemo.
 
 **Cause:** `packs/_source/effects/s-crit-up-storm-border.yml` gates on `requiresRecipient:
-{ platformContentId: platform-storm-border }`, and `module/rules/snapshot.mjs#annotatePlatforms @ 08ea4b1`
+{ platformContentId: platform-storm-border }`, and `module/rules/snapshot.mjs#annotatePlatforms @ 50c5731`
 stamps `platformContentId` only from a platform token's footprint. A dimension has none. The same root as
 #178.
 
-**Fix:** `module/rules/snapshot.mjs:975 @ d162f50` — every Unit on a dimension's Level is stamped
+**Fix:** `module/rules/snapshot.mjs:975 @ efd49e2` — every Unit on a dimension's Level is stamped
 with its `platformId` and `platformContentId`.

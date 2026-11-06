@@ -10,6 +10,6 @@ pattern: two-readers-one-rule
 
 **Actual:** Karl's Normal Attack from the CPA dealt 224 with the mount's BA(STR) and Arturia did not move.
 
-**Cause:** `module/engine/attack.mjs:7463 @ 8db88035` — `damageStepEnd` fired on the attacker alone; `damageDealt` added a platform's driver, never a rider's mount.
+**Cause:** `module/engine/attack.mjs:7463 @ 5d91e76f` — `damageStepEnd` fired on the attacker alone; `damageDealt` added a platform's driver, never a rider's mount.
 
-**Fix:** `module/engine/attack.mjs:6029 @ 8db88035` — `swingHearers` serves both: the attacker, a mount's driver, and the mount whose swing a rider's Normal Attack is.
+**Fix:** `module/engine/attack.mjs:6029 @ 5d91e76f` — `swingHearers` serves both: the attacker, a mount's driver, and the mount whose swing a rider's Normal Attack is.

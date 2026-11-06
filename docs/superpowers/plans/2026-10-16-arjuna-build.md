@@ -1,6 +1,6 @@
 # Arjuna (#234) — the build plan
 
-Worktree `../wt-arjuna`, branch `claude/arjuna-audit` from `623a3db`. 74 Clauses, 18 readings
+Worktree `../wt-arjuna`, branch `claude/arjuna-audit` from `360ceee`. 74 Clauses, 18 readings
 (`docs/superpowers/specs/2026-10-16-arjuna-clauses.md`). Reuse first; every new piece is generic.
 
 ## A1 — Content from existing pieces

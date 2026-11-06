@@ -14,8 +14,8 @@ s24_luckyEvasion → declined → s23_acceptOrEscape`: a Luck Check to evade any
 escape, both offered for an Evade the sheet says never happened. A passed Lucky Evasion leads to
 `noDamage`.
 
-**Cause:** `module/engine/attack.mjs:1350 @ 08ea4b1` advanced the override as an ordinary `fail`, and
+**Cause:** `module/engine/attack.mjs:1350 @ 50c5731` advanced the override as an ordinary `fail`, and
 `module/engine/combat-process.mjs:46` sends every failed Evade to Lucky Evasion.
 
-**Fix:** `module/engine/combat-process.mjs:47 @ d162f50` — an `evadeRoll:overridden` edge to
+**Fix:** `module/engine/combat-process.mjs:47 @ efd49e2` — an `evadeRoll:overridden` edge to
 `damage`, which the override advances on.

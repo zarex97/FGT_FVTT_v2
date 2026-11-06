@@ -10,6 +10,6 @@ pattern: producer-without-consumer
 
 **Actual:** The CPA at 0 Health: "Carolus Patricius Auctoritas ends. Its owner was defeated."
 
-**Cause:** `module/engine/io.mjs:343 @ 8db88035` — `destroyPlatformsOf` passed `ownerDefeat` for every platform it ends, the defeated one included.
+**Cause:** `module/engine/io.mjs:343 @ 5d91e76f` — `destroyPlatformsOf` passed `ownerDefeat` for every platform it ends, the defeated one included.
 
-**Fix:** `module/engine/io.mjs:345 @ 8db88035` — `destroyed` when the platform itself fell.
+**Fix:** `module/engine/io.mjs:345 @ 5d91e76f` — `destroyed` when the platform itself fell.

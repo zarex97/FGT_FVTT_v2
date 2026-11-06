@@ -11,9 +11,9 @@ pattern: two-readers-one-rule
 **Actual:** the Process state carried `forcedReaction: "block"` and its history read `["react","nothing"]`; the
 breakdown had no Block.
 
-**Cause:** `module/engine/attack.mjs:1744 @ 60958e67`: the declaration answers a reaction rung with no prompt *"nothing"*
+**Cause:** `module/engine/attack.mjs:1744 @ bd007c46`: the declaration answers a reaction rung with no prompt *"nothing"*
 itself, before the automatic step runs; `engine/command-spells.mjs` resumes an interrupted rung the same way. Two more
 readers of the react rung than the one I changed.
 
-**Fix:** `module/engine/attack.mjs:1744 @ ebad7a6b`: both paths ask `combat-process.mjs#forcedAnswer` first, as the
+**Fix:** `module/engine/attack.mjs:1744 @ 9871bce7`: both paths ask `combat-process.mjs#forcedAnswer` first, as the
 automatic step does.

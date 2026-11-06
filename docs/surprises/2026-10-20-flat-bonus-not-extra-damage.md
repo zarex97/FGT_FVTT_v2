@@ -14,10 +14,10 @@ split, and a Kagome Spirit it hits is banished.
 `attack:vsAttribute:dark`. That press happened to be correct, because her Invisible Air was on and
 switches the passive off; the engine probe showed the reader could not have seen the bonus either way.
 
-**Cause:** `module/rules/options.mjs:178 @ 48916996` reads only modifiers whose `direction` is `"dealt"`,
-and `module/rules/elements.mjs#FlatDamage @ 48916996` pushed its contribution with no `direction` at all,
+**Cause:** `module/rules/options.mjs:178 @ 589a6a95` reads only modifiers whose `direction` is `"dealt"`,
+and `module/rules/elements.mjs#FlatDamage @ 589a6a95` pushed its contribution with no `direction` at all,
 so every flat bonus against an Attribute was invisible to the reader.
 
-**Fix:** `module/rules/elements.mjs#FlatDamage @ ca41d4ab` states `direction: "dealt"`; nothing else
+**Fix:** `module/rules/elements.mjs#FlatDamage @ 9d49df22` states `direction: "dealt"`; nothing else
 reads a modifier's direction. Test: `test/unit/gilles-260-rulings.test.mjs`, "counts a flat bonus whose
 predicate names the Attribute".

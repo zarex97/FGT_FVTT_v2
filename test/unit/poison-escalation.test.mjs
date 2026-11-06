@@ -6,7 +6,7 @@
  * > stage increases at the start of a Round if the Unit is still Poisoned."*
  *
  * `beginRound` re-applied each Poison with the new TOTAL as `stage`, and since
- * 7a443f2 the applier reads `stage` as the stages ARRIVING (right for a
+ * df165c3 the applier reads `stage` as the stages ARRIVING (right for a
  * transfer, which carries its depth). Each half had a test, and each test held
  * its own reading: the scheduler's asserted the intent said `stage: 2`, the
  * applier's asserted a transfer's depth arrived whole. So a stage-4 Poison

@@ -2396,7 +2396,7 @@ Unit standing on the caster's platform.
 could not either: *"a platform"*. *"Enemy Units on the ground can only Attack the HGoB with ranged
 Attacks"* says they can, and *"its Health drops to 0"* is how it is destroyed. Step 5 of the resolver
 drops platforms unless an ability names `kinds`, and no Normal Attack does, so `hullTargeting` (built in
-69a4771) was reached by nothing. A platform with Health to lose is now a legal target; the Storm
+8a80b9a) was reached by nothing. A platform with Health to lose is now a legal target; the Storm
 Border, with none, is still excluded.
 
 ### BT. A Unit's Range was measured to a 3x3 target's corner — **fixed 2026-09-30**
@@ -2854,7 +2854,7 @@ all five, moves one reader (Misty Night to `phaseAt`) and keeps Ch. 26 and Ch. 2
 Ruled 2026-10-05 (#185 readings 12 to 14): the panel of the Unit a rule originates from, for every rule. A
 Night-only ability used on a Unit standing in a Day zone is allowed, and that Unit's Day reduction applies.
 Misty Night's Luck Check now reads her own phase (`defender.phase`), and no check is asked with no Day-Night
-cycle (53dd336).
+cycle (8a41e92).
 
 ### DM. A top-level damage.sources on a primary damage block was never read — **fixed 2026-10-01** (#135)
 
@@ -2884,7 +2884,7 @@ Master 60 once, ticks 39 and 69.
 vs 25% · Burn applied · NP Seal resisted 30 vs 25% · Burn already present"*, her Master *"NP Seal resisted
 47 vs 25% · Burn applied · NP Seal applied · Burn noop"*. `applyAbilityEffects` is called twice per
 resolution, `beforeDamage` and then the default `afterDamage`, and the aftermath branch ignored `when` and
-answered both. It now answers only `afterDamage` (89362b9); Xiuhcoatl is the only ability with aftermath
+answered both. It now answers only `afterDamage` (e13bcaf); Xiuhcoatl is the only ability with aftermath
 effects. Measured at tick 69: one roll each, NP Seal *"resisted 65 vs 25%"* and Burn applied on the Sphinx
 Queen, *"resisted 35 vs 25%"* on her Master.
 
@@ -3235,14 +3235,14 @@ Home Base inside it?). Observed outside a Home Base: forced off at the Round 19 
 tick 56. Not fixed.
 
 
-### EV. An undamageable sheet kept the Health its END table wrote — **fixed** (6376e1a, #180)
+### EV. An undamageable sheet kept the Health its END table wrote — **fixed** (eef7d99, #180)
 
 **Reached: SB, RI.1.** Pale Rider's header read Health 1500 / 1500: commitWar wrote the END A figure and
 `derived.mjs#restoreModifiable` put it back over the null `prepareBaseData` sets, so `isUndamageable` was
 false for every Unit authored `undamageable: true`. `restoreModifiable` now skips `health.*` on such a
 sheet, and `summon.mjs#sheetPatch` writes null.
 
-### EW. A field's "or" between its own-Turn and acted triggers fired both halves — **fixed** (76406b4, ed711c9, #180)
+### EW. A field's "or" between its own-Turn and acted triggers fired both halves — **fixed** (e0bac17, b557b71, #180)
 
 **Reached: CO.t2.** Medea cast Atlas on her own Turn inside Contagion and lost 200 where the sheet says 100.
 The acted half now carries `notOnOwnTurn` (Contagion and Jack's Mist). The fix did not reach the live
@@ -3250,44 +3250,44 @@ board: `ensurePassiveFields` skipped any passive field already open, so the fiel
 its old `interiorEvents`. A standing passive field now takes its ability's current rule axes
 (`staleRuleAxes`). Ruled with it: trigger 1 and the acted half are two triggers, charged twice.
 
-### EX. A field's Health loss that emptied a bar did not defeat — **fixed** (999b92c, #180)
+### EX. A field's Health loss that emptied a bar did not defeat — **fixed** (167781e, #180)
 
 **Reached: CO.dc.poison.** Contagion took Medea 122 → 0 and she stood on, undefeated: a `HealthLoss` is a
 stat write and nothing asked whether it was lethal. It now carries `defeatsAtZero`.
 
-### EY. A hit on a Unit with no Health defeated it — **fixed** (3b5f93f, #180)
+### EY. A hit on a Unit with no Health defeated it — **fixed** (9d420e6, #180)
 
 **Reached: RI.1.** Asterios's attack on Pale Rider was negated to 0 and defeated him:
 `resolveDefeatOf` read his null Health as 0. Hidden until EV, because a stale 1500 sat there.
 
-### EZ. A forced target that was gone forced the attacker to attack nobody — **fixed** (e952fe3, #180)
+### EZ. A forced target that was gone forced the attacker to attack nobody — **fixed** (2ce0f79, #180)
 
 **Reached: KF.SB.** Asterios's body was cleared and his Famine, still forced towards him, refused every
 target. A forced target off the board, or a Spirit's prey outside its field, now forces nothing; ruled
-2026-10-04, a pursuing Spirit's area hits every enemy in it (d252511).
+2026-10-04, a pursuing Spirit's area hits every enemy in it (0e4c0d1).
 
-### FA. Attacking a guarded Master was "an adjacent guard refuses" — **fixed** (25a4b7d, #181)
+### FA. Attacking a guarded Master was "an adjacent guard refuses" — **fixed** (b6f281d, #181)
 
 **Reached: KK.rel.untgt.** The rulebook's three cases (a guard in Range, an adjacent guard, an Agility
 Check) were one refusal. Built as ruled 2026-10-04; pressed live, Castor stepped in on a 15 against 17.
 
-### FB. Field events, rider chances and Round-end ticks left no record — **fixed** (3f73b71, #182)
+### FB. Field events, rider chances and Round-end ticks left no record — **fixed** (4e41993, #182)
 
 **Reached: every chance Clause.** Contagion's losses and rolls, a Spirit's Death die and Poison's
 Round-end damage were invisible. One card per field per Turn end, rider rolls in the attack card, a
 Round-end card, and a log entry for each and for every defeat.
 
-### FC. A charmed Unit kept its side — **ruled and built** (35c9621, #180)
+### FC. A charmed Unit kept its side — **ruled and built** (7d53668, #180)
 
 **Reached: CO.t2, IW.scope.** Ruled 2026-10-04: a charmed Unit is its charmer's ally and its own side's
 enemy for every rule, and its own Turn is its charmer's. `rules/relations.mjs#sideOf`.
 
-### FD. A choice on an Attack Skill was asked twice — **fixed** (441e0b1)
+### FD. A choice on an Attack Skill was asked twice — **fixed** (4ce6e2e)
 
 **Reached: KK.banish, on Castor's Mana Burst.** The declaration's caster pass asked the restoration and
 the rider step asked again, the first time in raw lang keys.
 
-### FE. A passive ability's card showed a cost it can never pay — **fixed** (f8793fe)
+### FE. A passive ability's card showed a cost it can never pay — **fixed** (7df5998)
 
 **Reached: KK.hdr.** Kagome Kagome read "The Master cannot pay the Health cost … cannot be paid".
 
@@ -3392,56 +3392,56 @@ step; a taken panel means a sidestep and the hit. Ch. 45.
 ### FY. Jack's pre-emptive strike stopped at its miss check — **fixed** (#185)
 
 **Reached: MM.p1.** `runPreemption` advanced her Process to `missCheck` and posted the card, which offered
-nothing: every other declaration goes through `runMissCheck`. It now does too (2506126). Ch. 21.
+nothing: every other declaration goes through `runMissCheck`. It now does too (3766302). Ch. 21.
 
 ### FZ. The attack she pre-empted came back refused for its own budget — **fixed** (#185)
 
 **Reached: MM.p1.** The resumed declaration asked the budget gate again and was refused *"already attacked
-this turn"*. `attackPreflight` takes `resume` and skips the gate it already paid (2506126). Ch. 21.
+this turn"*. `attackPreflight` takes `resume` and skips the gate it already paid (3766302). Ch. 21.
 
 ### GA. An area that caught one concealed Unit flipped no coin — **fixed** (#185)
 
 **Reached: PC.1.aoe.** `state.isAoE` counts distinct defenders, so Rain of Light's 3×3 around Jack alone
 landed its 525 in full. The resolver's `concealedAoE` (caught by the shape, not chosen) rides on the Process
-as `caughtConcealed`, and the coin reads it (2506126). Ch. 30.
+as `caughtConcealed`, and the coin reads it (3766302). Ch. 30.
 
 ### GB. Every conceal and reveal threw, and no visibility pass ran — **fixed** (#185)
 
 **Reached: PC.when.** `token-vision.mjs` named `refreshVisibility`, a flag Foundry v14's PerceptionManager
 does not define, and `update` threw on it. `refreshVision` alone ends in `canvas.visibility.refresh()`
-(2803525). Ch. 30.
+(7067055). Ch. 30.
 
 ### GC. A credited field kill credited nobody — **fixed** (#185)
 
 **Reached: MI.1.credit, FS.** `creditOwner` wrote a `fieldKill` log line nothing read: the defeat named no
 killer and `unitKilled` never fired, so no Free Servant's Sustainability grew from a field kill (Jack's Mist,
 Blood Fort Andromeda, Ramesseum Tentyris). The attack path's Civilian kill had the same gap. Both now name the
-killer and fire `unitKilled` (2803525). Ch. 28.
+killer and fire `unitKilled` (7067055). Ch. 28.
 
 ### GD. The preflight read only `targetId`, and the canvas sends `unitId` — **fixed** (#185)
 
 **Reached: MA2.near.** Every `target:` requirement failed from the interface, so Maria Method 2 was refused
-on a Female inside the Mist at Night (d48534f). Ch. 21.
+on a Female inside the Mist at Night (5e54249). Ch. 21.
 
 ### GE. A failed requirement printed its raw kind — **fixed** (#185)
 
 **Reached: MA2.night.** *"Cannot use this ability: roundPhase"*. It is worded from
-`FGT.Ability.Refused.<kind>`, as the sheet and the bar are (d48534f). Ch. 21.
+`FGT.Ability.Refused.<kind>`, as the sheet and the bar are (5e54249). Ch. 21.
 
 ### GF. An Instakill rider after the damage left its target at 0 Health, undefeated — **fixed** (#185)
 
 **Reached: MA2.far.** Only a before-damage phase was followed by `resolveEmptiedDefender`. Medusa sat at 0 on
-the board after Method 2 at Range 3. The check now follows the after-damage riders too (d48534f). Ch. 21.
+the board after Method 2 at Range 3. The check now follows the after-damage riders too (5e54249). Ch. 21.
 
 ### GG. The Mist charged its toll on the Turn Jack fell — **fixed** (#185)
 
 **Reached: MI.toll.none.** The owner-defeat close runs at the next Turn's start and the toll at the ending
 Turn's end, so her Master paid 15 for a Mist that was closing. `runUpkeep` skips a field `endsForOwnerDefeat`
-names (50f0e58). Ch. 28.
+names (455ef16). Ch. 28.
 
 ### GH. A defeated Jack was offered the end-of-Turn reshape — **fixed** (#185)
 
-**Reached: MI.defeat.** `offerReshape` skips a defeated owner (50f0e58). Ch. 28.
+**Reached: MI.defeat.** `offerReshape` skips a defeated owner (455ef16). Ch. 28.
 
 ### GI. No card when a field closes — **fixed** (#185)
 
@@ -3463,72 +3463,72 @@ A heal and a stat change now add rows: *"Health +50"*, *"Agility +1"*. Ch. 37.
 
 **Reached: MR.cut.** The unit picker confirmed its focused option wherever a click landed: Medea's Aero, clicked
 on Drake out of Range, hit Karna. A click picks the Unit under it or warns with that Unit's own exclusion and
-keeps aiming (6547920, 14921c7). Ch. 20.
+keeps aiming (f4e23ea, d8029ae). Ch. 20.
 
 ### GM. Magic Resistance's row printed its amount as a percent — **fixed** (#187)
 
 **Reached: MR.cut.** *"−108%"* for 108 MAG removed: `magicResistance` sat in the explainer's percent sources
-(6547920). Ch. 37.
+(f4e23ea). Ch. 37.
 
 ### GN. Raising the Golden Hind charged the ordinary NP cost — **fixed** (#187)
 
 **Reached: GH.toll.np.** The Skill path paid an ability's own costs beside the NP cost, so the upkeep that
-`supersedes: [npCost]` charged 0 and the NP cost 53 anyway. It resolves them together (43af32c). Ch. 27.
+`supersedes: [npCost]` charged 0 and the NP cost 53 anyway. It resolves them together (68a5aac). Ch. 27.
 
 ### GO. A deep token stood on each panel once per layer — **fixed** (#187)
 
 **Reached: GH.size.** The 4×3 Hind at token depth 3 projected 36 panels. One per panel, the lowest layer
-(43af32c). Ch. 27.
+(68a5aac). Ch. 27.
 
 ### GP. A chance roll was filed where its clause did not apply — **fixed** (#187)
 
 **Reached: BG.crit.tok.** The 15% Galleon Token roll printed *"missed"* on attacks that did not Crit. A
-chance roll is filed only where the handler's condition holds (43af32c). Ch. 37.
+chance roll is filed only where the handler's condition holds (68a5aac). Ch. 37.
 
 ### GQ. A conditional anchor never chose its branch — **fixed** (#187)
 
 **Reached: BU.hind.** Step 0b read `placement.options`, which no caller passed, so every conditional anchor
 took its fallback (Beyond the Uncharted from the deck; Nemo's two Storm Border Skills share the shape). It
-defaults to the caster's options (32fd771). Ch. 20.
+defaults to the caster's options (5c6629c). Ch. 20.
 
 ### GR. A platform anchor did not find the ship its content names — **fixed** (#187)
 
 **Reached: BU.hind.** It matched the actor id, and content names `platform-golden-hind`. It matches either,
-the caster's own first (32fd771). Ch. 20.
+the caster's own first (5c6629c). Ch. 20.
 
 ### GS. A shape from a ship started at its owner's panel — **fixed** (#187)
 
-**Reached: GW.area.** From the stern the broadside began inside the ship. It starts at the bow (32fd771).
+**Reached: GW.area.** From the stern the broadside began inside the ship. It starts at the bow (5c6629c).
 Ch. 20.
 
 ### GT. The Golden Hind took buffs — **fixed** (#187)
 
 **Reached: GH.nobuff.** *"Cannot be affected by buffs and/or debuffs"* was unauthored. Two `Immunity` rules,
-as the Gardens (32fd771). Ch. 27.
+as the Gardens (5c6629c). Ch. 27.
 
 ### GU. The aiming session used a snapshot without the caster's ship — **fixed** (#187)
 
 **Reached: BU.hind.** `pickPlacementFor` handed the layer a bare snapshot, so the session took the fallback
-even after GQ. It hands the board's unit, and so does the preview (14921c7). Ch. 20.
+even after GQ. It hands the board's unit, and so does the preview (d8029ae). Ch. 20.
 
 ### GV. A content Base Attack was missing from the preview — **fixed** (#187)
 
 **Reached: GW.ba.** Golden Wild Hunt previewed 117 and dealt 1341: the preview gave stage 1 no
-`contentBaseAttack` (14921c7). Ch. 20.
+`contentBaseAttack` (d8029ae). Ch. 20.
 
 ### GW. A melee Attack from the ground reached the Hind's hull — **fixed** (#187)
 
-**Reached: GH.ranged.up.** `hullTargeting` was unauthored. `rangedOnly`, as the Gardens (14921c7). Ch. 27.
+**Reached: GH.ranged.up.** `hullTargeting` was unauthored. `rangedOnly`, as the Gardens (d8029ae). Ch. 27.
 
 ### GX. A platform's end posted no card — **fixed** (#187)
 
 **Reached: GH.toll.force.** `destroyPlatform` posts the field-closing card with its reason from every path
-(f015a78). Ch. 27.
+(bda2106). Ch. 27.
 
 ### GY. A Skill refusal printed its raw kind — **fixed** (#187)
 
 **Reached: GH.deact.** *"Golden Hind: Wild Hunt cannot be used: zon."* Worded from
-`FGT.Ability.Refused.<kind>` (f015a78). Ch. 37.
+`FGT.Ability.Refused.<kind>` (bda2106). Ch. 37.
 
 ### GZ. The Golden Hind's Attack carried Drake's MAG E for Magic Resistance — **ruled and built** (#187)
 
@@ -3542,49 +3542,49 @@ stage 11 reads it before the attacker's MAG; live, *"−20% MAG (MR D < attack A
 
 **Reached: ME.c.ok.** Mystic Eyes read *"No effects were applied"* over an Agility Check that took 2 Agility:
 only effects were reported. A `check` phase adds its roll and what it decided, *"Agility Check 3 vs 18:
-success"*, *"Agility -2"* (559c827). Ch. 37.
+success"*, *"Agility -2"* (fda14b5). Ch. 37.
 
 ### HB. A Skill's cooldown change left no line on its card — **fixed** (#188)
 
 **Reached: BT.npcd.** Blood Temple read *"NP Regen"* over a 2-Turn cut to Bellerophon. A `cooldown` phase
-adds *"Bellerophon: Cooldown 22 → 20"*, and nothing for an ability already ready (559c827). Ch. 37.
+adds *"Bellerophon: Cooldown 22 → 20"*, and nothing for an ability already ready (fda14b5). Ch. 37.
 
 ### HC. A Structure was asked to react — **fixed** (#188)
 
 **Reached: BF.destroy.** A Master's Attack on a Bloodmark stopped to ask the Bloodmark to Block, Evade or spend
 a Command Spell, and waited. A Structure takes no action: the Process records `defenderInert` and its rungs
-answer themselves (559c827). Ch. 21.
+answer themselves (fda14b5). Ch. 21.
 
 ### HD. A Bloodmark could not be broken — **fixed** (#188)
 
 **Reached: BF.destroy.** `baseHealth: 1` never became Health on a Structure, and `null` Health reads as
-invulnerable by nature: a Master's swing dealt 0. `StructureData` derives it as a Platform does (559c827).
+invulnerable by nature: a Master's swing dealt 0. `StructureData` derives it as a Platform does (fda14b5).
 Ch. 06.
 
 ### HE. A broken Structure stayed on the board — **fixed** (#188)
 
 **Reached: BF.destroy.** The mark sat under a skull. A defeated Structure is destroyed: its token and actor go
-(559c827). Ch. 06.
+(fda14b5). Ch. 06.
 
 ### HF. A Servant aiming at a Bloodmark was told only "a structure" — **fixed** (#188)
 
 **Reached: BF.destroy.** The kind filter refused it before the step that names who may break it. Now
-*"destructible only by master"* (559c827). Ch. 20.
+*"destructible only by master"* (fda14b5). Ch. 20.
 
 ### HG. An exclusion refusal named its partner by content id — **fixed** (#188)
 
 **Reached: SM.excl.** *"Cannot be used on the same Turn as medusa-monstrous-strength."* The bar and the
-sheet name it, *"…as Monstrous Strength"* (559c827). Ch. 17.
+sheet name it, *"…as Monstrous Strength"* (fda14b5). Ch. 17.
 
 ### HH. A field's card listed its losses and not its heals — **fixed** (#188)
 
 **Reached: BF.pool.** Blood Fort Andromeda's Turn-end card named every drain and none of the heals it paid.
-The report carries heals and stat changes (4467692). Ch. 28.
+The report carries heals and stat changes (072eda8). Ch. 28.
 
 ### HI. A field's contact pass posted no card — **fixed** (#188)
 
 **Reached: BF.civ.enter.** A Civilian walked into the Fort, died and healed Medusa with no card. Every contact
-pass posts *"{field}: on contact"* (4467692). Ch. 28.
+pass posts *"{field}: on contact"* (072eda8). Ch. 28.
 
 ### HJ. A Civilian was never an "enemy Unit" — **ruled and built** (#188)
 
@@ -3609,54 +3609,54 @@ Normal Attack on Medea was refused, *"No attacks are permitted during the first 
 
 **Reached: PR.npcd.** Protection from Ra cuts *"each ally's"* NP cooldown. Cast on three allies, it cut his own
 Mesektet three times, 10 → 4, and Medea's Rule Breaker not at all: the phase named no unit, so it read the
-caster. It and Serenity's Shapeshift carry `unit: target` (000c39d). Ch. 17.
+caster. It and Serenity's Shapeshift carry `unit: target` (7ea3a9d). Ch. 17.
 
 ### HM. A landed chance effect hid its roll — **fixed** (#189)
 
 **Reached: IP.atk.** Imperial Privilege's card showed *"rolled 83 vs 60%"* on a miss and nothing on a hit. A
 Skill card row reads `effectLine(summary)`, and the summary carries the chance: *"Atk Up (rolled 27 vs 60%)"*
-(000c39d). Ch. 37.
+(7ea3a9d). Ch. 37.
 
 ### HN. A Civilian an attack killed still got a Process — **fixed** (#189)
 
 **Reached: DB.area.** The Bulb's 2×2 killed a Civilian, which then got its own card, *"0 — Negated by
-invulnerable-by-nature"*. The fan-out is built from the defenders left after the Civilians died (098de3f).
+invulnerable-by-nature"*. The fan-out is built from the defenders left after the Civilians died (3e7d470).
 Ch. 21.
 
 ### HO. A straight reach from a field's edge was measured as diagonal — **fixed** (#189)
 
 **Reached: DB.range.** The Bulb reaches *"4 panels away from the border (if diagonal, 3)"*. A Unit four panels
 straight out is also four from a corner panel, and the first in the list decided: *"Range is 3 on the
-diagonal"*. `fieldEdge` prefers a straight panel on a tie (098de3f). Ch. 20.
+diagonal"*. `fieldEdge` prefers a straight panel on a tie (3e7d470). Ch. 20.
 
 ### HP. A band that names only its component did not re-source the swing — **fixed** (#189)
 
 **Reached: SX.w.mag.** The Sphinx Wehem-Mesut deals MAG at Range 2 or more. The band named the component and
 no source, so the swing stayed BA(STR) under a MAG label, and Magic Resistance never saw it. Such a band now
-re-sources the swing from its own component: *"BA(MAG) self +200"* (0c576f5). Ch. 22.
+re-sources the swing from its own component: *"BA(MAG) self +200"* (2299fa0). Ch. 22.
 
 ### HQ. Magic Resistance named a Unit with no MAG Rank "attack null" — **fixed** (#189)
 
-**Reached: SX.w.mag.** Stage 11 read *"MR D < attack null"*. It reads *"…with no MAG Rank"* (0c576f5).
+**Reached: SX.w.mag.** Stage 11 read *"MR D < attack null"*. It reads *"…with no MAG Rank"* (2299fa0).
 Ch. 22.
 
 ### HR. God's Curse prevented what is only Categorized as a Noble Phantasm — **fixed** (#189)
 
 **Reached: RT.gc.cat.** *"Servants cannot use their Noble Phantasms."* EMIYA's Overedge, only Categorized as
 one, was *"Prevented"* beside Caladbolg. The Suppress carries `sparesCategorizedNP`, and `preventedBy` takes
-`categorizedOnly` (1aa6e52). Ch. 19.
+`categorizedOnly` (4b75b56). Ch. 19.
 
 ### HS. A revival posted no card — **fixed** (#189)
 
 **Reached: RT.dp.rev.** Divine Protection brought Ozymandias back at 200 and only the log said so. Every
 `revive` entry posts a card: *"Sphinx Queen is defeated and revived by Ramesseum Tentyris…, with 150
-Health."* (`engine/revival-report.mjs`, bcdc562). Ch. 37.
+Health."* (`engine/revival-report.mjs`, e37d983). Ch. 37.
 
 ### HT. The Sphinxes came back at full Health — **fixed** (#189)
 
 **Reached: RT.off.sph.** *"…the Sphinxes will respawn …with the same Stats as when they disappeared."* The
 memory read the base actor, not the token's, and the Queen wounded to 600 came back at 1500. `endField` reads
-the token's actor (5d7c769). Ch. 28.
+the token's actor (07c81c1). Ch. 28.
 
 ### HU. Pyramid Drop ended the Complex after its damage — **fixed** (#189)
 
@@ -3664,17 +3664,17 @@ the token's actor (5d7c769). Ch. 28.
 the Processes are declared, and one with no reaction to wait for resolves inside the declaration: the Drop
 defeated a Master under the Complex's rules, hit a Sphinx that then vanished with its Process open, and only
 then ended the Complex. `declareProcesses` calls `endExpendedFields` first and drops a defender the field took
-with it (e6f5006). Ch. 21.
+with it (1f87bd0). Ch. 21.
 
 ### HV. A worded refusal was ended twice — **fixed** (#189)
 
 **Reached: PD.area.** *"Refused: Anchor panel is 6 panels away; Range is 5.."*: the reason ends its own
-sentence and the template ends it again. `presentRefusal` strips the stop from the parameter (e6f5006). Ch. 20.
+sentence and the template ends it again. `presentRefusal` strips the stop from the parameter (1f87bd0). Ch. 20.
 
 ### HW. The element's stage read "Stage 4.5" — **fixed** (#189)
 
 **Reached: PD.dd.** Every attack carrying an element showed an unnamed row. It reads *"Element"*
-(`BETWEEN_LABELS`, e6f5006). Ch. 22.
+(`BETWEEN_LABELS`, 1f87bd0). Ch. 22.
 
 ### HX. A MAG attack from a Unit with no MAG Rank — **ruled, as built** (#189)
 
@@ -3712,63 +3712,63 @@ key is gone. Ch. 14, 15.
 
 **Reached: HA.me.** Achilles walked to 4 panels of her and nothing happened. In v14 a TokenDocument's `x` and `y`
 read the animated position until the move finishes, so the board projected in `updateToken` still had him at 5.
-The move's invalidation waits for `movementAnimationPromise` (8679295). Ch. 12.
+The move's invalidation waits for `movementAnimationPromise` (d2725d1). Ch. 12.
 
 ### ID. The End Turn gate never saw a compulsion — **fixed** (#190)
 
 **Reached: HA.end.** She could end her Turn without moving towards him: the HUD built its verdict from bare
 snapshots, and only the board pass annotates a compulsion. It reads the board's Units; a Round that forbids every
-Attack demands only the Move (599172b). Ch. 19.
+Attack demands only the Move (64828b9). Ch. 19.
 
 ### IE. A one-panel drag compared nothing — **fixed** (#190)
 
 **Reached: HA.move.** A sideways step under Hatred went through: the drag gate never asked Hatred, and Foundry's
 waypoints carry only where a move goes, so a one-panel path had no start to measure from. Decoy's *"cannot Move
 away"* and a Kagome Spirit's pursuit let every single step through for the same reason. The gate measures from
-the move's origin and asks Hatred (599172b). Ch. 19.
+the move's origin and asks Hatred (64828b9). Ch. 19.
 
 ### IF. A Turn end that moved a Health bar said nothing — **fixed** (#190)
 
 **Reached: ME.drain.** Her Master lost 30 at each Turn's end and no card said why. A `StatDelta` from the
 scheduler carries its handler's `source`, and the Turn end posts *"Master of Berserker of Faction 1 loses 30 Health
-(Mad Enhancement)."* (441afa9). Ch. 37.
+(Mad Enhancement)."* (7ac7e39). Ch. 37.
 
 ### IG. A Normal-Attack-only rider was filed on a Noble Phantasm — **fixed** (#190)
 
 **Reached: ME.dt.np.** Karna's Brahmastra card read *"Karna: burn on Penthesilea … 12 against 25%: hit"* and no
 Burn landed: his Burn rides Normal Attacks, and the filing test unioned the hearer's bare options, which carry
-`attack:kind:normal` for an attack they were not given. It takes only `self:` facts (0887510). Ch. 37.
+`attack:kind:normal` for an attack they were not given. It takes only `self:` facts (0f32e05). Ch. 37.
 
 ### IH. Goddess of War's d4 was on no card — **fixed** (#190)
 
 **Reached: GW.def.np.** *"Def Up Goddess of War −20%"*, and nothing said which die made it. Each rolled modifier
-the breakdown used is filed in the card's Rolls, matched on its key and its ability (cb11a1f). Ch. 37.
+the breakdown used is filed in the card's Rolls, matched on its key and its ability (0fe8bc7). Ch. 37.
 
 ### II. No control spent a Command Spell in the Master's own Turn — **built** (#190)
 
 **Reached: ME.cs.** Suspend Skill and the cooldown commands were spendable only from an attack card's interrupt.
-The Master's bar offers Command Spell: the command, then the Skill it reaches; a spend posts a card (cd6ff5a).
+The Master's bar offers Command Spell: the command, then the Skill it reaches; a spend posts a card (0349eb7).
 Ch. 33.
 
 ### IJ. A suspended passive kept its rules — **fixed** (#190)
 
 **Reached: HA.cs.** `suspendedUntil` was read for a Mode only, so Hatred bought off by a Command Spell held its
-compulsion. A suspended Skill contributes nothing until its span passes (cd6ff5a). Ch. 33.
+compulsion. A suspended Skill contributes nothing until its span passes (0349eb7). Ch. 33.
 
 ### IK. A suspension lapsed only when somebody moved — **fixed** (#190)
 
 **Reached: ME.cs.re.** Mad Enhancement bought off to tick 23 beside Heracles stayed off past it: the reconcile a
-Turn change raises ran before the tick moved. It runs again after (cd6ff5a). Ch. 33.
+Turn change raises ran before the tick moved. It runs again after (0349eb7). Ch. 33.
 
 ### IL. A conquered Servant kept the side that lost her — **fixed** (#190)
 
 **Reached: ME.sus.** Karna's Master conquered her and she stayed on faction-1. A contract and a Conquest write the
-new Master's faction (94f7352). Ch. 32.
+new Master's faction (4c1ccab). Ch. 32.
 
 ### IM. The Grand Order setting spared nobody from Hatred — **fixed** (#190)
 
 **Reached: HA.go.** The setting's own comment said it switched Hatred off against allies; nothing read it. The
-board carries `grandOrder`, and Hatred's compulsion declares `spareAlliesInGrandOrder` (1695b47). Ch. 32.
+board carries `grandOrder`, and Hatred's compulsion declares `spareAlliesInGrandOrder` (ffedd17). Ch. 32.
 
 ### IN. Hatred against Mad Enhancement's forced deactivation — **ruled and built** (#190)
 
@@ -6083,7 +6083,7 @@ the only sheet that says *"Cannot be used as a Counter"*. Each is a mechanism wi
 §46.14's reason too, and a mechanism with one user has never had a bug report.
 
 **How this audit was built differently.** The Clause list was written by hand, line by line, from the
-Character Sheet, after a generated list of 56 was found wrong in five ways (#65; d18db76). The paper
+Character Sheet, after a generated list of 56 was found wrong in five ways (#65; 42e212d). The paper
 trace ran first: seven agents, then a second pass that tried to refute each claimed defect against the code.
 *"None was refuted. Two were merged into others."* It filed #113 to #162, fifty issues. The live
 presses found the rest: #160 and #161 on the first board, and #163 to #175 once the lane fixes were in.
@@ -6109,11 +6109,11 @@ presses found the rest: #160 and #161 on the first board, and #163 to #175 once 
 ### 46.15.2 What she cost the engine
 
 **Hers.** Four fixes went in with no issue of their own, all local to her and tagged #65: the Quetzalcoatlus is
-2x2, not 1x1 (e506119, ruling 16); Winged Serpent seats her adjacent Master on the mount and only her own
+2x2, not 1x1 (634bdb3, ruling 16); Winged Serpent seats her adjacent Master on the mount and only her own
 Master boards it freely, where he had been left standing beside it on nothing and then needed a natural 12
-(7f7afc3); Xiuhcoatl no longer freezes her statblock Range into its anchor (fd974ad); and Piedra Del Sol's
+(92ee47f); Xiuhcoatl no longer freezes her statblock Range into its anchor (c6e5be8); and Piedra Del Sol's
 +180 and −50% hold wherever she stands while the stone exists, where the content scoped both to the 7x7
-(4514b19, ruling 5). The three Spells' `kind: spell` is hers in the YAML and general in the reader
+(a8f6340, ruling 5). The three Spells' `kind: spell` is hers in the YAML and general in the reader
 (§46.4-EG).
 
 **The sixteen rulings of 2026-10-01**, each settled by the user, and what each changed:
@@ -6124,18 +6124,18 @@ Master boards it freely, where he had been left standing beside it on nothing an
 | 2 | Xiuhcoatl's splash is affected by Magic Resistance; only the hit on the DU is exempt | Content: `ignoresMagicResistance` deleted from the aftermath; §46.4-DN |
 | 3 | Magic Resistance compares an NP by the NP's own Rank | The resolution was right; the preview was not, §46.4-DB |
 | 4 | Piedra Del Sol's +180 replaces Divine Core's +120 | On a live board both counted (+300), §46.4-DD |
-| 5 | "On the field" means on the board | Content: the two interior rules became `fieldActive` passives (4514b19) |
+| 5 | "On the field" means on the board | Content: the two interior rules became `fieldActive` passives (a8f6340) |
 | 6 | "Categorized as 'Burning'" is a label | §46.4-DW |
 | 7 | The Quetzalcoatlus shares one Luck pool with her | §46.4-EJ, §46.4-EP |
 | 8 | A forced deactivation is not held off by the 2◈ lock | Held: a forced end never calls `deactivationVerdict`; §46.4-DS kept it so |
 | 9 | Winged Serpent's 7◈ Cooldown starts from any end of the mount | Held; Pressed after a voluntary end, a defeat and a forced end |
 | 10 | She and the Quetzalcoatlus share one Move and one Attack per Turn | §46.4-DU |
-| 11 | The Spells' 3x3 hits enemies only | Content (c3199a7) |
+| 11 | The Spells' 3x3 hits enemies only | Content (275f5d8) |
 | 12 | When the mount falls, its riders drop to the ground | §46.4-DQ, §46.4-DR |
 | 13 | Crit Up, S.Crit Up and Crit DmUp do not affect Noble Phantasms | §46.4-DI |
 | 14 | Riding Attack hits enemies only | As the engine does |
 | 15 | A [Fortress] NP is one tagged Fortress | §46.4-EA |
-| 16 | The Quetzalcoatlus is 2x2 panels | Content (e506119), not printed on the sheet |
+| 16 | The Quetzalcoatlus is 2x2 panels | Content (634bdb3), not printed on the sheet |
 
 **What was general** (§46.4-CQ to §46.4-EU, issues #113 to #175 except #168, which §46.4-CP records, and the
 splash riders, filed under #65). Of the 63 issues, **61 are closed**, each with the fix looked at on a board. Eighteen of them were pressed live on 2026-10-04, two of those from a Player client (#130, #144). The rest were ruled and built (#170, #174, #175) or duplicated (#164). **One is fixed in code and not yet pressed**: #157, which needs a field with an incoming `ApplicationChance` on the board, and the only one authored is Pale Rider's Doomsday Come. **One waits for a ruling**: #134. #132 was ruled and built on 2026-10-06 (§46.4-HZ to IB). By family:
@@ -6249,9 +6249,9 @@ twice on the mount's at tick 19. A 25% roll that succeeded on her at tick 37 (Ba
 turn"* and the three Spells, which count as her Attack, showed no refusal. Riding's slot tooltip says nothing
 about turn ownership beforehand, where a Skill's reads *"Only during your Turn."* None was run to ground.
 
-**Fixes landed during the audit**, code only, and the world was reloaded after each group: 89362b9, 4c45ba3,
-b109bd1, e5ef1b5, bb2c505, e17e08f and 95f0628, with the suite at 296 files and 6140 tests green; then badffbd
-(#169) and dda9579 (#173), with 298 files and 6154 tests green and lint clean.
+**Fixes landed during the audit**, code only, and the world was reloaded after each group: e13bcaf, 6be6e2e,
+b3c9c07, 2839e40, 969513f, 5928575 and 418cc2e, with the suite at 296 files and 6140 tests green; then df01ee7
+(#169) and ed92fbb (#173), with 298 files and 6154 tests green and lint clean.
 
 ### 46.15.5 The readings, ruled
 
@@ -6261,20 +6261,20 @@ on. The user ruled them on 2026-10-02 (#65, rulings 17–28), and each was built
 
 | Reading | Ruling | Built | Pressed live |
 |---|---|---|---|
-| `PDS.2.exit`, the Burn on leaving | an ordinary Burn, 2◈ from leaving and removable; re-entry makes it permanent again (17) | 9aaea35 | ticks 91–96 |
-| Riding Attack's "straight line" | the eight grid lines stay the default; a GM world setting, `ridingAttackLines`, allows rows and columns only (18) | e0cec6e | tick 106 |
-| The deactivation window | an End outside the owner's Turn, the GM's slot included, is queued for that Turn's end; Achilles's duel, which states no window, is his own Turn only (19) | 3850b45 | ticks 111–112 |
-| #170, which Level owns a deck-cast area | the stone, its field and its Burning label all go on the ground (20) | 9a24d10 | ticks 100–103 |
-| #174, Overpower on her own Master | any Servant's Attack on a Master flips, hers included, and the card shows the flip (21) | 6285c5e, f88e168 | ticks 106–108 |
-| Xiuhcoatl's reach and splash | the user's change: Range+2, a splash 2 panels around the target's footprint, the [Fortress] measured from the target (22) | b6c1f1e | ticks 84–85 |
+| `PDS.2.exit`, the Burn on leaving | an ordinary Burn, 2◈ from leaving and removable; re-entry makes it permanent again (17) | febfa67 | ticks 91–96 |
+| Riding Attack's "straight line" | the eight grid lines stay the default; a GM world setting, `ridingAttackLines`, allows rows and columns only (18) | b653037 | tick 106 |
+| The deactivation window | an End outside the owner's Turn, the GM's slot included, is queued for that Turn's end; Achilles's duel, which states no window, is his own Turn only (19) | ffa1611 | ticks 111–112 |
+| #170, which Level owns a deck-cast area | the stone, its field and its Burning label all go on the ground (20) | 4e40251 | ticks 100–103 |
+| #174, Overpower on her own Master | any Servant's Attack on a Master flips, hers included, and the card shows the flip (21) | 8706fef, 4d088a5 | ticks 106–108 |
+| Xiuhcoatl's reach and splash | the user's change: Range+2, a splash 2 panels around the target's footprint, the [Fortress] measured from the target (22) | 34b0603 | ticks 84–85 |
 | #175, first half: the Round-end order | the Home Base heal runs before the forced-end threshold, as built (23) | nothing to build | — |
 | #175, second half: Home Base and Levels | left open, #177 (24) | — | — |
-| A defeated Unit's panel | a body leaves the board at the end of the next Turn, token removed and actor kept; until then it is passed through and not stopped on (25) | 9e3c620, 8f6f3a8 | ticks 108–110 |
-| Double Move and Riding's +6 aboard | both carry to the mount she drives: 7 + 6 = 13, split around the Attack (26, 27) | 925e1e2 | tick 103 |
+| A defeated Unit's panel | a body leaves the board at the end of the next Turn, token removed and actor kept; until then it is passed through and not stopped on (25) | cec0ce2, 9c1c561 | ticks 108–110 |
+| Double Move and Riding's +6 aboard | both carry to the mount she drives: 7 + 6 = 13, split around the Attack (26, 27) | c3aa869 | tick 103 |
 
 Pressing them found three more, fixed or filed. A Master the Overpower flip defeated keeps his Health, and the
-card then offered him a Counter (`counterAvailable` read Health only; f88e168). A drag across a Turn could not
-find the body's clock, because no defeat recorded its tick (`defeatedAt`, 9e3c620). Ending a platform while the
+card then offered him a Counter (`counterAvailable` read Health only; 4d088a5). A drag across a Turn could not
+find the body's clock, because no defeat recorded its tick (`defeatedAt`, cec0ce2). Ending a platform while the
 GM viewed its Level left the canvas on no scene (#176, open).
 
 Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent S.Crit Up?) and §46.4-DL (does
@@ -6301,16 +6301,16 @@ His own, fixed and tested:
 
 | Commit | Finding |
 |---|---|
-| 4567c06, 9e81120, 741b6fd | The Drag could not be aimed from the interface (the `fieldEdge` picker, and its own isolation) |
-| a5e228e | A Kagome Spirit could appear outside Doomsday Come, where isolation forbade its Attack |
-| 92feffc | "Cannot Evade, Block, or Counter" left Block and Evade on the rung; he Evaded |
-| e04c31c | His sheet offered a Normal Attack the bar hides |
-| fa21d57 | The Drag ran field contact twice: two Spirits for one dragged Master |
-| 4d107bb | A banished Kagome Spirit stayed on the board: it held its panel, guarded and could be targeted |
-| 2dfc34e | An Item he could not hold was refused outright; ruled (reading 12), it is left on the floor |
-| 1f58d37 | A pickup asked about the panel the token had just left, so nothing was picked up |
-| 216b59c | The aiming session dropped an NP's scale, so no Anti-World NP could be aimed across the boundary |
-| f60bbfc | The area closed after the first of an NP's Processes, taking later defenders out of its halving |
+| 3148804, 21a4dfc, 719d063 | The Drag could not be aimed from the interface (the `fieldEdge` picker, and its own isolation) |
+| bb3991b | A Kagome Spirit could appear outside Doomsday Come, where isolation forbade its Attack |
+| 8ab7455 | "Cannot Evade, Block, or Counter" left Block and Evade on the rung; he Evaded |
+| 64f63f9 | His sheet offered a Normal Attack the bar hides |
+| bdcf190 | The Drag ran field contact twice: two Spirits for one dragged Master |
+| 275fc27 | A banished Kagome Spirit stayed on the board: it held its panel, guarded and could be targeted |
+| 2a96617 | An Item he could not hold was refused outright; ruled (reading 12), it is left on the floor |
+| b27ba0e | A pickup asked about the panel the token had just left, so nothing was picked up |
+| b459d0e | The aiming session dropped an NP's scale, so no Anti-World NP could be aimed across the boundary |
+| 3816593 | The area closed after the first of an NP's Processes, taking later defenders out of its halving |
 
 What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 
@@ -6354,12 +6354,12 @@ second revive.
 
 | Commit | Finding |
 |---|---|
-| ab6567c | The rulings built: cones, directional Evade, the duel's push-out and default end, the Dismount offer, the Mounted record, Double Move's sources, the barrier's floor, the shove as plain damage, the half-Health watermark (§46.4-FF to FJ) |
-| 5c8eb4e | Overpower after a complete negation; an expended ability's passives; an NP on an empty ride was free (§46.4-FK to FM) |
-| b9d467e | A ride re-asked its gates after moving; a before-damage self-buff paid by the first declared; Divinity tiers by ordinal; no `attack:kind:ridingAttack` (§46.4-FN to FQ) |
-| 6d784b1 | Field entry never asked; Command Spells across a seal; the Heel's Luck and roll; a negated effect's contributions (§46.4-FR to FU) |
-| 63f2ca8 | The toll's options had no Turn record; "Stage undefined" (§46.4-FV, FW) |
-| bdd55bb | The shove walks his whole path, one panel a step (§46.4-FX) |
+| e0a2cd5 | The rulings built: cones, directional Evade, the duel's push-out and default end, the Dismount offer, the Mounted record, Double Move's sources, the barrier's floor, the shove as plain damage, the half-Health watermark (§46.4-FF to FJ) |
+| 1ae12e2 | Overpower after a complete negation; an expended ability's passives; an NP on an empty ride was free (§46.4-FK to FM) |
+| 8b30a1a | A ride re-asked its gates after moving; a before-damage self-buff paid by the first declared; Divinity tiers by ordinal; no `attack:kind:ridingAttack` (§46.4-FN to FQ) |
+| 50ec58d | Field entry never asked; Command Spells across a seal; the Heel's Luck and roll; a negated effect's contributions (§46.4-FR to FU) |
+| ccbde19 | The toll's options had no Turn record; "Stage undefined" (§46.4-FV, FW) |
+| 18664e6 | The shove walks his whole path, one panel a step (§46.4-FX) |
 
 ### 46.17.2 What was staged
 
@@ -6391,11 +6391,11 @@ Instakill that left a body standing.
 
 | Commit | Finding |
 |---|---|
-| 53dd336 | The rulings built: her sight inside the Mist (`sees`), and phase by origin for the pre-emption's Luck Check (§46.4-DL) |
-| 2506126 | The pre-emption's miss check; the resumed attack's budget; the coin for an area that catches her alone (§46.4-FY to GA) |
-| 2803525 | A credited field kill credits its owner; the visibility pass on conceal and reveal (§46.4-GB, GC) |
-| d48534f | The preflight's aimed Unit; requirement refusals in words; an after-damage Instakill defeats (§46.4-GD to GF) |
-| 50f0e58 | No toll and no reshape for a Mist her defeat closes (§46.4-GG, GH) |
+| 8a41e92 | The rulings built: her sight inside the Mist (`sees`), and phase by origin for the pre-emption's Luck Check (§46.4-DL) |
+| 3766302 | The pre-emption's miss check; the resumed attack's budget; the coin for an area that catches her alone (§46.4-FY to GA) |
+| 7067055 | A credited field kill credits its owner; the visibility pass on conceal and reveal (§46.4-GB, GC) |
+| 5e54249 | The preflight's aimed Unit; requirement refusals in words; an after-damage Instakill defeats (§46.4-GD to GF) |
+| 455ef16 | No toll and no reshape for a Mist her defeat closes (§46.4-GG, GH) |
 
 Three more, none of them hers alone, were fixed after: a card when a field closes, the attack card's riders
 and their rolls, and a healing Skill's card (§46.4-GI to GK).
@@ -6436,12 +6436,12 @@ those had a reader that had only ever been asked from the ground.
 
 | Commit | Finding |
 |---|---|
-| b176141 | The rulings built: ranged by setting, the toll by period, the turnable broadside, the mount's Crit heard by its driver |
-| 6547920 | A click on an illegal Unit; Magic Resistance's row as a percent (§46.4-GL, GM) |
-| 43af32c | The raise's NP cost; a deep token's panels; a chance roll filed off its clause (§46.4-GN to GP) |
-| 32fd771 | Aiming from the deck: the conditional's options, the ship by content id, the bow, the ship's immunity (§46.4-GQ to GT) |
-| 14921c7 | The aiming session's snapshot; the preview's content Base Attack; the hull ranged-only (§46.4-GU to GW) |
-| f015a78 | A platform's end card; Skill refusals in words (§46.4-GX, GY) |
+| 774aec7 | The rulings built: ranged by setting, the toll by period, the turnable broadside, the mount's Crit heard by its driver |
+| f4e23ea | A click on an illegal Unit; Magic Resistance's row as a percent (§46.4-GL, GM) |
+| 68a5aac | The raise's NP cost; a deep token's panels; a chance roll filed off its clause (§46.4-GN to GP) |
+| 5c6629c | Aiming from the deck: the conditional's options, the ship by content id, the bow, the ship's immunity (§46.4-GQ to GT) |
+| d8029ae | The aiming session's snapshot; the preview's content Base Attack; the hull ranged-only (§46.4-GU to GW) |
+| bda2106 | A platform's end card; Skill refusals in words (§46.4-GX, GY) |
 
 The last reading, what MAG Rank the ship's Attack carries for Magic Resistance, was ruled after the press:
 the Noble Phantasm's A+ (§46.4-GZ).
@@ -6477,11 +6477,11 @@ reported less than it did.
 
 | Commit | Finding |
 |---|---|
-| 1f12cad | The rulings built: the heal choice and the split, per-viewer marks, Bellerophon's reach, the ride's one pick, the Civilian's death on entry |
-| e2592e8 | Only her defeat ends the Fort; its corners cannot be targeted |
-| 559c827 | Structures under attack; a Skill card's check and cooldown; worded refusals (§46.4-HA to HG) |
-| 4467692 | A field's card lists what it pays; a contact pass posts one (§46.4-HH, HI) |
-| 93e5a5d | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
+| e62c155 | The rulings built: the heal choice and the split, per-viewer marks, Bellerophon's reach, the ride's one pick, the Civilian's death on entry |
+| 6fadd45 | Only her defeat ends the Fort; its corners cannot be targeted |
+| fda14b5 | Structures under attack; a Skill card's check and cooldown; worded refusals (§46.4-HA to HG) |
+| 072eda8 | A field's card lists what it pays; a contact pass posts one (§46.4-HH, HI) |
+| 45f4c1a | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
 
 Two more readings were ruled on 2026-10-06 and built: the Eyes reach Civilians, who always fail their check
 (§46.4-HJ); and the first Round forbids every action that counts as an Attack but the Mark, which was ruled again to
@@ -6519,15 +6519,15 @@ His Skills reach allies' clocks, which a caster-side phase had never been asked 
 
 | Commit | Finding |
 |---|---|
-| 44db728 | The rulings built, and Move–Attack–Move for every Unit |
-| cf80497 | The Dark doubling at stage 3 (`normalAttack.conditionalMultipliers`) |
-| 000c39d | An ally's cooldown cut lands on the ally; a landed chance shows its roll (§46.4-HL, HM) |
-| 098de3f | A killed Civilian gets no Process; a straight reach from a field's edge (§46.4-HN, HO) |
-| 0c576f5 | A component-only band re-sources the swing; "with no MAG Rank" (§46.4-HP, HQ) |
-| 1aa6e52 | God's Curse spares what is only Categorized as a Noble Phantasm (§46.4-HR) |
-| bcdc562 | A revival posts a card (§46.4-HS) |
-| 5d7c769 | The Sphinxes come back with what their tokens held (§46.4-HT) |
-| e6f5006 | A spent field ends before the Processes; a refusal ends once; the Element row (§46.4-HU to HW) |
+| 78c2378 | The rulings built, and Move–Attack–Move for every Unit |
+| 80bcc7e | The Dark doubling at stage 3 (`normalAttack.conditionalMultipliers`) |
+| 7ea3a9d | An ally's cooldown cut lands on the ally; a landed chance shows its roll (§46.4-HL, HM) |
+| 3e7d470 | A killed Civilian gets no Process; a straight reach from a field's edge (§46.4-HN, HO) |
+| 2299fa0 | A component-only band re-sources the swing; "with no MAG Rank" (§46.4-HP, HQ) |
+| 4b75b56 | God's Curse spares what is only Categorized as a Noble Phantasm (§46.4-HR) |
+| e37d983 | A revival posts a card (§46.4-HS) |
+| 07c81c1 | The Sphinxes come back with what their tokens held (§46.4-HT) |
+| 1f87bd0 | A spent field ends before the Processes; a refusal ends once; the Element row (§46.4-HU to HW) |
 
 Two readings were ruled after the press, both as built: a Unit with no MAG Rank is never "up to B" for Magic
 Resistance (§46.4-HX), and the Complex breaks on two Noble Phantasms in a Round, from outside and within
@@ -6563,15 +6563,15 @@ Command Spell spent in her own Turn, which no control could spend.
 
 | Commit | Finding |
 |---|---|
-| 1695b47 | The rulings built; the Grand Order setting read (§46.4-IM) |
-| 8679295 | A moved token invalidates once its move has settled (§46.4-IC) |
-| 599172b | The End Turn gate and the drag gate see Hatred; a one-panel drag measured from its origin (§46.4-ID, IE) |
-| 441afa9 | A Turn end's Health change posts a card (§46.4-IF) |
-| 0887510 | A Normal-Attack-only rider is not filed on an NP (§46.4-IG) |
-| cb11a1f | A rolled modifier's die is on the card (§46.4-IH) |
-| cd6ff5a | An own-Turn Command Spell from the Master's bar; suspension of a passive, and its lapse (§46.4-II to IK) |
-| 94f7352 | A contracted Servant serves its new Master's side (§46.4-IL) |
-| 7575b9a | Readings 11 to 13: the forced deactivation at any moment, over Hatred; the floor inside the lockout (§46.4-IN to IP) |
+| ffedd17 | The rulings built; the Grand Order setting read (§46.4-IM) |
+| d2725d1 | A moved token invalidates once its move has settled (§46.4-IC) |
+| 64828b9 | The End Turn gate and the drag gate see Hatred; a one-panel drag measured from its origin (§46.4-ID, IE) |
+| 7ac7e39 | A Turn end's Health change posts a card (§46.4-IF) |
+| 0f32e05 | A Normal-Attack-only rider is not filed on an NP (§46.4-IG) |
+| 0fe8bc7 | A rolled modifier's die is on the card (§46.4-IH) |
+| 0349eb7 | An own-Turn Command Spell from the Master's bar; suspension of a passive, and its lapse (§46.4-II to IK) |
+| 4c1ccab | A contracted Servant serves its new Master's side (§46.4-IL) |
+| b3cccd8 | Readings 11 to 13: the forced deactivation at any moment, over Hatred; the floor inside the lockout (§46.4-IN to IP) |
 
 The three readings the press raised were ruled and built after it (§46.4-IN to IP).
 
@@ -6713,7 +6713,7 @@ mislabelled turn log.
 ## 46.26 Kingprotea — the Servant who grows
 
 **All 102 of her Clauses were Pressed or Observed on a live board** (#198, 2026-10-12), on the PC copy of `fgt2026`,
-neutral Region, after 15 readings were ruled on 2026-10-11 and built (23b5621). The board found seven defects that
+neutral Region, after 15 readings were ruled on 2026-10-11 and built (31aae3c). The board found seven defects that
 reach other Servants (§46.4-KH to KO), two left open (KP, KQ), and one in her own content.
 
 **Why she finds what she finds.** She is the only Unit whose footprint changes, and the only Servant whose Noble
@@ -6754,7 +6754,7 @@ panels were driven by `TokenDocument#move` from Player1's client: the extension'
 
 **All 73 of her Clauses were Pressed or Observed on a live board** (#199, 2026-10-12), on the PC copy of `fgt2026`,
 scene *Serenity Audit*, after 16 readings were ruled the same day. Readings 10 and 11 changed built content
-(50a76fe). The board found five defects that reach other Servants (§46.4-KR to KU, KW), and the build one more (KV).
+(b2a2d74). The board found five defects that reach other Servants (§46.4-KR to KU, KW), and the build one more (KV).
 
 **Why she finds what she finds.** Her sheet is about information: who can see her, who may answer her, and a debt
 that comes due later. Every hidden path she opens is a path that runs on somebody else's client or at somebody else's

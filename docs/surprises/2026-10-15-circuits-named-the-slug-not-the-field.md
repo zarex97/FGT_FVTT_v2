@@ -12,10 +12,10 @@ miss was missing (reading 10).
 **Actual:** they never fired, hit or miss. Inside a real field region, a Normal Attack moved no Luck and no cooldown, and
 BC's +50 was absent from the breakdown. `validate:content` called the option well formed.
 
-**Cause:** `packs/_source/effects/activated-circuits.yml:37 @ 7231295` — a field's id is its ability's content id
+**Cause:** `packs/_source/effects/activated-circuits.yml:37 @ 1f1a549` — a field's id is its ability's content id
 (`engine/fields.mjs:223`: `fieldId: ability.system?.contentId`), `emiya-unlimited-blade-works`; `unlimitedBladeWorks` is
 the slug. Every other `inField:` in the corpus names a content id; only these two were wrong.
 
-**Fix:** both Circuits name `emiya-unlimited-blade-works` (`activated-circuits.yml:51 @ d9a77c1`), and
-`test/unit/in-field-names.test.mjs @ d9a77c1` fails for any `inField:` that is not the content id of an ability that
+**Fix:** both Circuits name `emiya-unlimited-blade-works` (`activated-circuits.yml:51 @ 22a42ca`), and
+`test/unit/in-field-names.test.mjs @ 22a42ca` fails for any `inField:` that is not the content id of an ability that
 opens a field.

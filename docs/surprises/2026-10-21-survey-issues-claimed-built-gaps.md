@@ -17,9 +17,9 @@ line says what the code does.
 - #290 says *"Nothing replaces a defeated summon today."* `splitSummon` and the `Split` handler run Gilles's
   Horrors, built in #260 reading 12.
 
-**Cause:** `module/rules/elements.mjs:1531 @ d1f69b6f`, `module/data/misc.mjs:174 @ d1f69b6f`,
-`module/rules/snapshot.mjs:1325 @ d1f69b6f`, `module/engine/summoning.mjs:607 @ d1f69b6f`,
-`module/engine/scheduler.mjs:1468 @ d1f69b6f`. The survey's step 3 asks "Does the engine run it today?" and
+**Cause:** `module/rules/elements.mjs:1531 @ be0f6880`, `module/data/misc.mjs:174 @ be0f6880`,
+`module/rules/snapshot.mjs:1325 @ be0f6880`, `module/engine/summoning.mjs:607 @ be0f6880`,
+`module/engine/scheduler.mjs:1468 @ be0f6880`. The survey's step 3 asks "Does the engine run it today?" and
 the answer came from the model's own files and a grep for one word, not from the authoring vocabulary.
 Nothing maps a model Shape to the authored keys that run it.
 

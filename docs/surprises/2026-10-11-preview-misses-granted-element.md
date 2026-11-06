@@ -8,5 +8,5 @@ pattern: two-readers-one-rule
 ---
 **Expected:** The damage preview and the resolution agree on Tenmōkaikai's Lightning half.
 **Actual:** `previewContext` built Raikou's attack with no element, while the resolution added it.
-**Cause:** `module/engine/attack.mjs @ f15a3d1` — the granted element was added only in `applyDamage`'s context, after the facts. The preview, the roll options and `attack:element:*` predicates never saw it.
-**Fix:** `module/engine/attack.mjs @ b9884b9` — `attackFacts` adds it through `withGrantedElement`, so every reader of the facts sees one answer.
+**Cause:** `module/engine/attack.mjs @ 88cb559` — the granted element was added only in `applyDamage`'s context, after the facts. The preview, the roll options and `attack:element:*` predicates never saw it.
+**Fix:** `module/engine/attack.mjs @ 41caac1` — `attackFacts` adds it through `withGrantedElement`, so every reader of the facts sees one answer.

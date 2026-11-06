@@ -12,10 +12,10 @@ pattern: producer-without-consumer
 an Invuln took to 0; Yata Strike's grown Crit Chance; Dainisshō's random draw; a staged rider's stage (*"Curse"* for
 Stage 2).
 
-**Cause:** `module/engine/attack.mjs:1300 @ 60958e67`: a coin refused printed nothing, only a flipped one did; the
+**Cause:** `module/engine/attack.mjs:1300 @ bd007c46`: a coin refused printed nothing, only a flipped one did; the
 `requiresDamage` gate `continue`d in silence; the pipeline's fixed note, the card context and the landing's summary
 had no field for the chance, the die or the stage.
 
-**Fix:** `module/engine/attack.mjs:1300 @ ebad7a6b` (`refusedCoin`), `:7207` (`FGT.Effect.NeedsDamage`),
+**Fix:** `module/engine/attack.mjs:1300 @ 9871bce7` (`refusedCoin`), `:7207` (`FGT.Effect.NeedsDamage`),
 `module/rules/damage/pipeline.mjs:370`, `module/apps/chat/cards.mjs:167` (`FGT.Card.Drawn`),
 `module/engine/landing.mjs:322` (`stagedName`). Each re-pressed live but the draw, whose re-press waits.

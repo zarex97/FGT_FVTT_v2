@@ -10,6 +10,6 @@ pattern: producer-without-consumer
 
 **Actual:** "Cannot use this ability: An ability it depends on is still cooling." for Auctoritas, and the Skill path the same.
 
-**Cause:** `module/engine/attack-preflight.mjs:199 @ 8db88035` — `usageRefusal` formatted `Refused.abilityOffCooldown` and dropped `detail.names`; `useSkill` returned no detail at all.
+**Cause:** `module/engine/attack-preflight.mjs:199 @ 5d91e76f` — `usageRefusal` formatted `Refused.abilityOffCooldown` and dropped `detail.names`; `useSkill` returned no detail at all.
 
-**Fix:** `module/engine/attack-preflight.mjs:203 @ 8db88035` — `CoolingNamed` with the names; `useSkill` carries the usage detail and `refusalWords` reads it.
+**Fix:** `module/engine/attack-preflight.mjs:203 @ 5d91e76f` — `CoolingNamed` with the names; `useSkill` carries the usage detail and `refusalWords` reads it.

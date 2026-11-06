@@ -11,8 +11,8 @@ pattern: passes-for-the-wrong-reason
 **Actual:** `expect(verdict.ok).toBe(false)` passed; asked for its reason it read *"round"*: the NP gate refused the
 Spell categorized as NP before the requirement was asked.
 
-**Cause:** `test/unit/tamamo-353.test.mjs:396 @ ebad7a6b`: `canUseAbility` was handed no board and the default
+**Cause:** `test/unit/tamamo-353.test.mjs:396 @ 9871bce7`: `canUseAbility` was handed no board and the default
 gate, and the check asserted only that it failed.
 
-**Fix:** `test/unit/tamamo-353.test.mjs:396 @ ebad7a6b`: the board and an open gate are passed, and the reason
+**Fix:** `test/unit/tamamo-353.test.mjs:396 @ 9871bce7`: the board and an open gate are passed, and the reason
 `fieldOpen` is asserted.

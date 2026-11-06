@@ -67,7 +67,7 @@ const AN = { from: "anastasia-summer", id: "anastasiaThrower" };
 describe("Rho Aias holds Gáe Bolg Alternative's riders, and its damage runs into the barrier (Q2, Q6)", () => {
   it("Stun and Instakill are stopped, and the card says the barrier held", async () => {
     await play(SC, "scathach-gae-bolg-alternative", { die: 99 }, ({ w, result, hp, emiyaHp }) => {
-      // At cf20cfc: Stun "applied" on Heracles through the barrier.
+      // At fdeb4d8: Stun "applied" on Heracles through the barrier.
       expect(row(w, "stun")).toMatchObject({ outcome: "blocked", reason: HOLDS });
       expect(row(w, "instakill")).toMatchObject({ outcome: "blocked", reason: HOLDS });
       expect(held(w, D2, "stun")).toHaveLength(0);
@@ -80,7 +80,7 @@ describe("Rho Aias holds Gáe Bolg Alternative's riders, and its damage runs int
 
   it("an Instakill that would have landed is not inflicted, so the 3.5x damage runs and the barrier takes it", async () => {
     await play(SC, "scathach-gae-bolg-alternative", { die: 1 }, ({ w, result, hp, emiyaHp }) => {
-      // At cf20cfc: Instakill landed (die 1 under 75%), the damage was skipped and God Hand answered.
+      // At fdeb4d8: Instakill landed (die 1 under 75%), the damage was skipped and God Hand answered.
       expect(row(w, "instakill")?.outcome).toBe("blocked");
       expect(result.flags.suppressedBy).toBeUndefined();
       expect(result.flags.shieldAbsorbed).toBeGreaterThan(0);
@@ -173,7 +173,7 @@ describe("an attack categorized as an NP is an NP for every NP rule (Q3, Q8, Q9)
     ], ({ world: w, unit, board }) => {
       const offered = (attack) => allyReactions({ defender: unit(D2), board, attack, actorFor: (id) => w.actor(id) })
         .map((a) => a.ability.system.contentId);
-      // At cf20cfc `againstKind: np` compared `kind` alone, and Overedge's is `attackSkill`.
+      // At fdeb4d8 `againstKind: np` compared `kind` alone, and Overedge's is `attackSkill`.
       expect(offered({ kind: "attackSkill", categorizedAsNP: true })).toContain("emiya-rho-aias");
       expect(offered({ kind: "normal" })).not.toContain("emiya-rho-aias");
       expect(offered({ kind: "np" })).toContain("emiya-rho-aias");

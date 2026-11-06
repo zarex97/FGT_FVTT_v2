@@ -15,9 +15,9 @@ Mana Burst. The use gate accepts it, refuses `cooldownOutsideZon` outside the ZO
 as `overCooldown`. Both use paths then skip the clock. `node tools/capability.mjs cooldownOverride` finds it. Only
 Lanceturia's copy of the Skill is unauthored content.
 
-**Cause:** `module/rules/costs.mjs:370 @ a3ff740a`. The gate reads `ability.cooldownOverride`. The survey named
+**Cause:** `module/rules/costs.mjs:370 @ de8c3e18`. The gate reads `ability.cooldownOverride`. The survey named
 `cooldownWaiver` as the nearest key and never searched for the use-on-Cooldown path. When I filled the `keys:`
 lines, I copied the issue's claim instead of running the lookup on the Clause's words.
 
-**Fix:** `docs/model/cooldown.md:37 @ 4a2daaef`. The `bypassForCost` line now reads run since #230, with
+**Fix:** `docs/model/cooldown.md:37 @ 039a2fa4`. The `bypassForCost` line now reads run since #230, with
 `keys: field.cooldownOverride`. #306 was closed as built, and Lanceturia's Mana Burst is content for her own build.

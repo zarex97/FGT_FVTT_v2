@@ -11,8 +11,8 @@ pattern: drive-kit
 **Actual:** on the first audit run in a cloud session the harness had cloned `zarex97/fgt-worlds` onto the session's
 own branch (`ccr-8ef89516-n8qvw5`) with no upstream, and `fvtt-world pull` stopped at "There is no tracking information
 for the current branch". No world was copied.
-**Cause:** `tools/cloud/setup.sh:139 @ 03883e1` — `sync_clone` ran a bare `git pull --ff-only`, which needs an
+**Cause:** `tools/cloud/setup.sh:139 @ ea7d469` — `sync_clone` ran a bare `git pull --ff-only`, which needs an
 upstream; the clone's shape was the harness's, never read. `push` has the same shape: `git push origin HEAD` sends the
 commit to the session branch, not to the `main` the PC pulls.
-**Fix:** `tools/cloud/setup.sh:142 @ 1c5ffff` — `sync_clone` fetches `origin main` and `pull` reads the archive
+**Fix:** `tools/cloud/setup.sh:142 @ b4c9a31` — `sync_clone` fetches `origin main` and `pull` reads the archive
 with `git show origin/main:<world>.tgz`, whatever is checked out; `cloud.md` says where `push` lands.

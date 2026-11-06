@@ -9,7 +9,7 @@ pattern: producer-without-consumer
 **Expected:** Player1 opens Dracula Vlad's sheet and reads that he must Attack the closest Unit (#330, LD.closest).
 **Actual:** the sheet's amber banner read `{"id":"dracula","within":1,"relations":["ally","enemy"],"targetPredicate":null,
 "forcesTarget":true,...}`.
-**Cause:** `module/apps/actor-sheet/context.mjs:491 @ 630495df` — the banner shows `rule.text ?? rule.reason`, and no
+**Cause:** `module/apps/actor-sheet/context.mjs:491 @ ae843342` — the banner shows `rule.text ?? rule.reason`, and no
 `Compulsion` element carries either, so every compulsion fell to `JSON.stringify(rule)`: Penthesilea's and Karna's too.
-**Fix:** `module/apps/actor-sheet/context.mjs:493 @ 2f18de06` — a sentence from the lang file, naming the source by
+**Fix:** `module/apps/actor-sheet/context.mjs:493 @ 2f651e0b` — a sentence from the lang file, naming the source by
 its definition's name.

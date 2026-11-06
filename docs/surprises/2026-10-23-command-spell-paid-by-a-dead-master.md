@@ -10,7 +10,7 @@ pattern: hidden-timing-rule
 this NP is activated"*: the spell paid, then the kill.
 **Actual:** R50 the cards ran "Master of Saber of Faction 1 is defeated by Lancer." before "Master of Saber of Faction 1
 spends 1 Command Spell(s) to power Lancer's Noble Phantasm." A dead Master paid for it.
-**Cause:** `module/engine/skill-use.mjs:204 @ 630495df` — `useSkill` runs every phase, then charges the costs; nothing
+**Cause:** `module/engine/skill-use.mjs:204 @ ae843342` — `useSkill` runs every phase, then charges the costs; nothing
 let a phase wait for the activation it follows.
-**Fix:** `module/engine/skill-use.mjs:250 @ 2f18de06` — a phase with `afterCosts: true` runs once the costs are paid;
+**Fix:** `module/engine/skill-use.mjs:250 @ 2f651e0b` — a phase with `afterCosts: true` runs once the costs are paid;
 Legend of Dracula's `defeat` carries it.

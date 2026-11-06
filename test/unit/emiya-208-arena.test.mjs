@@ -572,7 +572,7 @@ describe("Rho Aias against a thrown weapon, and for that one Noble Phantasm only
       expect(w.actor(D2).system.health.value).toBe(hp);
       // For every 200 it lost, EMIYA lost 100: 1399 lost is six hundreds.
       expect(w.actor(E).system.health.value).toBe(emiyaHp - 600);
-      // The barrier holds the NP's riders too (ruled 2026-10-16, #208): at cf20cfc Stun "applied" through it.
+      // The barrier holds the NP's riders too (ruled 2026-10-16, #208): at fdeb4d8 Stun "applied" through it.
       // `emiya-208-open.test.mjs` plays the rest of that ruling.
       const rows = [...w.messages.values()].flatMap((m) => m.getFlag?.("fgt", "effects") ?? []);
       expect(rows.find((e) => e.id === "stun")?.outcome).toBe("blocked");

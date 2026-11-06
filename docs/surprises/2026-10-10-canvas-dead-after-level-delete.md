@@ -15,5 +15,5 @@ empty list, the screenshot a grey field. Re-viewing the Level did nothing; `canv
 `teardown` deletes the dimension's Level, in quick succession; the canvas did not come back on its own.
 Not traced into Foundry's own redraw.
 
-**Fix:** `module/fgt.mjs @ d162f50` — `createLevel` and `deleteLevel` hooks redraw the canvas on any client showing
+**Fix:** `module/fgt.mjs @ efd49e2` — `createLevel` and `deleteLevel` hooks redraw the canvas on any client showing
 that scene if it is not ready half a second later.

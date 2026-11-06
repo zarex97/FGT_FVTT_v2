@@ -4,9 +4,9 @@
  *
  * Eight Silent Drops were a reader and a writer disagreeing, which no survival
  * test can see because nothing was ever authored: `system.concealed` read by
- * four subsystems and never written or declared (dce679f), Home Base residency
+ * four subsystems and never written or declared (67708d9), Home Base residency
  * read and never written (#19), `turnState.servantsActed` read and never
- * declared (ec60370), `kind` written where the reader compared `key` (92307da).
+ * declared (ee9190e), `kind` written where the reader compared `key` (1aed2d1).
  * Ch. 46 §46.4 names the shapes: *collected but unread*, *two shapes of the same
  * value*, *name drift*.
  *

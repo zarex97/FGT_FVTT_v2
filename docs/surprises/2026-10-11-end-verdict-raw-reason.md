@@ -8,5 +8,5 @@ pattern: two-readers-one-rule
 ---
 **Expected:** An active mode that cannot be switched off says why in words, as the sheet's toggle does.
 **Actual:** Mad Enhancement's slot read "Mad Enhancement — toggleLock".
-**Cause:** `module/apps/hud/action-bar.mjs:697 @ b9884b9` — my `endVerdict` handed `canToggleMode`'s reason id to the use gate's refusal mapping, which knows only `FGT.Ability.Refused.*`. Three of its reasons had no `FGT.Mode.*` text either.
-**Fix:** `module/apps/hud/action-bar.mjs @ b9884b9` — `endVerdict` formats `FGT.Mode.<reason>` and the slot shows it. `forced`, `suspended` and `oncePerRound` got their text. A test checks every reason has one.
+**Cause:** `module/apps/hud/action-bar.mjs:697 @ 41caac1` — my `endVerdict` handed `canToggleMode`'s reason id to the use gate's refusal mapping, which knows only `FGT.Ability.Refused.*`. Three of its reasons had no `FGT.Mode.*` text either.
+**Fix:** `module/apps/hud/action-bar.mjs @ 41caac1` — `endVerdict` formats `FGT.Mode.<reason>` and the slot shows it. `forced`, `suspended` and `oncePerRound` got their text. A test checks every reason has one.

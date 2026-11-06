@@ -14,9 +14,9 @@ addition: `attack:isNP` needs the flag on the declaration, and `buildAttackSpec`
 category in exactly one place` — `expected [ 'categorizedAsNP: Boolean(', …(1) ] to have a length of 1 but got 2`.
 `attackIdentityOf` is the one place an ability's NP category is read, and the declaration had grown a second.
 
-**Cause:** `module/engine/attack.mjs:771 @ 7231295` — the stamp I wrote read `ability.system.categorizedAsNP`
+**Cause:** `module/engine/attack.mjs:771 @ 1f1a549` — the stamp I wrote read `ability.system.categorizedAsNP`
 itself. The identity builder carried the flag for the pipeline only; the option set is built from the
 declaration, which is why it was missing there, and the quick fix was a second reader of the same rule.
 
-**Fix:** `module/engine/attack.mjs:771 @ 2878817` — `categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP`,
+**Fix:** `module/engine/attack.mjs:771 @ 68d9dd6` — `categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP`,
 so the declaration, the pipeline and `isNPAttack` read one definition.

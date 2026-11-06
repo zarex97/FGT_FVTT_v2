@@ -11,6 +11,6 @@ ruling 9).
 **Actual:** the press gate asks the budget before `useSkill` spends it, and computed `free` from `freeAction` alone:
 a window cast of Active 2 on a spent Turn would be refused before the free use path was reached. Found only because
 the Pale Rider scan named both lines.
-**Cause:** `module/engine/press-gate.mjs:112 @ 630495df` — the gate's own `free`, a second reader of "is this use
+**Cause:** `module/engine/press-gate.mjs:112 @ ae843342` — the gate's own `free`, a second reader of "is this use
 free" that the use path's change did not reach.
-**Fix:** `module/engine/press-gate.mjs:112 @ 2f18de06` reads `freeAtWindow` with `atWindow`, as `useSkill` does.
+**Fix:** `module/engine/press-gate.mjs:112 @ 2f651e0b` reads `freeAtWindow` with `atWindow`, as `useSkill` does.

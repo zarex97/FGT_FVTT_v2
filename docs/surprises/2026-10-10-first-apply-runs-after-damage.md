@@ -13,10 +13,10 @@ counts its two NP DmUps (30% and, on Waterside, 20%) in its own damage. The YAML
 **Actual:** stage 4 read only Heracles' Mad Enhancement Def Up; the three buffs were listed on the card
 after the damage, expiring that Turn.
 
-**Cause:** `module/engine/attack.mjs:4682 @ 08ea4b1` — a phase runs before the damage only when it states
+**Cause:** `module/engine/attack.mjs:4682 @ 50c5731` — a phase runs before the damage only when it states
 `when: beforeDamage`; unstated means after, wherever it is listed. Anastasia's Snegleta has the same
 shape: its *"First, inflict Def Dwn (A)"* missed its own hit.
 
-**Fix:** `packs/_source/abilities/nemo-great-ram-nautilus.yml`, `anastasia-snegleta.yml @ d162f50` —
+**Fix:** `packs/_source/abilities/nemo-great-ram-nautilus.yml`, `anastasia-snegleta.yml @ efd49e2` —
 `when: beforeDamage`; `test/unit/storm-border-191.test.mjs` refuses any effect phase listed before a
 damage phase without a `when`.

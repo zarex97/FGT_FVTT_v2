@@ -5,7 +5,7 @@
  * Pressed live: Tenmōkaikai, forced off at tick 16, read `remaining: 0`, though
  * its sheet says "Cooldown: 7◈+⅓◈ Turns after this NP is deactivated" -- 22 at
  * three Turns a Round. Its clock counts from deactivation, and a plain mode had
- * no writer for it. The fix is a listener on `updateItem` (`b9884b9`), and the
+ * no writer for it. The fix is a listener on `updateItem` (`41caac1`), and the
  * only test of it read the source for the `Hooks.on` line, because the test
  * world never fired a hook. Now it does, and binds the game's own listeners, so
  * this switches the mode off the way any rule does and watches the cooldown.

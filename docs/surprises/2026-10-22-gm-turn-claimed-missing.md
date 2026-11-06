@@ -11,7 +11,7 @@ added as the Round's last Turn"*, as if the engine had no GM's Turn. Issue #293 
 **Actual:** the GM's Turn already exists. `CONTEXT.md` defines a Round as *"One Turn per Player, plus the GM's
 Turn"*, and Ch. 25 says *"The GM always takes the last slot and does not roll."* It is counted in ◈. Only
 its contents are missing: *"The GM combatant returns `null` for faction id… nothing happens on its turn."*
-**Cause:** `module/engine/turn-order.mjs:58 @ d97795b9` — `factionOfCombatant` gives the GM slot no faction,
+**Cause:** `module/engine/turn-order.mjs:58 @ ce40e2d7` — `factionOfCombatant` gives the GM slot no faction,
 so it gets no budget. I took #293's line as fact and never read the turn order.
-**Fix:** `docs/superpowers/specs/2026-10-22-gilles-caster-clauses.md @ 965a7cc5` — Round 2's reading 12a
+**Fix:** `docs/superpowers/specs/2026-10-22-gilles-caster-clauses.md @ 0c5e1ad7` — Round 2's reading 12a
 puts the Gigantic Horror in the existing GM slot. It adds no Turn and leaves ◈ as it is.

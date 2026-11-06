@@ -258,7 +258,7 @@ describe("Overedge's swings are Normal Attacks and the Noble Phantasm the Circui
 
   it("Overedge: attack:kind:normal beside attackSkill, and attack:kind:np (it is categorized as one)", async () => {
     const { declared, options } = await optionsOf("emiya-overedge", 3);
-    // At cf20cfc `attack:kind:np` was the Noble Phantasms only and `attack:isNP` counted Overedge beside it; every NP
+    // At fdeb4d8 `attack:kind:np` was the Noble Phantasms only and `attack:isNP` counted Overedge beside it; every NP
     // rule hears a categorized NP now (ruled 2026-10-16, #208), so the one name says it.
     expect(declared.asNormalAttack).toBe(true);
     expect(declared.categorizedAsNP).toBe(true);
@@ -314,7 +314,7 @@ describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swin
       for (const defId of ["acNextNp", "bcNextNp"]) {
         // The clause that spends the charge is the one carrying `consumesUse`.
         const clause = EffectRegistry.get(defId).rules.find((r) => r.consumesUse);
-        // At 7231295 ["attack:kind:np"] heard no Overedge; at cf20cfc ["attack:isNP"] did. Now kind np counts it (#208).
+        // At 1f1a549 ["attack:kind:np"] heard no Overedge; at fdeb4d8 ["attack:isNP"] did. Now kind np counts it (#208).
         expect(clause.predicate, defId).toEqual(["attack:kind:np"]);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-overedge", 3) }), `${defId} Overedge`).toBe(true);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-hrunting", 4) }), `${defId} Hrunting`).toBe(true);

@@ -47,7 +47,7 @@ function invalidInitials(field, path) {
 describe("every schema's own defaults satisfy its own validation", () => {
   // `{choices, initial: ""}` without `blank: true` fails its own validation,
   // and one invalid field makes the whole `system` invalid: that is how every
-  // actor in the world failed to initialize (8733fc4). The old guard scanned
+  // actor in the world failed to initialize (55ef012). The old guard scanned
   // `module/data/actor` source for the one spelling that had bitten; this walks
   // every field of every registered model, of every document type, and asks
   // Foundry's own `validate` about each field's own initial value.
@@ -69,7 +69,7 @@ describe("every schema's own defaults satisfy its own validation", () => {
 });
 
 describe("a field is declared on the type it is written to, not on another", () => {
-  // 21e74b4: `carriesItemId` was declared on SummonData and written to a
+  // 10595db: `carriesItemId` was declared on SummonData and written to a
   // Structure. The text guard matched against the UNION of names in
   // `module/data`, so the write passed; Foundry pruned it; the Vorpal Blade's
   // cache carried nothing. The loud prune holds each write to its own type.

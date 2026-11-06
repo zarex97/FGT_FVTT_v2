@@ -4,7 +4,7 @@
  *
  * Live: Asterios attacked Pale Rider, the hit was negated to 0 by his nature,
  * and he was defeated. `resolveDefeatOf` read his null Health as 0, so
- * `0 - 0` was "out of Health". The stale 1500 that 6376e1a removed had hidden
+ * `0 - 0` was "out of Health". The stale 1500 that eef7d99 removed had hidden
  * it.
  */
 

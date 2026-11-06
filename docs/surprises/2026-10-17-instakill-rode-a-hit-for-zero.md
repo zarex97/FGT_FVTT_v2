@@ -10,7 +10,7 @@ pattern: claim-without-reading-the-path
 `kiritsugu.test.mjs` said the rider gate already refused a hit that dealt nothing, so no `requiresDamage` was needed.
 **Actual:** Since §46.4-LI riders land on a hit, not a hurt: a Block to 0 rolls the Instakill. The test still passed,
 because it asserted that the key was absent, not what a 0 hit did.
-**Cause:** `module/engine/attack.mjs#applyAbilityEffects @ a27e058f` gates riders on `ridersFire` (hit), and
-`packs/_source/abilities/kiritsugu-mystery-bisection.yml @ a27e058f` stated no gate of its own.
-**Fix:** `module/engine/attack.mjs:5889 @ 5101f86f` reads `requiresDamage` on a phase; the Instakill has its own
+**Cause:** `module/engine/attack.mjs#applyAbilityEffects @ 72cbaca6` gates riders on `ridersFire` (hit), and
+`packs/_source/abilities/kiritsugu-mystery-bisection.yml @ 72cbaca6` stated no gate of its own.
+**Fix:** `module/engine/attack.mjs:5889 @ 24f8c657` reads `requiresDamage` on a phase; the Instakill has its own
 phase with it, the mark none (#243 readings 15, 16).
