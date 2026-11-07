@@ -7,7 +7,8 @@
 # session starts and cannot read the environment's variables, so it only
 # installs: Node 24 at /opt/node24, and the commands fvtt-up, fvtt-down and
 # fvtt-world in /usr/local/bin. The licence key is read later, by fvtt-up, from the
-# environment variable foundry_license.
+# environment variable foundry_license. It also turns AI credit off for every
+# repository this environment opens (see "No credit" in docs/agents/cloud.md).
 #
 # Safe to run twice.
 set -euo pipefail
@@ -194,3 +195,11 @@ esac
 FVTT_WORLD
 
 chmod +x /usr/local/bin/fvtt-up /usr/local/bin/fvtt-down /usr/local/bin/fvtt-world
+
+mkdir -p ~/.claude
+cat > ~/.claude/CLAUDE.md <<'EOF'
+Never credit Claude or Anthropic in commits or pull requests.
+EOF
+cat > ~/.claude/settings.json <<'EOF'
+{"attribution":{"commit":"","pr":"","sessionUrl":false}}
+EOF
