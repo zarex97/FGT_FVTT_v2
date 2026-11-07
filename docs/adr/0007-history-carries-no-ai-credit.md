@@ -13,8 +13,9 @@ in the tree were swapped in one follow-up commit; the IDs in older versions of t
 This records what the metadata says, and it does not change how the project works: the code is still
 written with Claude Code, which `CLAUDE.md` and `.claude/` say openly.
 
-New credit is stopped at its source: the `attribution` setting, on each machine and committed in
-`.claude/settings.json`, and the Git identity set in the cloud environment (`docs/agents/cloud.md`).
+New credit is stopped at its source: the `attribution` setting, on each machine, written by the cloud
+environment's setup script and committed in `.claude/settings.json`, and the Git identity set in the cloud
+environment (`docs/agents/cloud.md`).
 
 ## Considered options
 

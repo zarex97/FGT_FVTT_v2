@@ -30,10 +30,17 @@ session. Set `foundry_license` among the environment's variables.
 
 ## No credit in a session's commits
 
-A session does not read `~/.claude/settings.json`, so this repository commits the `attribution` key in
-`.claude/settings.json`, which removes the commit trailer, the pull request line and the session link. A
-cloud thread in a project does not read that file, and neither does a session across several repositories:
-`CLAUDE.md` says the rule for those. Another repository needs the key committed in its own file.
+A session does not read the PC's `~/.claude/settings.json`. So `setup.sh` writes `~/.claude/settings.json`
+with the `attribution` key and `~/.claude/CLAUDE.md` with the rule inside the container, for every repository
+the environment opens. A new repository needs nothing committed.
+
+Probed on 2026-11-06 in `To-Do-App`, which has no `.claude/`: the session was handed no attribution lines,
+and its commit carried no trailer and no session link. No session ran without the script, so that the file
+is what removed them is inferred. A project thread and a session across several repositories were not probed.
+
+This repository still commits the key in `.claude/settings.json`, for an environment without the script. An
+environment holds its own copy of the script: when this file changes, paste it again. The script does not
+cover the footer a session's system prompt asks for on GitHub comments and reviews.
 
 That key does not choose the author: sessions here have committed as `Claude <noreply@anthropic.com>`.
 Set the Git identity among the environment's variables, which reach every repository the environment opens:
