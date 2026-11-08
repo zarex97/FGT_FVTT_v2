@@ -299,8 +299,14 @@ export async function postTurnEndReport(intents, before = null, health = null, t
     return escape(actor ? shownName(actor, board) : id);
   };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
-  const nameOfAbility = (unitId, abilityId) => escape(unitActor(unitId)?.items?.find((i) =>
-    i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId)?.name ?? abilityId);
+  // The ability's PUBLIC tag (#387): Light of Wisdom's line printed Enuma Elish
+  // by name (#394, live). The renderer swaps it back for those entitled.
+  const { shownAbility } = await import("./public-ability.mjs");
+  const nameOfAbility = (unitId, abilityId) => {
+    const item = unitActor(unitId)?.items?.find((i) =>
+      i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId);
+    return escape(item ? shownAbility(item) : abilityId);
+  };
   // A handler names its source by the effect's id ("regen"); the card says the
   // effect's name, as the rest of the game does ("Regen", #234).
   const { EffectRegistry } = await import("../rules/registry.mjs");
