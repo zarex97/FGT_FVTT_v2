@@ -754,7 +754,7 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string|null} killerId
      */
-    async noteFinalDefeat(unitId, killerId) {
+    async noteFinalDefeat(unitId, killerId, fallen = null) {
       const actor = resolve(unitId);
       if (!actor) return;
       const { onHolderDefeated, forceOut } = await import("./bug-space.mjs");
@@ -765,7 +765,7 @@ export function worldIO() {
       await discardAllStolen(actor);
       if (killerId) void offerObtainedSkill(killerId, unitId);
       await tallyFelledSummon(actor, killerId);
-      await fireFinalDefeat(actor, killerId);
+      await fireFinalDefeat(actor, killerId, fallen);
     },
 
     async banish(unitId, untilTick, fieldId) {
@@ -1923,10 +1923,11 @@ function resolve(unitId) {
  * @param {string|null} killerId
  * @returns {Promise<void>}
  */
-async function fireFinalDefeat(actor, killerId) {
+async function fireFinalDefeat(actor, killerId, fallen = null) {
   const { currentBoard, unitFrom } = await import("./board.mjs");
   const board = currentBoard();
-  const unit = unitFrom(board, actor);
+  // As it stood before the defeat, when the defeat took it off the board.
+  const unit = unitFrom(board, actor) ?? fallen;
   if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
   const { fireEvent } = await import("./scheduler.mjs");
   const intents = fireEvent("finalDefeat", [unit], { board, killerId, tick: currentMoment().tick, rolls: {} });
