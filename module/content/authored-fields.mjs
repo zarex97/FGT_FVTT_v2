@@ -42,7 +42,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   // The linked-group binding (Ch. 32). Settings only: `memberIds` is
   // resolved at summon and is never authored.
   "linkedGroup",
-  "summonVariant", "stanceSpec", "stance", "resources", "notes",
+  "summonVariant", "stanceSpec", "stance", "resources", "gather", "notes",
   // Items a Servant may arrive with on a die (Arturia's Avalon, #230).
   "summonItems",
   // Abilities a Servant may arrive with on a coin and dice (Rama's Vishnu Bhuja, #347).

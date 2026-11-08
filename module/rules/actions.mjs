@@ -20,6 +20,7 @@
  */
 
 import { hasGranted, GRANTS } from "./granted.mjs";
+import { gatherOffers } from "./gather.mjs";
 import { relationOf } from "./relations.mjs";
 import { contains, membershipVerdict, canAttemptEscape } from "./bounded-fields.mjs";
 import { remainingMovement } from "./movement.mjs";
@@ -147,13 +148,19 @@ export const UNIT_ACTIONS = Object.freeze([
     mode: "immediate",
     // *"Semiramis or any allied Unit can perform 'Gather'."* Board-dependent,
     // not unit-intrinsic: this button appears on an ally's bar because of who
-    // ELSE is standing on the board.
+    // ELSE is standing on the board. Whose pool and for how much is the pool
+    // owner's authored `gather` (`rules/gather.mjs`, #298); a pool already full
+    // is offered blocked, with the reason the press gives (#394 ruling 12a).
     available: (unit, board) => {
       if (!acts(unit)) return null;
-      const owner = (board?.units ?? []).find(
-        (u) => u.resources?.hgobConstruction && relationOf(u, unit, board) !== "enemy",
-      );
-      return owner ? { ownerId: owner.id } : null;
+      const offers = gatherOffers(unit, board);
+      if (offers.length === 0) return null;
+      const open = offers.filter((o) => !o.full);
+      return {
+        ownerId: (open[0] ?? offers[0]).ownerId,
+        owners: offers.map((o) => o.ownerId),
+        blocked: open.length === 0 ? "poolFull" : null,
+      };
     },
   },
   {

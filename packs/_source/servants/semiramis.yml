@@ -56,9 +56,14 @@ summonVariant:
 # summon-time 1d6x1d6 roll) are applied at commit time by `engine/summon.mjs`,
 # not authored here as a static number. Source 6 (Gather) is a standalone
 # action (`engine/gather.mjs`), not a rule element -- any allied Unit may
-# perform it, not just Semiramis.
+# perform it, not just Semiramis -- and what it gives is `gather` below.
 resources:
   hgobConstruction: { value: 0, max: 100 }
+# Source 6, Gather: *"Semiramis or any allied Unit can perform 'Gather' during its
+# Turn, which increases Construction by 3. However, if Semiramis uses it,
+# Construction is increased by 5, while it is increased by 4 if her Master uses
+# it."* Authored here since #298 (`rules/gather.mjs`); written in code before.
+gather: { resource: hgobConstruction, by: { self: 5, master: 4, ally: 3 }, regionScaled: middleEast }
 
 # Sources 3 and 5. Source 4 (Item Construction's own poison count) rides
 # `semiramis-item-construction.yml`'s `itemGrant` phase instead -- it needs

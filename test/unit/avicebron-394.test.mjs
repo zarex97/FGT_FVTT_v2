@@ -265,3 +265,33 @@ describe("Fig Tree of Tranquility (FT.*, ruling 23)", () => {
     }, WAR);
   });
 });
+
+describe("Gather (GK.gather.*, ruling 12)", () => {
+  it("gives 2 for him and 2 for his Master, and refuses any other ally", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 5, j: 5 }, state: { factionId: "A", masterId: MA } },
+      { from: { type: "master", id: MA, name: "Master of Avicebron" }, id: MA, panel: { i: 5, j: 3 }, state: { factionId: "A" } },
+      { from: "heracles", id: "avicebronAlly0001", panel: { i: 6, j: 6 }, state: { factionId: "A" } },
+    ], async ({ world: w }) => {
+      const { gather } = await import("../../module/engine/gather.mjs");
+      expect(await gather({ actorId: AV })).toMatchObject({ ok: true, amount: 2 });
+      expect(await gather({ actorId: MA })).toMatchObject({ ok: true, amount: 2 });
+      expect(w.actor(AV).system.resources.construction.value).toBe(4);
+      expect(await gather({ actorId: "avicebronAlly0001" })).toMatchObject({ ok: false, reason: "noGatherOwner" });
+      // Counts as his Move, and he cannot Attack after it.
+      expect(w.actor(AV).system.turnState).toMatchObject({ moved: true, attacked: true, gathered: true });
+    }, WAR);
+  });
+
+  it("is refused while his pool is full, saying so (ruling 12a)", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 5, j: 5 }, state: { factionId: "A", resources: { construction: { value: 50, max: 50 }, golemsFelled: { value: 0, max: 4 }, figTreeSpent: { value: 0, max: 1 } } } },
+    ], async ({ world: w }) => {
+      const { gather } = await import("../../module/engine/gather.mjs");
+      const out = await gather({ actorId: AV });
+      expect(out.ok).toBe(false);
+      expect(out.reason).toContain("FGT.Gather.Full");
+      expect(w.actor(AV).system.turnState?.gathered ?? false).toBe(false);
+    }, WAR);
+  });
+});

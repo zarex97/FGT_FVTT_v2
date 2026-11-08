@@ -510,6 +510,8 @@ export function snapshotUnit(actor, {
     resources: Object.fromEntries(
       Object.entries(sys.resources ?? {}).map(([k, v]) => [k, { value: v?.value ?? 0, max: v?.max ?? null }]),
     ),
+    // The Gather this Unit takes, for `rules/gather.mjs` (#298).
+    gather: sys.gather?.resource ? { ...sys.gather, by: { ...(sys.gather.by ?? {}) } } : null,
     // Bašmu: "the HGoB can move onto occupied panels" and Bašmu itself "when
     // it Moves to any occupied panels, all Units occupying said panels are
     // knocked back" -- `rules/movement.mjs`'s `ignoresBlocking` already reads

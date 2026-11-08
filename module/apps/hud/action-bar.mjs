@@ -833,7 +833,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
  * A refusal, in words a player can read.
  *
  * The engines do not agree on what `reason` is. `placeMark` and `gather`
- * return short ids (`alreadyMarked`, `noHgobOwner`) that key a translation;
+ * return short ids (`alreadyMarked`, `noGatherOwner`) that key a translation;
  * `engine/budget.mjs#affordable` returns a finished English sentence
  * (*"Servant attacks exhausted (2/2)"*). Localizing blindly printed
  * `FGT.Action.Refusal.Servant attacks exhausted (2/2)` on screen, which is

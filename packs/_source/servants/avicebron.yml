@@ -33,6 +33,9 @@ resources:
   construction: { value: 0, max: 50 }
   golemsFelled: { value: 0, max: 4 }
   figTreeSpent: { value: 0, max: 1 }
+# Source 5, Gather: *"During your Turn, Avicebron and/or his Master can perform
+# 'Gather', which increases Construction by 2 per Unit."* Nobody else (ruling 12).
+gather: { resource: construction, by: { self: 2, master: 2 } }
 
 passiveRules:
   # *"Note: Total Damage dealt by Avicebron's Normal Attacks is reduced by 75%."*

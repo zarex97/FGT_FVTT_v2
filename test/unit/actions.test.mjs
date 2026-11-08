@@ -62,7 +62,9 @@ describe("Mark (Ch. 28)", () => {
 });
 
 describe("Gather (Ch. 45)", () => {
-  const semiramis = () => unit({ id: "s1", resources: { hgobConstruction: { value: 0, max: null } } });
+  // Her `gather` as `packs/_source/servants/semiramis.yml` authors it (#298).
+  const HGOB = { resource: "hgobConstruction", by: { self: 5, master: 4, ally: 3 }, regionScaled: "middleEast" };
+  const semiramis = () => unit({ id: "s1", gather: HGOB, resources: { hgobConstruction: { value: 0, max: 100 } } });
   const ally = () => unit({ id: "a1", faction: "red" });
 
   it("is offered to an ALLY because of who else is on the board", () => {
@@ -70,7 +72,22 @@ describe("Gather (Ch. 45)", () => {
     // board-dependent, which is why `available` takes the board.
     const found = availableActions(ally(), board([semiramis(), ally()])).find((a) => a.id === "gather");
     expect(found).toBeDefined();
-    expect(found.context).toEqual({ ownerId: "s1" });
+    expect(found.context).toEqual({ ownerId: "s1", owners: ["s1"], blocked: null });
+  });
+
+  it("is offered blocked when the pool is full (#394 ruling 12a)", () => {
+    const full = unit({ id: "s1", gather: HGOB, resources: { hgobConstruction: { value: 100, max: 100 } } });
+    const found = availableActions(ally(), board([full, ally()])).find((a) => a.id === "gather");
+    expect(found.context.blocked).toBe("poolFull");
+  });
+
+  it("is withheld from a Unit whose role the owner's Gather does not name (Avicebron's: himself and his Master)", () => {
+    const avicebron = unit({ id: "v1", masterId: "m1", gather: { resource: "construction", by: { self: 2, master: 2 } },
+      resources: { construction: { value: 0, max: 50 } } });
+    const master = unit({ id: "m1", kind: "master" });
+    expect(idsFor(ally(), board([avicebron, ally()]))).not.toContain("gather");
+    expect(idsFor(avicebron, board([avicebron]))).toContain("gather");
+    expect(idsFor(master, board([avicebron, master]))).toContain("gather");
   });
 
   it("is offered to Semiramis herself", () => {
@@ -78,7 +95,7 @@ describe("Gather (Ch. 45)", () => {
   });
 
   it("is withheld when the only Construction owner is an enemy", () => {
-    const enemyOwner = unit({ id: "s1", faction: "blue", resources: { hgobConstruction: { value: 0 } } });
+    const enemyOwner = unit({ id: "s1", faction: "blue", gather: HGOB, resources: { hgobConstruction: { value: 0, max: 100 } } });
     expect(idsFor(ally(), board([enemyOwner, ally()]))).not.toContain("gather");
   });
 

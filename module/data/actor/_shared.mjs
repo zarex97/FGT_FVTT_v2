@@ -217,6 +217,11 @@ export function unitCommon() {
     // mechanism, and a general mechanism cannot enumerate its instances.
     resources: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
+    // The Gather this Unit takes into one of its pools (#298): who may perform
+    // it and for how much, `{resource, by: {self, master, ally}, regionScaled}`.
+    // Semiramis's and Avicebron's (#394). Read by `rules/gather.mjs`.
+    gather: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
     // Whether this Unit is under Presence Concealment.
     //
     // Derived from the `presenceConcealment` effect by the snapshot, and
