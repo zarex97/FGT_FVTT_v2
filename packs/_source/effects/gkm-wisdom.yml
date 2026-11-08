@@ -24,12 +24,16 @@ rules:
   - key: OnEvent
     event: [turnEnd, actedTurnEnd]
     automatic: true
+    # Tested when it fires, where the War's ◈ is known; at collection
+    # `@turnsPerRound` has no value and threw out of every board (#394, live).
+    defer: true
     predicate: [{ lte: ["@turnsPerRound", 4] }]
     then:
       - { key: CooldownDelta, scope: np, delta: -1 }
   - key: OnEvent
     event: [turnEnd, actedTurnEnd]
     automatic: true
+    defer: true
     predicate: [{ gt: ["@turnsPerRound", 4] }]
     then:
       - { key: CooldownDelta, scope: np, delta: -2 }

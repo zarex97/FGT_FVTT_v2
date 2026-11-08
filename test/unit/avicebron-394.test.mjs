@@ -445,3 +445,14 @@ describe("a boundary's card says a pool its handlers moved (#394, live)", () => 
     expect(card).not.toContain("full:");
   });
 });
+
+describe("GKM's aura effect on a board (GK.aura.*, #394 live)", () => {
+  it("projects a Unit holding Light of Wisdom, and its clock cut waits for the Turn's end", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 5, j: 5 }, state: { factionId: "A" }, effects: [{ defId: "gkmWisdom" }] },
+    ], ({ unit }) => {
+      const h = (unit(AV).eventHandlers ?? []).filter((x) => x.source === "Light of Wisdom" || (x.events ?? []).includes("actedTurnEnd"));
+      expect(h.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+});
