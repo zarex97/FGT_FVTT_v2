@@ -25,6 +25,9 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // Summons do not count toward the turn budget, and several persist across
       // their field's deactivation with their stats intact.
       countsTowardBudget: new fields.BooleanField({ initial: false }),
+      // What one of it counts as, when it counts: *"one Golem counts as 0.2 of a
+      // Servant (i.e. 5 Golems are equal to 1 Servant)"* (Avicebron, #291).
+      unitWeight: new fields.NumberField({ initial: 1, min: 0 }),
       // Medea's second clause: "The same Dragon Tooth Warrior can only
       // Move/Attack once per Turn." Distinct from the budget exemption -- being
       // outside the Unit limit does not mean acting without limit.

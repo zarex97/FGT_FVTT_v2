@@ -58,6 +58,8 @@ export const UNIT_ROUTES = {
   contentId: same("contentId"),
   countsAsHomeBase: same("countsAsHomeBase"),
   countsTowardBudget: same("countsTowardBudget"),
+  // A summon's own weight on the budget: Avicebron's Golem 0.2 (#291).
+  unitWeight: same("unitWeight"),
   crossLevel: same("crossLevel"),
   deactivateOn: same("deactivateOn"),
   deactivation: same("deactivation"),

@@ -150,6 +150,9 @@ export function snapshotUnit(actor, {
     // field keeps today's exemption.
     actsOncePerTurn: sys.actsOncePerTurn === true,
     countsTowardBudget: sys.countsTowardBudget === true,
+    // What one of it counts as, when it counts: Avicebron's Golem 0.2 (#291).
+    // Read by `rules/linked-group.mjs#unitWeight` after a linked group's.
+    unitWeight: Number.isFinite(sys.unitWeight) ? sys.unitWeight : 1,
     // Which enemy this summon hunts, and which field it dies with. Both are
     // Kagome Spirit clauses and both are read by rules that cannot reach the
     // document: the movement constraint and the field teardown.

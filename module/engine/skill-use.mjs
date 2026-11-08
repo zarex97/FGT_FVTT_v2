@@ -1555,11 +1555,32 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             ? ` (${count.formula} → ${count.total}${types.length ? `; ${types[0].formula} → ${types.map((r) => r.total).join(", ")}` : ""})`
             : "";
           const who = (out.created ?? []).map((a) => shownName(a)).filter(Boolean).join(", ");
+          // The cap's take, said: a player who rolled six and got three needs
+          // to know which rule took the other three (#394 reading 6).
+          const over = out.capped > 0 ? `; ${out.capped} over the limit of ${out.cap} on the field` : "";
           applied.push({ summary: {
             id: "summon",
-            name: `${out.count} summoned${rolled}${who ? `: ${who}` : ""}`,
+            name: `${out.count} summoned${rolled}${over}${who ? `: ${who}` : ""}`,
             outcome: "applied", reason: null,
           } });
+          // A resource paid per so many created: Avicebron's Construction *"is
+          // increased by 1 for every 3 Golems created"* (#394 reading 6) --
+          // those actually created, rounded down.
+          const grant = phase.spec?.grantsResource;
+          if (grant?.resource && out.count > 0) {
+            const gained = Math.floor(out.count / Math.max(1, Number(grant.per ?? 1)));
+            if (gained > 0) {
+              await applyWorld([
+                I.resource(actor.id, resourcePathFor(grant.resource, unitFrom(board, actor)), gained),
+                I.log({ kind: "resourceGrant", unitId: actor.id, resource: grant.resource, amount: gained }),
+              ], `skill:${ability.id}:summonGrant`);
+            }
+            applied.push({ summary: {
+              id: "summonGrant",
+              name: `${resourceLabel(grant.resource)} +${gained} (${out.count} created, 1 per ${grant.per ?? 1})`,
+              outcome: gained > 0 ? "applied" : "note", reason: null,
+            } });
+          }
           break;
         }
 
