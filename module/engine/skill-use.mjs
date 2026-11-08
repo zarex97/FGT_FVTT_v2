@@ -1555,7 +1555,9 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // nothing else, so the 1d6 and each 1d4 behind Medea's Warriors
           // could not be checked (#193).
           const count = (out.rolls ?? []).find((r) => r.id === "summonCount");
-          const types = (out.rolls ?? []).filter((r) => r.id.startsWith("summonType:"));
+          // A type die only where the summon has types to roll: Avicebron's
+          // Golems are one kind, and "1 → 1, 1" was noise on his card (#394).
+          const types = phase.spec?.typeRoll ? (out.rolls ?? []).filter((r) => r.id.startsWith("summonType:")) : [];
           const rolled = count
             ? ` (${count.formula} → ${count.total}${types.length ? `; ${types[0].formula} → ${types.map((r) => r.total).join(", ")}` : ""})`
             : "";

@@ -165,14 +165,14 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 
 ## Item Construction: Golems *(Active)*
 
-- [ ] **GO.when** · Used during his Turn, and not his Attack (Q5)
+- [x] **GO.when** · Used during his Turn, and not his Attack (Q5) · *Pressed live 2026-11-08 as Player1: the bar's slot on his side's Turn (Gilgamesh Audit, tick 80)*
 - [ ] **GO.home** · In his Home Base: 1d10 Golems
-- [ ] **GO.away** · Not in his Home Base: 1d6 Golems
-- [ ] **GO.die** · The die rolled is on the card, and the count equals it
-- [ ] **GO.place** · Each Golem on a free panel he picks within his Range at use (Q4, Q26)
+- [x] **GO.away** · Not in his Home Base: 1d6 Golems · *Pressed: off his Home Base, card *"2 summoned (1d6 → 2)"**
+- [x] **GO.die** · The die rolled is on the card, and the count equals it · *Pressed: the die on the card, two Golems on the board*
+- [x] **GO.place** · Each Golem on a free panel he picks within his Range at use (Q4, Q26) · *Pressed: the owner's pick offered within Range 2; placed at (12,7) and (12,8) from (14,9)*
 - [ ] **GO.max** · At most 30 Golems on the field (Q6)
 - [ ] **GO.gkm** · Refused while GKM is active (also GK.nogolems)
-- [ ] **GO.cd** · Cooldown 3◈−⅓◈
+- [x] **GO.cd** · Cooldown 3◈−⅓◈ · *Pressed: Cooldown 8 ticks, *"2⅔◈"* on the bar at ◈ 3*
 
 ## Golem — summon
 
@@ -204,13 +204,13 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 
 ## Numerology — Rank B *(Active)*
 
-- [ ] **NU.when** · Used during his Turn
+- [x] **NU.when** · Used during his Turn · *Pressed live 2026-11-08 as Player1, his side's Turn*
 - [ ] **NU.luck** · All Golems on the field restore 3 Luck (Q9)
-- [ ] **NU.luck.max** · …up to their maximum
+- [x] **NU.luck.max** · …up to their maximum · *Pressed: both Golems at 6/6, card *"Golem: Luck 6 (no change)"**
 - [ ] **NU.order** · Then: the Luck first, the Atk Up after
-- [ ] **NU.atk** · Atk Up on all Golems on the field: all damage dealt +40% (Q9)
-- [ ] **NU.atk.np** · …+30% if NP (Q10)
-- [ ] **NU.dur** · …for 1◈
+- [x] **NU.atk** · Atk Up on all Golems on the field: all damage dealt +40% (Q9) · *Pressed: Atk Up 40 on both Golems' token actors*
+- [x] **NU.atk.np** · …+30% if NP (Q10) · *Observed: NP magnitude 30 on the instance (ruling 10: no Golem has an NP)*
+- [x] **NU.dur** · …for 1◈ · *Pressed: expiry tick 83 from tick 80, 1◈ at ◈ 3*
 - [ ] **NU.gkm** · GKM counts as a Golem for this Skill (Q11)
 - [ ] **NU.cd** · Cooldown 4◈
 
@@ -244,11 +244,11 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 ### Construction Points
 
 - [ ] **GK.gate** · Usable only when Construction reaches 50 (Q3)
-- [ ] **GK.gate.refuse** · …refused at 49, with the reason
+- [x] **GK.gate.refuse** · …refused at 49, with the reason · *Observed: the bar's NP slot disabled, *"Needs 50 Construction; 0 held."**
 - [ ] **GK.cp.round** · Source 1: +1 at the end of every Round
 - [ ] **GK.cp.golems** · Source 2: Item Construction: Golems gives +1 for every 3 Golems created (Q6)
-- [ ] **GK.cp.golems.floor** · …rounded down: 2 Golems give 0
-- [ ] **GK.cp.numer** · Source 3: Numerology gives +1 for every 2 Golems on the field
+- [x] **GK.cp.golems.floor** · …rounded down: 2 Golems give 0 · *Pressed: card *"Construction +0 (2 created, 1 per 3)"**
+- [x] **GK.cp.numer** · Source 3: Numerology gives +1 for every 2 Golems on the field · *Pressed: card *"Construction 0 → 1"* with two Golems*
 - [ ] **GK.cp.numer.max** · …at most +10
 - [ ] **GK.cp.numer.gkm** · …GKM counted among them
 - [ ] **GK.cp.felled** · Source 4: every 5 Golems destroyed or defeated by enemy Units give +1 (Q14)
