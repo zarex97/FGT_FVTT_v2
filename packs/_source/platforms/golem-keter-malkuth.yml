@@ -113,6 +113,9 @@ rules:
   - key: OnEvent
     event: turnStart
     automatic: true
+    # Tested when it fires: whose Turn it is is unknown at collection, and the
+    # handler was dropped there and never held (#394, live).
+    defer: true
     predicate: ["self:ownTurn"]
     then:
       - { key: Heal, amount: 500 }

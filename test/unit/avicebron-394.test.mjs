@@ -456,3 +456,16 @@ describe("GKM's aura effect on a board (GK.aura.*, #394 live)", () => {
     });
   });
 });
+
+describe("GKM's Turn-start heal is held (GK.turn.*, #394 live)", () => {
+  it("collects its turnStart handler, the own-Turn test waiting for the event", async () => {
+    const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 6, j: 6, k: 1 }, state: { factionId: "A" } },
+      { from: "golem-keter-malkuth", id: "avicebronGkm0001", footprint: FOUR(6, 6), state: { ownerId: AV, factionId: "A", activatedAt: 18 } },
+    ], ({ unit }) => {
+      const events = (unit("avicebronGkm0001").eventHandlers ?? []).flatMap((h) => h.events ?? [h.event]);
+      expect(events).toContain("turnStart");
+    });
+  });
+});
