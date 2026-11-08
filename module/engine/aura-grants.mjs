@@ -95,6 +95,11 @@ export const AuraGrants = {
       if (changes?.turn !== undefined || changes?.round !== undefined) scheduleAuraGrants();
     });
     Hooks.on("createToken", () => scheduleAuraGrants());
+    // ...and every move, its source's or a recipient's: a Unit that walked into
+    // GKM's 2 panels held nothing until the Turn changed (#394, live).
+    Hooks.on("updateToken", (_token, changes) => {
+      if (changes?.x !== undefined || changes?.y !== undefined || changes?.level !== undefined) scheduleAuraGrants();
+    });
     Hooks.on("deleteToken", () => scheduleAuraGrants());
     Hooks.on("updateActor", (_actor, changes) => {
       if (changes?.system?.defeated !== undefined || changes?.system?.factionId !== undefined) scheduleAuraGrants();
