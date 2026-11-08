@@ -417,7 +417,13 @@ async function onMove(document, movement, operation) {
     { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "movement" },
   );
 
-  if (!state.moved) await budget.spend({ combat, unit, action: "move" });
+  // A mount its rider drives bills the RIDER: the Move is hers (ruled
+  // 2026-10-01; GKM is Avicebron's, #394 ruling 2). Dragging the mount's own
+  // token stamped her record moved and billed the platform, which draws on no
+  // pool, so her Move went free (found live, #394).
+  const payer = actor.type === "platform" ? (partners.find((p) => p.kind !== "platform") ?? null) : unit;
+  const payerMoved = actor.type === "platform" ? Boolean(payer?.turnState?.moved) : Boolean(state.moved);
+  if (payer && !payerMoved) await budget.spend({ combat, unit: payer, action: "move" });
 
   Hooks.callAll("fgtUnitMoved", actor, { panels: spent, forced: false });
 

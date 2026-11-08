@@ -367,6 +367,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "radius", type: "number" },
     { key: "relations", type: "tokenList" },
     { key: "recipientRoles", type: "tokenList" },
+    // Units it never shields, by content id (Avicebron's Golem, #394).
+    { key: "exceptContentIds", type: "tokenList" },
   ]),
   entry("ForceTarget", "Forces an attack onto a particular Unit.", [
     { key: "target", type: "text" },

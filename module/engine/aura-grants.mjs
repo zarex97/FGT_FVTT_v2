@@ -18,6 +18,9 @@ import { currentWar, isWarGM } from "./war.mjs";
 import * as I from "./intents.mjs";
 
 let pending = null;
+/** A sync in flight, and whether a write arrived during it. */
+let running = false;
+let again = false;
 
 /**
  * Grant and take back what the board's auras say, once.
@@ -55,10 +58,28 @@ export async function syncAuraGrants() {
  * @returns {void}
  */
 export function scheduleAuraGrants() {
+  // A write heard while a sync runs is read by one more, after it: GKM's token
+  // went while a sync read the board it stood on, and Light of Wisdom stayed on
+  // its owner's Master with GKM gone (#394, live).
+  if (running) {
+    again = true;
+    return;
+  }
   if (pending) return;
-  pending = setTimeout(() => {
+  pending = setTimeout(async () => {
     pending = null;
-    syncAuraGrants().catch((err) => console.error("FGT | Aura grants:", err));
+    running = true;
+    try {
+      await syncAuraGrants();
+    } catch (err) {
+      console.error("FGT | Aura grants:", err);
+    } finally {
+      running = false;
+      if (again) {
+        again = false;
+        scheduleAuraGrants();
+      }
+    }
   }, 250);
 }
 
@@ -95,6 +116,11 @@ export const AuraGrants = {
       if (changes?.turn !== undefined || changes?.round !== undefined) scheduleAuraGrants();
     });
     Hooks.on("createToken", () => scheduleAuraGrants());
+    // ...and every move, its source's or a recipient's: a Unit that walked into
+    // GKM's 2 panels held nothing until the Turn changed (#394, live).
+    Hooks.on("updateToken", (_token, changes) => {
+      if (changes?.x !== undefined || changes?.y !== undefined || changes?.level !== undefined) scheduleAuraGrants();
+    });
     Hooks.on("deleteToken", () => scheduleAuraGrants());
     Hooks.on("updateActor", (_actor, changes) => {
       if (changes?.system?.defeated !== undefined || changes?.system?.factionId !== undefined) scheduleAuraGrants();

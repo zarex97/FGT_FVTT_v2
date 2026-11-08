@@ -3,7 +3,8 @@ id: 2026-11-06-suite-timeouts-at-ninety-percent-cpu
 found: test
 kind: suite-flakes-under-load
 status: open
-reviewed: false
+reviewed: true
+pattern: suite-flakes-under-load
 ---
 **Expected:** A docs-only branch passes at four workers, as the same suite did two hours earlier (8400 of 8400 in 190 s).
 **Actual:** 59 failed in 1225 s, then 62 on the next run, in files the branch never touched: 42 of the 62 were `Test timed out in 5000ms`, and most others were `resolveAttack is not a function` and the like. Run alone at two workers they still failed.

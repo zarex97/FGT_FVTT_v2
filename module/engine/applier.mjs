@@ -1031,6 +1031,11 @@ function entryOfIntent(effect) {
   const stages = effect.stages ?? effect.stage;
   if (typeof stages === "number" && stages > 0) entry.stages = stages;
   if (typeof effect.times === "number") entry.times = effect.times;
+  // Charges, and the stacking that counts them, as a phase's entry carries
+  // them: Fig Tree's *"Invuln ... for 3 times"* from an event handler landed
+  // with none, both dropped here (#394).
+  if (typeof effect.uses === "number" && effect.uses > 0) entry.uses = effect.uses;
+  if (effect.stacking) entry.stacking = effect.stacking;
   if (effect.visibility) entry.visibility = effect.visibility;
   if (effect.permanent) entry.permanent = true;
   if (effect.unremovable) entry.unremovable = true;
@@ -1260,19 +1265,26 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "recordUse":
       for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count, Boolean(i.categoryExempt));
       break;
-    case "defeat":
+    case "defeat": {
+      // The Unit as it stood, for what its own rules do once it has fallen: a
+      // platform's token is gone by the time `noteFinalDefeat` runs, and GKM's
+      // *"Construction is reduced to 0"* found nobody to run on (#394, live).
+      const { currentBoard } = await import("./board.mjs");
+      const fallenBoard = currentBoard();
+      const fallen = (fallenBoard.units ?? []).find((u) => u.id === unitId) ?? null;
       await io.defeat(unitId, intents[0].cause, intents[0].killerId ?? null);
       // A defeated platform falls, and one that goes with its owner goes with
       // it (Ch. 46 §46.4-CH).
       if (io.destroyPlatformsOf) await io.destroyPlatformsOf(unitId);
       // What its abilities do once it has fallen: Antares Snipe (#326).
       if (io.notePosthumous) await io.notePosthumous(unitId, intents[0].killerId ?? null);
-      if (io.noteFinalDefeat) await io.noteFinalDefeat(unitId, intents[0].killerId ?? null);
+      if (io.noteFinalDefeat) await io.noteFinalDefeat(unitId, intents[0].killerId ?? null, fallen, fallen ? fallenBoard : null);
       // ...and a teaching it was in ends with it (#326 ruling 11b).
       if (io.noteTeachingDefeat) await io.noteTeachingDefeat(unitId);
       // ...and what it inflicted that ends with it: Curse (Bolg) (#339).
       if (io.endEffectsWithInflicter) await io.endEffectsWithInflicter(unitId);
       break;
+    }
     // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
     // `unitDefeated`, no kill. It DOES write the summon's stats home and start
     // its summoner's `countFrom: "destroyed"` clock.

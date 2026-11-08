@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   emptyBudget, poolFor, preventedBy, canConsume, consume,
-  unmetCompulsions, canEndTurn, summarize, DEFAULT_MAXIMA,
+  unmetCompulsions, canEndTurn, summarize, DEFAULT_MAXIMA, BUDGET_PARTS,
 } from "../../module/rules/budget.mjs";
 
 /** A Servant snapshot with just the fields the budget reads. */
@@ -333,15 +333,15 @@ describe("D6 — a linked member counts as half a Unit", () => {
     expect(b.pools.servantMove.used).toBe(1);
   });
 
-  it("stores halves as integers so nothing accumulates float error", () => {
+  it("stores parts as integers so nothing accumulates float error", () => {
     let b = emptyBudget();
     for (const id of ["a", "b", "c", "d", "e", "f", "g"]) {
       b = consume(b, twin(id), "move").budget;
     }
-    // Seven halves. `usedHalves` is what the comparison uses and it must be an
-    // integer -- Ch. 45 names float accumulation as the risk here.
-    expect(b.pools.servantMove.usedHalves).toBe(7);
-    expect(Number.isInteger(b.pools.servantMove.usedHalves)).toBe(true);
+    // Seven halves, in sixtieths. `usedParts` is what the comparison uses and
+    // it must be an integer -- Ch. 45 names float accumulation as the risk here.
+    expect(b.pools.servantMove.usedParts).toBe(7 * 30);
+    expect(Number.isInteger(b.pools.servantMove.usedParts)).toBe(true);
   });
 
   it("admits a twin at 3.5/4 and refuses a whole Servant — the boundary case", () => {
@@ -383,7 +383,7 @@ describe("D6 — a linked member counts as half a Unit", () => {
     let b = emptyBudget();
     b = consume(b, servant("karna"), "move").budget;
     expect(b.pools.servantMove.used).toBe(1);
-    expect(b.pools.servantMove.usedHalves).toBe(2);
+    expect(b.pools.servantMove.usedParts).toBe(BUDGET_PARTS);
   });
 });
 
@@ -432,8 +432,74 @@ describe("N8 — the joint NP counts as both twins' Attack", () => {
 describe("an unlimited pool, read back from the flag", () => {
   it("still lets a Master attack", () => {
     const stored = JSON.parse(JSON.stringify(emptyBudget()));
-    expect(stored.pools.masterAttack.maxHalves).toBeNull();
+    expect(stored.pools.masterAttack.maxParts).toBeNull();
     const verdict = canConsume(stored, { id: "m", kind: "master", turnState: {} }, "attack");
     expect(verdict.ok).toBe(true);
+  });
+});
+
+// Avicebron's Golem: *"one Golem counts as 0.2 of a Servant (i.e. 5 Golems are
+// equal to 1 Servant). The same Golem can only Move/Attack once per Turn."* The
+// budget counted in halves, so 0.2 rounded to 0, and the act-once branch
+// returned free before any pool was read (#291, #394).
+describe("a summon weighing a fifth of a Servant", () => {
+  const golem = (id, turnState = {}) => ({
+    id, name: id, kind: "summon", countsTowardBudget: true, actsOncePerTurn: true, unitWeight: 0.2,
+    effects: [], turnState,
+  });
+
+  it("charges a fifth of a slot per Golem that moves", () => {
+    const b = consume(emptyBudget(), golem("g1"), "move").budget;
+    expect(b.pools.servantMove.used).toBe(0.2);
+    expect(b.pools.servantMove.usedParts).toBe(12);
+  });
+
+  it("makes five Golems one Servant, and a sixth past a full pool refused", () => {
+    let b = emptyBudget();
+    for (const id of ["s1", "s2", "s3"]) b = consume(b, servant(id), "move").budget;
+    for (const id of ["g1", "g2", "g3", "g4", "g5"]) b = consume(b, golem(id), "move").budget;
+    expect(b.pools.servantMove.used).toBe(4);
+    const sixth = canConsume(b, golem("g6"), "move");
+    expect(sixth.ok).toBe(false);
+    expect(sixth.reason).toBe("Servant moves exhausted (4/4)");
+  });
+
+  it("charges a Golem's Attack on the attack pool too", () => {
+    let b = emptyBudget();
+    b = consume(b, servant("s1"), "attack").budget;
+    for (const id of ["g1", "g2", "g3", "g4", "g5"]) b = consume(b, golem(id), "attack").budget;
+    expect(b.pools.servantAttack.used).toBe(2);
+    expect(canConsume(b, servant("s2"), "attack").reason).toBe("Servant attacks exhausted (2/2)");
+  });
+
+  it("still holds a Golem to one Move and one Attack", () => {
+    const moved = golem("g1", { moved: true, attacked: true, movedBeforeAttack: true });
+    expect(canConsume(emptyBudget(), moved, "attack").reason).toBe("this unit has already acted this Turn");
+    expect(canConsume(emptyBudget(), moved, "move").reason).toBe("this unit has already acted this Turn");
+  });
+
+  it("leaves an act-once summon that does not count free, as before", () => {
+    const warrior = { id: "w", kind: "summon", actsOncePerTurn: true, effects: [], turnState: {} };
+    expect(canConsume(emptyBudget(), warrior, "move")).toMatchObject({ ok: true, pool: null, free: true });
+  });
+
+  it("reads a third exactly: three Mechanical Golems are one Servant", () => {
+    const third = (id) => ({ ...golem(id), unitWeight: 0.33 });
+    let b = emptyBudget();
+    for (const id of ["a", "b", "c"]) b = consume(b, third(id), "move").budget;
+    expect(b.pools.servantMove.usedParts).toBe(BUDGET_PARTS);
+  });
+
+  it("draws part-pips for a part of a slot", () => {
+    const b = consume(emptyBudget(), golem("g1"), "move").budget;
+    expect(summarize(b).find((r) => r.pool === "servantMove").pips).toEqual([0.2, 0, 0, 0]);
+  });
+
+  it("reads a budget stored in halves, as a world saved mid-Turn holds it", () => {
+    const stored = { pools: { servantMove: { usedHalves: 7, maxHalves: 8, used: 3.5, max: 4 } }, countedUnits: [], attackedUnits: [] };
+    expect(canConsume(stored, servant("k"), "move").reason).toBe("Servant moves exhausted (3.5/4)");
+    const b = consume(stored, golem("g1"), "move").budget;
+    expect(b.pools.servantMove).toMatchObject({ usedParts: 222, maxParts: 240 });
+    expect(b.pools.servantMove.usedHalves).toBeUndefined();
   });
 });

@@ -3,7 +3,8 @@ id: 2026-11-06-actions-back-on-before-push-events
 found: tooling
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** With Actions switched off for the length of the force-push, none of its 103 ref updates would start a run.
 **Actual:** I switched Actions back on as soon as `git push` returned. `gh run list` then showed `ci` runs queueing, 79 in the end. I cancelled them: 75 cancelled, 3 succeeded and 1 failed. No `release` run started, so no release was touched.

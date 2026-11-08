@@ -862,6 +862,47 @@ export function summonAnchor(panel, footprint, bounds = null) {
 }
 
 /**
+ * The top-left panel of a platform summoned DIRECTLY NEXT TO its summoner.
+ *
+ * > *"...it is summoned directly next to Avicebron. Avicebron then moves onto the
+ * > top of GKM."* (#394)
+ *
+ * A footprint that touches the summoner's panel without covering it, on the
+ * board, on panels no ground Unit stands on: the first of his four sides that
+ * fits, east, south, west, north, centred on his row or column where it can be.
+ * `null` when no side fits, which the caller refuses.
+ *
+ * @param {{i: number, j: number}} panel the summoner's panel
+ * @param {{w?: number, h?: number}|null} footprint
+ * @param {{iMin?: number, jMin?: number, iMax?: number, jMax?: number}|null} bounds
+ * @param {Set<string>} taken `"i,j"` of every panel a ground Unit stands on
+ * @returns {{i: number, j: number}|null}
+ */
+export function adjacentAnchor(panel, footprint, bounds, taken) {
+  const { w = 1, h = 1 } = footprint ?? {};
+  const inBounds = (p) => p.i >= (bounds?.iMin ?? 0) && p.j >= (bounds?.jMin ?? 0)
+    && p.i <= (bounds?.iMax ?? Infinity) && p.j <= (bounds?.jMax ?? Infinity);
+  const fits = (at) => {
+    for (let di = 0; di < h; di += 1) {
+      for (let dj = 0; dj < w; dj += 1) {
+        const p = { i: at.i + di, j: at.j + dj };
+        if (!inBounds(p) || taken.has(`${p.i},${p.j}`)) return false;
+        if (p.i === panel.i && p.j === panel.j) return false;
+      }
+    }
+    return true;
+  };
+  const sideways = (n) => [0, -1, 1 - n, -n + 1].filter((v, k, all) => all.indexOf(v) === k && v <= 0 && v > -n);
+  const candidates = [
+    ...sideways(h).map((di) => ({ i: panel.i + di, j: panel.j + 1 })),
+    ...sideways(w).map((dj) => ({ i: panel.i + 1, j: panel.j + dj })),
+    ...sideways(h).map((di) => ({ i: panel.i + di, j: panel.j - w })),
+    ...sideways(w).map((dj) => ({ i: panel.i - h, j: panel.j + dj })),
+  ];
+  return candidates.find(fits) ?? null;
+}
+
+/**
  * The geometric centre of a platform's own footprint.
  *
  * `panel` is a token's own anchor corner (top-left), not the middle of a 9x9

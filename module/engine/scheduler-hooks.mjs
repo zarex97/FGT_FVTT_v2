@@ -553,7 +553,7 @@ async function endRoundSequence(combat, round, tick) {
   // A Round's end heals too (Regen *"and at the end of the Round"*): said on
   // its own card, the heals alone, since the periodic card says the rest (#234),
   // with what its handlers landed (#202).
-  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal"), null, healthRound, "FGT.TurnReport.RoundTitle", landedRound);
+  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal" || (i?.t === "resource" && i.source)), null, healthRound, "FGT.TurnReport.RoundTitle", landedRound);
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
   // tick period. The Golden Hind is the only one: *"At the end of every
@@ -633,18 +633,20 @@ async function beginRoundSequence(combat, round, tick) {
   await announceRoundPhase(round);
 
   const startingBoard = boardFor(combat, round, tick);
-  await run(
-    scheduler.beginRound(startingBoard, {
-      tick,
-      round,
-      turnsPerRound: warRule("turnsPerRound"),
-      activeFactionId: null,
-      effectDef: (id) => EffectRegistry.get(id),
-      grandOrder: warRule("grandOrder"),
-      rolls: await gatherRolls([[startingBoard.units, "roundStart"]]),
-    }),
-    "scheduler:beginRound",
-  );
+  const startIntents = scheduler.beginRound(startingBoard, {
+    tick,
+    round,
+    turnsPerRound: warRule("turnsPerRound"),
+    activeFactionId: null,
+    effectDef: (id) => EffectRegistry.get(id),
+    grandOrder: warRule("grandOrder"),
+    rolls: await gatherRolls([[startingBoard.units, "roundStart"]]),
+  });
+  // Said, as a Turn's start and a Round's end are: GKM grew at every Round's
+  // start and no card said so (#394, live).
+  const healthStart = healthBefore(startIntents, healthOnActor);
+  const landedStart = await run(startIntents, "scheduler:beginRound");
+  await postTurnEndReport(startIntents, null, healthStart, "FGT.TurnReport.RoundStartTitle", landedStart);
 
   // *"At the start of a Round, the Master can deploy additional Hassans"*
   // (#226 reading 4). After the Round's own start, so a body deployed now

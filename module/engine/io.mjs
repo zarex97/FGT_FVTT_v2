@@ -754,9 +754,15 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string|null} killerId
      */
-    async noteFinalDefeat(unitId, killerId) {
+    async noteFinalDefeat(unitId, killerId, fallen = null, fallenBoard = null) {
       const actor = resolve(unitId);
-      if (!actor) return;
+      // A platform's actor is deleted when it falls (`destroyPlatformsOf`), and
+      // GKM's *"Construction is reduced to 0"* still runs, off the Unit as it
+      // stood (#394, live: the early return dropped it).
+      if (!actor) {
+        if (fallen) await fireFinalDefeat({ id: unitId }, killerId, fallen, fallenBoard);
+        return;
+      }
       const { onHolderDefeated, forceOut } = await import("./bug-space.mjs");
       await onHolderDefeated(actor);
       // A Unit that fell inside comes out as a body, where its holder stands.
@@ -764,6 +770,8 @@ export function worldIO() {
       const { discardAllStolen, offerObtainedSkill } = await import("./stolen-skills.mjs");
       await discardAllStolen(actor);
       if (killerId) void offerObtainedSkill(killerId, unitId);
+      await tallyFelledSummon(actor, killerId);
+      await fireFinalDefeat(actor, killerId, fallen, fallenBoard);
     },
 
     async banish(unitId, untilTick, fieldId) {
@@ -1908,6 +1916,95 @@ function resolve(unitId) {
   // For a linked token the two are the same document, so this changes nothing
   // in the common case and fixes the unlinked one.
   return unitActor(unitId);
+}
+
+/**
+ * `finalDefeat`, heard by the Unit itself once the revival chain has left it
+ * defeated, whatever path defeated it: Fig Tree of Tranquility *"is
+ * automatically activated when Avicebron is defeated and not revived"* (#394).
+ * `unitDefeated` fires before the revival query, so a clause about a defeat that
+ * stands had nowhere to hang. Fired here, in the one door every defeat passes.
+ *
+ * @param {object} actor the defeated Unit
+ * @param {string|null} killerId
+ * @param {object|null} [fallen] the Unit as it stood before the defeat
+ * @param {object|null} [fallenBoard] the board it fell on
+ * @returns {Promise<void>}
+ */
+async function fireFinalDefeat(actor, killerId, fallen = null, fallenBoard = null) {
+  const { currentBoard, unitFrom } = await import("./board.mjs");
+  // The board as it stood when the Unit fell, when the caller kept it: the
+  // live one is read off the canvas, and a platform's teardown has just moved
+  // its riders off its level, so GKM's owner was on no board to reset (#394,
+  // live: `subject: owner` found nobody).
+  // ...less every Unit that left as it fell: Golems with their summoner, GKM
+  // with its owner. Fig Tree healed both by their ids on that board (#394, live).
+  const board = fallenBoard
+    ? { ...fallenBoard, units: (fallenBoard.units ?? []).filter((u) => u.id === fallen?.id || unitActor(u.id)) }
+    : currentBoard();
+  // As it stood before the defeat, when the defeat took it off the board.
+  const unit = fallen ?? unitFrom(board, actor);
+  if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
+  const { fireEvent } = await import("./scheduler.mjs");
+  const intents = fireEvent("finalDefeat", [unit], { board, killerId, tick: currentMoment().tick, rolls: {} });
+  if (intents.length === 0) return;
+  const { applyWorldIntents } = await import("./applier.mjs");
+  const out = await applyWorldIntents(intents, `finalDefeat:${actor.id}`, { lines: true });
+  // Said on a card of its own: GKM's fall took Avicebron's Construction to 0
+  // and no player read it (#394, live), as `round-phase.mjs` says a phase's.
+  const { postTurnEndReport } = await import("./turn-report.mjs");
+  // A heal and a pool are the batch's own lines (clamped, before → after);
+  // read off the intents too, the Master's heal was said twice.
+  await postTurnEndReport(intents.filter((i) => i?.t !== "heal" && i?.t !== "resource"), null, null,
+    "FGT.TurnReport.FinalDefeatTitle", out?.lines ?? []);
+}
+
+/**
+ * A summon felled by an enemy, tallied on its summoner: Avicebron's *"For every
+ * 5 Golems that are destroyed/defeated by enemy Units, Construction is increased
+ * by 1"* (#394 reading 14). The summon authors `felledTally`: the summoner's
+ * counter, how many make a payment, and what it pays. The count of a part five
+ * carries; a summon that leaves with its summoner is dismissed, never defeated,
+ * and counts none. Asked only of a kill whose killer is known and an enemy.
+ *
+ * @param {object} actor the defeated Unit
+ * @param {string|null} killerId
+ * @returns {Promise<void>}
+ */
+async function tallyFelledSummon(actor, killerId) {
+  const tally = actor?.system?.felledTally;
+  if (!tally?.counter || !killerId) return;
+  const summoner = resolve(actor.system?.summonerId);
+  const killer = resolve(killerId);
+  if (!summoner || !killer) return;
+  const { relationOf } = await import("../rules/relations.mjs");
+  const { currentBoard, unitFrom } = await import("./board.mjs");
+  const board = currentBoard();
+  const a = unitFrom(board, killer);
+  const b = unitFrom(board, actor);
+  if (!a || !b || relationOf(a, b, board) !== "enemy") return;
+  const counter = `system.resources.${tally.counter}.value`;
+  const every = Math.max(1, Number(tally.every ?? 1));
+  const held = Number(foundry.utils.getProperty(summoner, counter) ?? 0) + 1;
+  const paid = Math.floor(held / every);
+  const patch = { [counter]: held - paid * every };
+  if (paid > 0 && tally.pays?.resource) {
+    const path = `system.resources.${tally.pays.resource}`;
+    const now = Number(foundry.utils.getProperty(summoner, `${path}.value`) ?? 0);
+    const max = foundry.utils.getProperty(summoner, `${path}.max`);
+    const next = now + paid * Number(tally.pays.delta ?? 1);
+    patch[`${path}.value`] = typeof max === "number" ? Math.min(max, next) : next;
+  }
+  await summoner.update(patch);
+  if (paid > 0 && tally.pays?.resource) {
+    const { resourceLabel } = await import("../domain/resources.mjs");
+    await ChatMessage.create({
+      content: game.i18n.format("FGT.Summon.FelledTallyPaid", {
+        count: every, resource: resourceLabel(tally.pays.resource), delta: paid * Number(tally.pays.delta ?? 1),
+      }),
+      speaker: ChatMessage.getSpeaker({ actor: summoner }),
+    });
+  }
 }
 
 /**

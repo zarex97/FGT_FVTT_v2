@@ -30,7 +30,7 @@ describe("ResourceDelta", () => {
   it("writes a Ch. 06 pool under `resources`", () => {
     const out = dispatch({ kind: "ResourceDelta", resource: "aria", delta: 1 }, emiya(), handler, ctx);
 
-    expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.aria.value", delta: 1 }]);
+    expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.aria.value", delta: 1, source: "Unlimited Blade Works" }]);
   });
 
   it("writes a top-level stat pool at the top level", () => {
@@ -54,7 +54,7 @@ describe("ResourceDelta", () => {
     const rolledCtx = { ...ctx, rolls: { constructionGain: 5 } };
     const out = dispatch(action, emiya({ resources: { hgobConstruction: { value: 0, max: 100 } } }), handler, rolledCtx);
 
-    expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.hgobConstruction.value", delta: 5 }]);
+    expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.hgobConstruction.value", delta: 5, source: "Unlimited Blade Works" }]);
   });
 
   it("writes nothing when the roll has not arrived", () => {
@@ -126,7 +126,7 @@ describe("a chance on an action", () => {
   it("fires when the roll is at or under the stated chance", () => {
     const out = dispatch(token, drake(), handler, { ...ctx, rolls: { [key]: 15 } });
     expect(out).toEqual([
-      { t: "resource", unitId: "drake", key: "resources.galleonTokens.value", delta: 1 },
+      { t: "resource", unitId: "drake", key: "resources.galleonTokens.value", delta: 1, source: "Unlimited Blade Works" },
     ]);
   });
 

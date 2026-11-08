@@ -32,8 +32,8 @@ import { TURN_RECORD } from "../../module/domain/stamped-record.mjs";
 /** Pools with room to spare, so only the per-unit rules can refuse. */
 const roomy = {
   pools: {
-    servantAttack: { usedHalves: 0, maxHalves: 8 },
-    servantMove: { usedHalves: 0, maxHalves: 8 },
+    servantAttack: { usedParts: 0, maxParts: 480 },
+    servantMove: { usedParts: 0, maxParts: 480 },
   },
   countedUnits: [],
   attackedUnits: [],

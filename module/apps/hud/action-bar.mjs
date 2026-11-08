@@ -248,7 +248,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         ...a,
         counter: counter === true,
-        disabled: Boolean(a.disabled) || counter === false || !budgeted.ok,
+        // ...and what the action's own rule refuses (`context.blocked`): a Gather
+        // into a full pool was offered lit and refused on the press (#394, live).
+        disabled: Boolean(a.disabled) || counter === false || !budgeted.ok || Boolean(a.context?.blocked),
         // A distinct string from the abilities row. Riding Attack IS an attack;
         // what disqualifies it is that it is a MOVE as well, and a Counter is
         // not a chance to move on somebody else's turn. Telling the player it
@@ -261,9 +263,11 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.Available")}`
           : (counter === false
             ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.ActionRefused")}`
-            : (budgeted.ok
-              ? game.i18n.localize(a.label)
-              : `${game.i18n.localize(a.label)} — ${budgeted.reason}`)),
+            : (!budgeted.ok
+              ? `${game.i18n.localize(a.label)} — ${budgeted.reason}`
+              : a.context?.blocked
+                ? `${game.i18n.localize(a.label)} — ${blockedText(a.context)}`
+                : game.i18n.localize(a.label))),
       };
     });
 
@@ -833,7 +837,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
  * A refusal, in words a player can read.
  *
  * The engines do not agree on what `reason` is. `placeMark` and `gather`
- * return short ids (`alreadyMarked`, `noHgobOwner`) that key a translation;
+ * return short ids (`alreadyMarked`, `noGatherOwner`) that key a translation;
  * `engine/budget.mjs#affordable` returns a finished English sentence
  * (*"Servant attacks exhausted (2/2)"*). Localizing blindly printed
  * `FGT.Action.Refusal.Servant attacks exhausted (2/2)` on screen, which is
@@ -842,6 +846,16 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
  * @param {string|undefined} reason
  * @returns {string}
  */
+function blockedText(context) {
+  // A full pool says which and how full, as the press does (`engine/gather.mjs`).
+  if (context.blocked === "poolFull" && context.pool) {
+    return game.i18n.format("FGT.Gather.Full", {
+      resource: resourceLabel(context.pool.resource), value: context.pool.value, max: context.pool.max,
+    });
+  }
+  return refusalText(context.blocked);
+}
+
 function refusalText(reason) {
   if (!reason) return game.i18n.localize("FGT.Action.Refusal.unavailable");
   const key = `FGT.Action.Refusal.${reason}`;

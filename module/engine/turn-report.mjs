@@ -122,14 +122,43 @@ export function clocksBefore(intents, remainingOf) {
  * @param {(unitId: string) => {value: number, max: number}|null} healthOf
  * @returns {Map<string, {value: number, max: number}>}
  */
-export function healthBefore(intents, healthOf) {
+export function healthBefore(intents, healthOf, poolOf = poolOnActor) {
   const out = new Map();
   for (const i of intents ?? []) {
+    // A pool a handler moves, read before it too, keyed by Unit and path: his
+    // Construction at the Round's end had no line (#394, live).
+    if (i?.t === "resource" && i.source && i.key) {
+      const key = poolKey(i.unitId, i.key);
+      if (out.has(key)) continue;
+      const p = poolOf(i.unitId, i.key);
+      if (p && Number.isFinite(p.value)) out.set(key, { ...p });
+      continue;
+    }
     if (i?.t !== "heal" || out.has(i.unitId)) continue;
     const h = healthOf(i.unitId);
     if (h && Number.isFinite(h.value) && Number.isFinite(h.max)) out.set(i.unitId, { ...h });
   }
   return out;
+}
+
+/** The before-map's key for a pool. */
+function poolKey(unitId, key) {
+  return `pool:${unitId}|${key}`;
+}
+
+/**
+ * A pool off the world's actor, by the path a `resource` intent writes.
+ *
+ * @param {string} unitId
+ * @param {string} key e.g. `resources.construction.value`
+ * @returns {{value: number, max: number|null}|null}
+ */
+export function poolOnActor(unitId, key) {
+  const system = unitActor(unitId)?.system;
+  if (!system) return null;
+  const value = Number(foundry.utils.getProperty(system, key));
+  const max = key.endsWith(".value") ? foundry.utils.getProperty(system, `${key.slice(0, -".value".length)}.max`) : null;
+  return Number.isFinite(value) ? { value, max: typeof max === "number" ? max : null } : null;
 }
 
 /**
@@ -177,8 +206,17 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
   // What a boundary's handlers landed (#202): Terror's Stun at the end of a
   // Turn, by the Unit's public name. Each row is the landing's own line.
   const effects = (landed ?? []).filter((l) => l?.summary);
+  // A pool a handler moved, before → after, as the write clamps it: a gain lost
+  // past the maximum is no line (#394).
+  const pools = (intents ?? []).filter((i) => i?.t === "resource" && i.source && health?.has?.(poolKey(i.unitId, i.key)))
+    .map((i) => {
+      const was = health.get(poolKey(i.unitId, i.key));
+      const raw = i.absolute ? i.delta : was.value + i.delta;
+      const now = Math.max(0, typeof was.max === "number" ? Math.min(was.max, raw) : raw);
+      return { ...i, was: was.value, now };
+    }).filter((i) => i.now !== i.was);
   if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0 && effects.length === 0
-    && (fell ?? []).length === 0) return null;
+    && pools.length === 0 && (fell ?? []).length === 0) return null;
   const lines = [
     ...changes.map((i) => t(i.delta < 0 ? "FGT.TurnReport.Loses" : "FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId),
@@ -196,9 +234,26 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
       who: nameOfUnit(i.unitId), ability: nameOfAbility(i.unitId, i.abilityId), ticks: taken(i), source: i.source,
     })),
     ...effects.map((l) => `${nameOfUnit(l.unitId)}: ${effectLine(l.summary)}`),
+    ...pools.map((i) => t("FGT.TurnReport.Pool", {
+      who: nameOfUnit(i.unitId), pool: poolLabel(i.key, t), before: i.was, after: i.now, source: i.source,
+    })),
   ];
   return `<div class="fgt-card fgt-card--turn-report"><h3>${t(titleKey)}</h3>`
     + `<ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul></div>`;
+}
+
+/**
+ * A pool's name on a card: its translation, else its key in words.
+ *
+ * @param {string} key a path, e.g. `resources.construction.value`
+ * @param {(key: string) => string} t
+ * @returns {string}
+ */
+function poolLabel(key, t) {
+  const name = String(key).replace(/\.value$/, "").split(".").at(-1);
+  const translation = `FGT.Pool.${name}`;
+  const said = t(translation);
+  return said && said !== translation ? said : resourceLabel(name);
 }
 
 /**
@@ -244,8 +299,14 @@ export async function postTurnEndReport(intents, before = null, health = null, t
     return escape(actor ? shownName(actor, board) : id);
   };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
-  const nameOfAbility = (unitId, abilityId) => escape(unitActor(unitId)?.items?.find((i) =>
-    i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId)?.name ?? abilityId);
+  // The ability's PUBLIC tag (#387): Light of Wisdom's line printed Enuma Elish
+  // by name (#394, live). The renderer swaps it back for those entitled.
+  const { shownAbility } = await import("./public-ability.mjs");
+  const nameOfAbility = (unitId, abilityId) => {
+    const item = unitActor(unitId)?.items?.find((i) =>
+      i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId);
+    return escape(item ? shownAbility(item) : abilityId);
+  };
   // A handler names its source by the effect's id ("regen"); the card says the
   // effect's name, as the rest of the game does ("Regen", #234).
   const { EffectRegistry } = await import("../rules/registry.mjs");

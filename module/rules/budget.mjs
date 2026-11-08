@@ -25,6 +25,53 @@ import { shownNameOf } from "./identity.mjs";
  *    draw from `servantAttack` *in addition* to the unit having been counted.
  */
 
+/**
+ * How many parts one Unit is, on the budget. Sixty is the least number every
+ * weight a sheet prints divides exactly: a half (Castor and Pollux, Hundred-Faced
+ * Hassan), a third (Babbage's 0.33), a quarter (Edison's 0.25), a fifth
+ * (Avicebron's Golem, 0.2). A weight is rounded to the nearest part, so 0.33 is a
+ * third exactly (#291).
+ */
+export const BUDGET_PARTS = 60;
+
+/**
+ * A stored pool read in parts. A budget written before parts were (in halves)
+ * is read too, so a world reloaded mid-Turn keeps its count rather than reading
+ * every pool as unlimited.
+ *
+ * @param {object} p a pool as stored
+ * @returns {{usedParts: number, maxParts: number|null}}
+ */
+export function poolParts(p) {
+  if (!p) return { usedParts: 0, maxParts: null };
+  if ("usedParts" in p || "maxParts" in p) return { usedParts: p.usedParts ?? 0, maxParts: p.maxParts ?? null };
+  const half = BUDGET_PARTS / 2;
+  return {
+    usedParts: (p.usedHalves ?? 0) * half,
+    maxParts: p.maxHalves === null || p.maxHalves === undefined || p.maxHalves === Infinity ? null : p.maxHalves * half,
+  };
+}
+
+/**
+ * A count of parts as a player reads it: `1`, `0.2`, `1.33`.
+ *
+ * @param {number} parts
+ * @returns {string}
+ */
+function asUnits(parts) {
+  return String(Math.round((parts / BUDGET_PARTS) * 100) / 100);
+}
+
+/**
+ * The parts a Unit's action costs: its weight, in sixtieths.
+ *
+ * @param {object} unit
+ * @returns {number}
+ */
+export function costParts(unit) {
+  return Math.round(unitWeight(unit) * BUDGET_PARTS);
+}
+
 /** The default maxima, from the rulebook's Faction Turn paragraph. */
 export const DEFAULT_MAXIMA = Object.freeze({
   servantMove: 4,
@@ -179,14 +226,16 @@ export function budgetActionFor(kind) {
 export function emptyBudget(maxima = {}) {
   const limits = { ...DEFAULT_MAXIMA, ...maxima };
   return {
-    // Stored in HALVES, as integers. Ch. 45 names floating-point
-    // accumulation as the risk of a 0.5-weight unit; halves remove it rather
-    // than manage it, and `used` below is derived for display only.
+    // Stored in PARTS, sixtieths of a Unit, as integers. Ch. 45 names
+    // floating-point accumulation as the risk of a fractional weight; integers
+    // remove it rather than manage it, and `used` below is derived for display
+    // only. Halves served while the only weight was 0.5, and made Avicebron's
+    // 0.2 Golem cost nothing (#291, #394).
     //
-    // `Infinity * 2` is `Infinity`, so an unlimited pool stays unlimited.
+    // `Infinity * 60` is `Infinity`, so an unlimited pool stays unlimited.
     pools: Object.fromEntries(Object.entries(limits).map(([k, max]) => [k, {
-      usedHalves: 0,
-      maxHalves: Number.isFinite(max) ? max * 2 : Infinity,
+      usedParts: 0,
+      maxParts: Number.isFinite(max) ? max * BUDGET_PARTS : Infinity,
       used: 0,
       max,
     }])),
@@ -368,7 +417,10 @@ export function canConsume(budget, unit, action, { ignoring = [] } = {}) {
     if (action === "move" && !mayMoveAfterAttack(state, unit)) {
       return { ok: false, reason: "this unit moved, then attacked, and cannot move again", pool: null, free: false };
     }
-    return { ok: true, reason: null, pool: null, free: true };
+    // ...and on top of the POOL, for a Unit that both acts once and counts.
+    // Avicebron's Golem *"can only Move/Attack once per Turn"* and *"counts as
+    // 0.2 of a Servant"*: returning free here charged it nothing (#291, #394).
+    if (poolFor(unit, action) === null) return { ok: true, reason: null, pool: null, free: true };
   }
 
   if (isAttack && state.attacked) {
@@ -442,19 +494,21 @@ export function canConsume(budget, unit, action, { ignoring = [] } = {}) {
   }
 
   const p = budget.pools[pool];
-  // The weight this action would add, in halves. A linked member is 1 half; an
-  // ordinary unit is 2. Integer throughout, so the boundary case is exact: at
-  // 3.5 of 4 a twin may still move (7 + 1 <= 8) and a whole Servant may not
-  // (7 + 2 > 8). Correct, slightly surprising, and explained in the HUD.
-  const costHalves = Math.round(unitWeight(unit) * 2);
+  // The weight this action would add, in parts (sixtieths). A linked member is
+  // 30; an ordinary unit is 60; a Golem 12. Integer throughout, so the boundary
+  // case is exact: at 3.5 of 4 a twin may still move (210 + 30 <= 240) and a
+  // whole Servant may not (210 + 60 > 240). Correct, slightly surprising, and
+  // explained in the HUD.
+  const cost = costParts(unit);
   // An unlimited pool's maximum is Infinity, which the Combat flag stores as
   // `null` (JSON has no Infinity) -- and `x > null` compares against 0, so every
   // Master read "exhausted (0/0)" once the budget had been written (§46.4-CF).
-  const unlimited = p?.maxHalves === null || p?.maxHalves === undefined || p?.maxHalves === Infinity;
-  if (p && !unlimited && p.usedHalves + costHalves > p.maxHalves) {
+  const { usedParts, maxParts } = poolParts(p);
+  const unlimited = maxParts === null || maxParts === Infinity;
+  if (p && !unlimited && usedParts + cost > maxParts) {
     return {
       ok: false,
-      reason: `${LABELS[pool] ?? pool} exhausted (${p.usedHalves / 2}/${p.maxHalves / 2})`,
+      reason: `${LABELS[pool] ?? pool} exhausted (${asUnits(usedParts)}/${asUnits(maxParts)})`,
       pool,
       free: false,
     };
@@ -492,12 +546,15 @@ export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, bo
       (u) => [...(unit.linkedGroup?.memberIds ?? [])].includes(u.id))
     : [];
 
-  const usedHalves = p.usedHalves
-    + [unit, ...partners].reduce((sum, u) => sum + Math.round(unitWeight(u) * 2), 0);
+  const { usedParts: before, maxParts } = poolParts(p);
+  const usedParts = before + [unit, ...partners].reduce((sum, u) => sum + costParts(u), 0);
   const partnerIds = partners.map((u) => u.id);
+  // Rewritten in parts whatever it was read in, so a half-era pool is carried
+  // over once and never mixed.
+  const { usedHalves: _uh, maxHalves: _mh, ...rest } = p ?? {};
 
   const next = {
-    pools: { ...budget.pools, [verdict.pool]: { ...p, usedHalves, used: usedHalves / 2 } },
+    pools: { ...budget.pools, [verdict.pool]: { ...rest, usedParts, maxParts, used: usedParts / BUDGET_PARTS } },
     countedUnits: isAttack
       ? [...budget.countedUnits]
       : [...budget.countedUnits, unit.id, ...partnerIds],
@@ -683,20 +740,25 @@ export function openingChoicesOwed(units) {
 export function summarize(budget) {
   return Object.entries(budget.pools)
     .filter(([, p]) => Number.isFinite(p.max))
-    .map(([pool, p]) => ({
-      pool,
-      label: LABELS[pool] ?? pool,
-      used: p.usedHalves / 2,
-      max: p.max,
-      // One entry per WHOLE slot, valued 1, 0.5 or 0. A half-pip is what a
-      // single moved twin looks like, and "2.5 / 4" reads as a bug without it.
-      // Numeric here, because this module is pure and a CSS class name is not
-      // a rule; `engine/budget.mjs#rows` names the three states for the view.
-      pips: Array.from({ length: p.max }, (_, i) => {
-        const remaining = p.usedHalves - i * 2;
-        return remaining >= 2 ? 1 : remaining === 1 ? 0.5 : 0;
-      }),
-    }));
+    .map(([pool, p]) => {
+      const { usedParts } = poolParts(p);
+      return {
+        pool,
+        label: LABELS[pool] ?? pool,
+        used: Math.round((usedParts / BUDGET_PARTS) * 100) / 100,
+        max: p.max,
+        // One entry per WHOLE slot, valued 1, a fraction, or 0. A part-pip is
+        // what a single moved twin (0.5) or a Golem (0.2) looks like, and
+        // "2.5 / 4" reads as a bug without it. Numeric here, because this
+        // module is pure and a CSS class name is not a rule;
+        // `engine/budget.mjs#rows` names the three states for the view.
+        pips: Array.from({ length: p.max }, (_, i) => {
+          const remaining = usedParts - i * BUDGET_PARTS;
+          if (remaining >= BUDGET_PARTS) return 1;
+          return remaining > 0 ? Math.round((remaining / BUDGET_PARTS) * 100) / 100 : 0;
+        }),
+      };
+    });
 }
 
 /**

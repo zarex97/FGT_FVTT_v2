@@ -852,6 +852,13 @@ export function subjectOf(action, unit, ctx) {
     return units.find((u) => u.id === unit?.summonerId) ?? null;
   }
 
+  // The Unit that owns this platform: GKM's fall resets Avicebron's
+  // Construction (#394 ruling 3). A platform's `summonerId` is no field; its
+  // owner is `ownerId`.
+  if (subject === "owner") {
+    return units.find((u) => u.id === unit?.ownerId) ?? null;
+  }
+
   // TWO hops: the Master of whoever summoned this one. Tenmōkaikai's upkeep is
   // *"at the end of any Turn Raikou OR ANY OF HER COPIES Acts, Raikou's Master
   // loses 25 Health"* -- and neither hop is available to the acting unit. A
@@ -1179,8 +1186,10 @@ const ACTIONS = Object.freeze({
     // `set: 0`, and expressing it as a very large negative delta would work by
     // accident and read as a bug -- the same argument `cooldownChanges` makes
     // for its own `set`.
+    // The handler's source rides on the intent, so a boundary's card can say
+    // whose rule moved the pool (#394).
     if (a.set !== undefined) {
-      return [I.setResource(u.id, resourcePathFor(a.resource, u), a.set)];
+      return [{ ...I.setResource(u.id, resourcePathFor(a.resource, u), a.set), source: h?.source ?? null }];
     }
     // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
     // shape every ResourceDelta shipped with before Semiramis's HGoB
@@ -1197,7 +1206,7 @@ const ACTIONS = Object.freeze({
     const scaled = raw * per;
     const amount = a.regionScaled ? regionScale(scaled, a.regionScaled, c.board?.warRegion) : scaled;
     if (amount === 0) return [];
-    return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
+    return [{ ...I.resource(u.id, resourcePathFor(a.resource, u), amount), source: h?.source ?? null }];
   },
 
   /**

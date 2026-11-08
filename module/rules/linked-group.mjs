@@ -86,7 +86,11 @@ export function leashBroken(unit, board) {
  * @returns {number}
  */
 export function unitWeight(unit) {
-  return unit?.linkedGroup?.unitWeight ?? 1;
+  // A linked member's weight is its group's; any other Unit's is its own, which
+  // a summon's sheet may state: Avicebron's Golem *"counts as 0.2 of a
+  // Servant"*, Babbage's Mechanical Golem 0.33 (#291). Only a Unit that counts
+  // at all is ever weighed -- an exempt summon draws on no pool.
+  return unit?.linkedGroup?.unitWeight ?? unit?.unitWeight ?? 1;
 }
 
 /**

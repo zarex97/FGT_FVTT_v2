@@ -1,0 +1,148 @@
+# Golem Keter Malkuth, Avicebron's NP (#394), char_orig_sheets/by-class/Caster/Avicebron.md.
+#
+# > *"Health: 2000 (4000), Agility: 6 (12), Luck: Shared with Avicebron, MOV: 3 (6),
+# > Range: 1 panel, 2x2 panel area (3x3 panel area), Base Attack (STR): 150 (300),
+# > Attributes: Giant, ~~Mechanical~~, Detect: 5 panels."*
+#
+# Karl's Carolus Patricius Auctoritas is its nearest kin: a 2x2 platform its
+# owner drives (his Move and Normal Attack are its, ruling 2), whose rider no
+# Attack reaches, an area's included (ruling 16), that walks onto occupied panels
+# and knocks their Units back (ruling 21), and whose Normal Attack knocks each DU
+# back a panel. Its footprint is 2x2 (ruling 15). It falls with him (ruling 17),
+# and its fall sets him down within its last footprint.
+#
+# The growth is Bridal Chest's shape (#345): counters in `resources`, stepped at
+# each Round's start, read by `MaxDelta`, `BaseAttackModifier` and `MovDelta`
+# (ruling 18). The first step lands at the first Round start after it was raised.
+#   - Health: +200 Max and current a Round, 10 steps to 4000.
+#   - Base Attack: +10 a Round for five, then +20, to 300 at the tenth.
+#   - Agility +2 Max and current, MOV +1, every 3 full Rounds, 3 steps to 12 and 6.
+#   - The 3x3 at the fifth: `summonVariant.grown`, carried by `gkmGrown`.
+schema: 1
+id: golem-keter-malkuth
+name: "Golem Keter Malkuth"
+type: platform
+description: |
+  Avicebron's Golem. 2000 Health (to 4000), Agility 6 (to 12), MOV 3 (to 6), Base Attack (STR) 150 (to 300), a 2x2
+  Normal Attack area within 1 panel (3x3 from the fifth Round), Detect 5. It walks onto occupied panels, knocking
+  their Units back, and its Normal Attacks knock the DUs back 1 panel. Avicebron rides it and cannot be Attacked.
+attributes: [giant]
+baseHealth: 2000
+agility: 6
+inherit:
+  luck: { from: summoner }
+mov: 3
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 150, mag: 0 }
+normalAttack:
+  mode: fixed
+  component: str
+  shape: { kind: square, size: 2 }
+  relations: [enemy, ally, neutral]
+detect: 5
+footprint: { w: 2, h: 2 }
+capacity: 1
+level: 1
+boarding: { seats: [owner] }
+replacesRiderAction: { roles: [owner], move: true, normalAttack: true }
+# He never leaves it: no Jump Off from its deck (the user's ruling of 2026-11-08,
+# reading 30). His Move drives it, so a Jump was the one way off.
+lockAboard: [owner]
+movesOntoOccupiedPanels: true
+destroyedWithOwner: true
+summonVariant:
+  grown:
+    id: grown
+    overrides:
+      normalAttack:
+        mode: fixed
+        component: str
+        shape: { kind: square, size: 3 }
+        relations: [enemy, ally, neutral]
+resources:
+  gkmRounds: { value: 0, max: 99 }
+  gkmHealthSteps: { value: 0, max: 10 }
+  gkmBaSmall: { value: 0, max: 5 }
+  gkmBaLarge: { value: 0, max: 5 }
+  gkmCycle: { value: 0, max: 2 }
+  gkmAgiSteps: { value: 0, max: 3 }
+rules:
+  # Knocked aside on its way: ruling 21.
+  - { key: Knockback, direction: outward }
+  # *"GKM's Normal Attacks knocks back the DU(s) by one panel."*
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal"]
+    then:
+      - { key: PushBack, panels: 1 }
+
+  # The growth, at each Round's start (ruling 18). Every gate reads the counters
+  # as they stood before this Round's step.
+  - key: OnEvent
+    event: roundStart
+    automatic: true
+    then:
+      # Health: *"Max and current Health will increase by 200, until a maximum of 4000."*
+      - { key: StatDelta, stat: health.value, amount: 200, clamp: false, whenValue: { subject: self, stat: resources.gkmHealthSteps, lte: 9 } }
+      - { key: ResourceDelta, resource: gkmHealthSteps, delta: 1 }
+      # Base Attack: +20 instead of +10 from the sixth activation on.
+      - { key: ResourceDelta, resource: gkmBaLarge, delta: 1, whenValue: { subject: self, stat: resources.gkmBaSmall, gte: 5 } }
+      - { key: ResourceDelta, resource: gkmBaSmall, delta: 1 }
+      # Agility and MOV, every 3 full Rounds.
+      - key: StatDelta
+        stat: agility.value
+        amount: 2
+        clamp: false
+        whenValue:
+          - { subject: self, stat: resources.gkmCycle, gte: 2 }
+          - { subject: self, stat: resources.gkmAgiSteps, lte: 2 }
+      - { key: ResourceDelta, resource: gkmAgiSteps, delta: 1, whenValue: { subject: self, stat: resources.gkmCycle, gte: 2 } }
+      - { key: ResourceDelta, resource: gkmCycle, set: 0, whenValue: { subject: self, stat: resources.gkmCycle, gte: 2 } }
+      - { key: ResourceDelta, resource: gkmCycle, delta: 1, whenValue: { subject: self, stat: resources.gkmCycle, lte: 1 } }
+      # The 3x3, at the fifth.
+      - key: ApplyEffect
+        effect: { id: gkmGrown, permanent: true }
+        whenValue: [{ subject: self, stat: resources.gkmRounds, gte: 4 }, { subject: self, stat: resources.gkmRounds, lte: 4 }]
+      - { key: ResourceDelta, resource: gkmRounds, delta: 1 }
+  - { key: MaxDelta, stat: health, value: "200 * @self.resources.gkmHealthSteps.value" }
+  - { key: BaseAttackModifier, add: "10 * @self.resources.gkmBaSmall.value", components: [str] }
+  - { key: BaseAttackModifier, add: "20 * @self.resources.gkmBaLarge.value", components: [str] }
+  - { key: MaxDelta, stat: agility, value: "2 * @self.resources.gkmAgiSteps.value" }
+  - { key: MovDelta, value: "@self.resources.gkmAgiSteps.value", isBuff: false }
+
+  # *"At the start of its Turn, GKM's Health is restored by 500 and Agility is
+  # restored by 1"*: each Turn of its side's Player (ruling 19).
+  - key: OnEvent
+    event: turnStart
+    automatic: true
+    # Tested when it fires: whose Turn it is is unknown at collection, and the
+    # handler was dropped there and never held (#394, live).
+    defer: true
+    predicate: ["self:ownTurn"]
+    then:
+      - { key: Heal, amount: 500 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+
+  # *"After GKM is defeated, Avicebron can attempt to rebuild GKM from scratch
+  # (its Construction is reduced to 0)"* (ruling 3).
+  - key: OnEvent
+    event: finalDefeat
+    automatic: true
+    then:
+      - { key: ResourceDelta, subject: owner, resource: construction, set: 0 }
+
+  # The aura: allied Units within 2 of it hold Light of Wisdom (ruling 20).
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    grantsEffect: gkmWisdom
+
+crossLevel:
+  occupantTargeting: forbidden
+  protectedFrom: everyone
+  protectedAgainst: attacks
+  aoePassengerFactor: 0
+  aoeMastersImmune: true
+  outboundTargeting: free
+  forbidDirectlyBelow: false

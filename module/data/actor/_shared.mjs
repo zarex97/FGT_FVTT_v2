@@ -217,6 +217,11 @@ export function unitCommon() {
     // mechanism, and a general mechanism cannot enumerate its instances.
     resources: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
+    // The Gather this Unit takes into one of its pools (#298): who may perform
+    // it and for how much, `{resource, by: {self, master, ally}, regionScaled}`.
+    // Semiramis's and Avicebron's (#394). Read by `rules/gather.mjs`.
+    gather: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+
     // Whether this Unit is under Presence Concealment.
     //
     // Derived from the `presenceConcealment` effect by the snapshot, and
@@ -495,6 +500,9 @@ export function normalAttackField() {
     // the schema had no field, so her swing hit one Unit (#99). Untyped for
     // the same reason `bands` is.
     shape: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // WHOM that area hits, when not enemies alone: GKM's 2x2 hits every Unit in
+    // it, as an area that names no relation does (#394; #191 reading 11).
+    relations: new fields.ArrayField(new fields.StringField(), { required: false, nullable: true, initial: null }),
     // The Rank Magic Resistance meets this Attack at, for a Normal Attack that
     // is not its attacker's own. The Golden Hind's sheet gives the ship no MAG
     // Rank, so its BA(MAG) 200 swing met Magic Resistance at Drake's MAG E and

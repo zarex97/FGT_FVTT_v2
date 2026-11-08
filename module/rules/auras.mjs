@@ -97,6 +97,9 @@ export function collectAuras(unit, board, index = null) {
     // Base", which a predicate evaluated against the source cannot say -- the
     // contributions are collected on the bearer and delivered to somebody else.
     if (!recipientQualifies(aura.requiresRecipient, unit)) continue;
+    // Recipients it never reaches, by content: a Golem's guard reaches no Golem,
+    // itself included, and not GKM (#394 rulings 7, 28).
+    if ((aura.exceptContentIds ?? []).includes(unit?.contentId)) continue;
 
     // A named ROLE on the recipient, relative to the aura's source. A
     // `relations` list is the widest this could be said before: the Sphinxes

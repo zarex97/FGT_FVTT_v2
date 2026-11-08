@@ -82,6 +82,23 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
     }
   }
 
+  // A cap on how many of these stand on the field at once: *"There can only be
+  // a maximum of 30 Golems on the field"* (Avicebron, #394 reading 6). A roll
+  // that would pass it summons up to it, and the card names how many the cap
+  // took. Counted over the whole field, as the sheet says, among the Units still
+  // standing of any content id this phase can create.
+  let capped = 0;
+  if (Number.isFinite(spec.maxOnField)) {
+    const kinds = new Set([...(spec.contentIds ?? []), ...Object.values(spec.types ?? {}), ...(spec.choiceFrom ?? [])]);
+    const standing = (currentBoard().units ?? [])
+      .filter((u) => kinds.has(u.contentId) && !u.defeated).length;
+    const room = Math.max(0, spec.maxOnField - standing);
+    if (contentIds.length > room) {
+      capped = contentIds.length - room;
+      contentIds = contentIds.slice(0, room);
+    }
+  }
+
   // A summon tied to the platform its summoner is standing on.
   //
   // > *"Bašmu cannot leave the HGoB. If HGoB is removed from the field while
@@ -109,7 +126,7 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
 
   const created = await placeSummons(contentIds, panels, summoner, scene, spec, stamps);
 
-  return { count: created.length, created, rolls };
+  return { count: created.length, created, rolls, capped, cap: spec.maxOnField ?? null };
 }
 
 /**
@@ -212,7 +229,12 @@ export function freePanels(summoner, placement, needed, { footprint = null, with
   // authored by Ozymandias's three Sphinxes and read by NOBODY: this line took
   // `size ?? 5` whatever the placement said, so all three could appear two
   // panels away from him. One more field that was right and inert.
-  const radius = placement.adjacentTo ? 1 : Math.floor((placement.size ?? 5) / 2);
+  //
+  // `withinRange`: *"within his Range"* (Avicebron's Golems, #394 readings 4,
+  // 26). His Range as it stands at the use, a buff included, from his panel.
+  const radius = placement.adjacentTo ? 1
+    : placement.withinRange ? Math.max(1, Number(self?.range ?? 1))
+      : Math.floor((placement.size ?? 5) / 2);
   const level = self.level ?? 0;
   const occupied = new Set(
     board.units

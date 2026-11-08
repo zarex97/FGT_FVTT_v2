@@ -124,6 +124,15 @@ the start was never asked (found live, #347).
 
 **A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat, and a card says who went (`defeat-card.mjs#postLeftWithSummonerCard`, *"2 × Horror, Elder Horror leave the field with Saber."*, public names, a summon already fallen left out). The dismissal wrote only a log entry until #260 pressed it live. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.
 
+**A cap, a placement within Range, a grant per so many, and a tally of the fallen** (Avicebron, #394). A summon
+phase's `maxOnField` caps how many of its kinds stand on the field at once: a roll past it summons up to it and the
+card names how many the cap took (*"There can only be a maximum of 30 Golems on the field"*). `placement.withinRange`
+offers the summoner's Range at the use, a buff included. `grantsResource: {resource, per}` pays the summoner one per
+`per` actually created, rounded down (Construction, *"1 for every 3 Golems created"*). A summon's `felledTally:
+{counter, every, pays}` counts it on its summoner when an enemy fells it, pays every `every`th and carries the rest
+(`engine/io.mjs#tallyFelledSummon`); a summon dismissed with its summoner is not felled and counts none. A summon may
+count on the budget at a weight of its own (`unitWeight`, Ch. 19).
+
 **A copy inherits the authored stat, and leaves with the mode that made it** (#195). A scalar `inherit` reads `summoner._source.system[stat]`: Raikou's copies took MOV 9, her Riding +5 included, where the sheet gives them her 4. `leavesWithMode: <slug>` dismisses a summon when its summoner's mode with that slug switches off, whatever ended it (`scheduler-hooks.mjs#onModeEnded`). `lastOfSummonGroup` counts only summons not defeated: a defeated body stays a Turn, until `clearBody`, and counted it kept the last copy standing from being the last.
 
 1. **Factions must be symmetric.** If red allies blue, blue must ally red. `normalizeFactions` enforces this (`module/rules/factions.mjs:84-89`).

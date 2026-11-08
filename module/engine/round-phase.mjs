@@ -73,5 +73,8 @@ export async function announcePhaseChange(from, to, round) {
   // Said on a card of its own: Dracula taken off at dawn was a write and a log
   // entry, and the lines the batch returned reached no card (#333, live).
   const { postTurnEndReport } = await import("./turn-report.mjs");
-  await postTurnEndReport(intents, null, null, `FGT.RoundPhase.ChangedTo.${to}`, out?.lines ?? []);
+  // A heal and a pool are the batch's own lines; read off the intents too,
+  // each was said twice (#394, live, on `finalDefeat`'s card).
+  await postTurnEndReport(intents.filter((i) => i?.t !== "heal" && i?.t !== "resource"), null, null,
+    `FGT.RoundPhase.ChangedTo.${to}`, out?.lines ?? []);
 }

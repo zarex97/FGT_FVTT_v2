@@ -218,8 +218,25 @@ function boardUnits(spec, ctx) {
     // ...and within a distance of the asker, nearest panel to nearest panel:
     // *"for every enemy Unit within a 3 panel area of herself"* (ruling 21).
     if (typeof spec.within === "number" && !(unitDistance(ctx.self, unit) <= spec.within)) return false;
+    // The asker's OWN summons and platforms: Numerology's *"for every 2 Golems on
+    // the field"*, his own (#394 reading 9).
+    if (spec.ownSummons && !isOwnSummon(unit, ctx.self)) return false;
     return passes(spec.requires, unit);
   });
+}
+
+/**
+ * Is this Unit one the asker conjured: a summon it summoned, or a platform it
+ * owns? Avicebron's Golems are his by `summonerId`, his GKM by `ownerId` (#394).
+ *
+ * @param {object} unit
+ * @param {object|null|undefined} self
+ * @returns {boolean}
+ */
+export function isOwnSummon(unit, self) {
+  if (!self?.id || !unit) return false;
+  if (unit.kind === "platform") return unit.ownerId === self.id;
+  return unit.kind === "summon" && unit.summonerId === self.id;
 }
 
 /**

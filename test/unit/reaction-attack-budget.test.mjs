@@ -54,16 +54,16 @@ const world = (actingFactionId) => ({
     // The flat `scope.key` shape `getFlag` reads — and the key is `budgets`,
     // plural, which is `engine/budget.mjs`'s own `FLAG`.
     //
-    // `usedHalves`/`maxHalves`, not `used`/`max`: the budget counts in halves so
-    // a linked twin can weigh one. A fixture with the wrong field names reads as
+    // `usedParts`/`maxParts`, not `used`/`max`: the budget counts in sixtieths
+    // so a linked twin can weigh a half and a Golem a fifth. A fixture with the wrong field names reads as
     // an EMPTY pool, because `undefined + 2 > undefined` is false — a fixture
     // that proves nothing while passing. This one did, until it was caught.
     flags: {
       "fgt.budgets": {
         f1: {
           pools: {
-            servantAttack: { usedHalves: 8, maxHalves: 8 },
-            servantMove: { usedHalves: 0, maxHalves: 8 },
+            servantAttack: { usedParts: 480, maxParts: 480 },
+            servantMove: { usedParts: 0, maxParts: 480 },
           },
           countedUnits: [],
           attackedUnits: [],

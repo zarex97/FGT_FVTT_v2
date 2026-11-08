@@ -67,7 +67,7 @@ import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform, PLATFORM_SORT } from "./platforms.mjs";
-import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
+import { summonAnchor, masterSeat, adjacentAnchor } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance, veiledSpec } from "../rules/concealment.mjs";
@@ -1116,7 +1116,17 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // restored 4 Agility under a card that read "Atk Up" alone, and a
           // restore the maximum clamped could not be seen at all.
           const keys = (phase.changes ?? []).map((c) => c.key);
-          const before = keys.map((k) => resourceValue(unitActor(target.unitId), k));
+          // Read where the write lands: a platform's shared Luck is its owner's
+          // pool, and GKM's line read "Luck 10 (no change)" while Avicebron's
+          // rose 7 → 10 (#394, live).
+          const poolHolder = (k) => {
+            const a = unitActor(target.unitId);
+            if (a?.type === "platform" && String(k).startsWith("luck") && a.system?.inherit?.luck?.from === "summoner") {
+              return unitActor(a.system?.ownerId) ?? a;
+            }
+            return a;
+          };
+          const before = keys.map((k) => resourceValue(poolHolder(k), k));
           // A gain the die decides: Sealing Mystic Code Release's *"Gain 1d6
           // Mythos Counters"* (#362 SM.5). Rolled once per change, and on the
           // card beside the line it moved.
@@ -1138,9 +1148,14 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // number. Resolved here rather than left as a string -- the
               // applier refuses a non-finite delta outright, which is how this
               // was found rather than silently restoring nothing.
+              // ...or a Count: Numerology's *"Construction is increased by 1 for
+              // every 2 Golems on the field (Max increase is 10)"* is
+              // `{count: {of: board, ownSummons, ...}, each: 2, max: 10}` (#394).
               const delta = typeof c.delta === "string"
                 ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: currentWar()?.system?.globalTurn ?? null, ...extras }) })
-                : c.delta;
+                : (c.delta && typeof c.delta === "object")
+                  ? countedValue(c.delta, { board, self: unitOf(actor, board) })
+                  : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
               // Servant above the maximum it rolled at summon.
@@ -1155,7 +1170,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             `skill:${ability.id}:resource`,
           );
           keys.forEach((k, n) => {
-            const moved = resourceLine(k, before[n], resourceValue(unitActor(target.unitId), k));
+            const moved = resourceLine(k, before[n], resourceValue(poolHolder(k), k));
             const die = dice[n] === null ? null : `${phase.changes[n].roll} = ${dice[n]}`;
             const line = die && moved ? `${die}: ${moved}` : moved;
             if (line) applied.push({ unitId: target.unitId, summary: { id: "resource", name: line, outcome: "applied", reason: null } });
@@ -1550,16 +1565,39 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // nothing else, so the 1d6 and each 1d4 behind Medea's Warriors
           // could not be checked (#193).
           const count = (out.rolls ?? []).find((r) => r.id === "summonCount");
-          const types = (out.rolls ?? []).filter((r) => r.id.startsWith("summonType:"));
+          // A type die only where the summon has types to roll: Avicebron's
+          // Golems are one kind, and "1 → 1, 1" was noise on his card (#394).
+          const types = phase.spec?.typeRoll ? (out.rolls ?? []).filter((r) => r.id.startsWith("summonType:")) : [];
           const rolled = count
             ? ` (${count.formula} → ${count.total}${types.length ? `; ${types[0].formula} → ${types.map((r) => r.total).join(", ")}` : ""})`
             : "";
           const who = (out.created ?? []).map((a) => shownName(a)).filter(Boolean).join(", ");
+          // The cap's take, said: a player who rolled six and got three needs
+          // to know which rule took the other three (#394 reading 6).
+          const over = out.capped > 0 ? `; ${out.capped} over the limit of ${out.cap} on the field` : "";
           applied.push({ summary: {
             id: "summon",
-            name: `${out.count} summoned${rolled}${who ? `: ${who}` : ""}`,
+            name: `${out.count} summoned${rolled}${over}${who ? `: ${who}` : ""}`,
             outcome: "applied", reason: null,
           } });
+          // A resource paid per so many created: Avicebron's Construction *"is
+          // increased by 1 for every 3 Golems created"* (#394 reading 6) --
+          // those actually created, rounded down.
+          const grant = phase.spec?.grantsResource;
+          if (grant?.resource && out.count > 0) {
+            const gained = Math.floor(out.count / Math.max(1, Number(grant.per ?? 1)));
+            if (gained > 0) {
+              await applyWorld([
+                I.resource(actor.id, resourcePathFor(grant.resource, unitFrom(board, actor)), gained),
+                I.log({ kind: "resourceGrant", unitId: actor.id, resource: grant.resource, amount: gained }),
+              ], `skill:${ability.id}:summonGrant`);
+            }
+            applied.push({ summary: {
+              id: "summonGrant",
+              name: `${resourceLabel(grant.resource)} +${gained} (${out.count} created, 1 per ${grant.per ?? 1})`,
+              outcome: gained > 0 ? "applied" : "note", reason: null,
+            } });
+          }
           break;
         }
 
@@ -3289,10 +3327,21 @@ async function summonPlatform(phase, actor, board) {
   // the board when she stands at its edge, her own panel still under it. A
   // `centred` one has the caster's panel in its middle: Carolus Patricius,
   // *"with the middle panel being the panel Karl was standing on"* (#351).
-  const anchor = phase.placement === "centred"
+  // `adjacent`: GKM *"is summoned directly next to Avicebron. Avicebron then
+  // moves onto the top of GKM"* (#394). Beside him, on free panels; he is moved
+  // onto it below, before it is activated.
+  const groundTaken = new Set((board.units ?? [])
+    .filter((u) => u.id !== actor.id && !u.defeated && u.kind !== "platform" && u.kind !== "structure" && (u.level ?? 0) === (self.level ?? 0))
+    .flatMap((u) => (u.panels?.length ? u.panels : [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)));
+  const beside = phase.placement === "adjacent" ? adjacentAnchor(stood, footprint, board.bounds, groundTaken) : null;
+  if (phase.placement === "adjacent" && !beside) {
+    await platform.delete();
+    return { ok: false, reason: "noRoomBeside" };
+  }
+  const anchor = beside ?? (phase.placement === "centred"
     ? summonAnchor({ i: stood.i - Math.floor(footprint.h / 2), j: stood.j - Math.floor(footprint.w / 2) },
       footprint, board.bounds)
-    : summonAnchor(stood, footprint, board.bounds);
+    : summonAnchor(stood, footprint, board.bounds));
   const token = await platform.getTokenDocument({
     x: anchor.j * scene.grid.size,
     y: anchor.i * scene.grid.size,
@@ -3300,6 +3349,15 @@ async function summonPlatform(phase, actor, board) {
     height: footprint.h,
   });
   await scene.createEmbeddedDocuments("Token", [token.toObject()]);
+
+  // Summoned beside him: he moves onto the top of it, the panel of its deck
+  // nearest the one he stood on (#394).
+  if (beside) {
+    const deck = [];
+    for (let di = 0; di < footprint.h; di += 1) for (let dj = 0; dj < footprint.w; dj += 1) deck.push({ i: beside.i + di, j: beside.j + dj });
+    const onto = deck.sort((a, b) => Math.max(Math.abs(a.i - stood.i), Math.abs(a.j - stood.j)) - Math.max(Math.abs(b.i - stood.i), Math.abs(b.j - stood.j)))[0];
+    await applyWorldIntents([I.move(actor.id, [onto], true)], "platform:summonBeside");
+  }
 
   // Who rides. The owner always; her Master only if he is standing next to the
   // MOUNT -- the sheet's own condition, measured from its footprint and not from

@@ -924,7 +924,9 @@ function stage7FlatAttackBonuses(s) {
       continue;
     }
     flat += value;
-    s.contribute(m.key, value, m.source, "attacker");
+    // With its die, when one decided it: Territory Creation's *"5d10"* read
+    // "Territory Creation +26" alone (#394, live).
+    s.contribute(m.key, value, m.roll?.formula ? `${m.source} (${m.roll.formula} = ${value})` : m.source, "attacker");
   }
   if (flat !== 0) s.addProportional(flat);
 
@@ -1149,7 +1151,10 @@ function stage12FlatReductions(s) {
     const value = typeof n === "number" ? n : (n.value ?? 0);
     if (!value) continue;
     flat += value;
-    s.contribute("damageNegation", -value, typeof n === "number" ? "damage negation" : n.source, "defender");
+    // With its die, when one decided it: Territory Creation's *"(3d10+15)"* read
+    // "Territory Creation −44" and nobody could tell whose Rank rolled (#394, live).
+    const note = typeof n === "number" ? "damage negation" : n.formula ? `${n.source} (${n.formula} = ${value})` : n.source;
+    s.contribute("damageNegation", -value, note, "defender");
   }
   const tcDef = s.ctx.rolls?.territoryCreationDef ?? 0;
   if (tcDef) {
@@ -1267,6 +1272,16 @@ function stage15TotalDamageModifiers(s) {
     // The effect's id alone, so the card names it (`explain.mjs` reads the
     // registry): "defDwnTotal (Total ×1.25)" printed the id (#359, live).
     s.contribute(m.key, factor, m.source, "defender");
+  }
+
+  // *"Total Damage dealt by Avicebron's Normal Attacks is reduced by 75%"*
+  // (#394): a cut the ATTACKER holds on its own Total, multiplied, gated by
+  // its predicate on the attack (`attack:kind:normal`). The dealt mirror of
+  // Def Dwn (Total) above.
+  for (const m of activeMods(s, s.ctx.attacker, TOTAL_DEALT_KEYS)) {
+    const factor = Math.max(0, 1 + magnitudeOf(m, s.isNP, s.ctx) / 100);
+    s.scale(factor);
+    s.contribute(m.key, factor, m.source, "attacker");
   }
 
   // A defence whose magnitude is the ATTACKER's property (Ch. 45).
@@ -1523,6 +1538,11 @@ const ELEMENT_TOTAL_KEYS = new Set(["elementTotalDefUp"]);
  * (#359). Not element-scoped, so not `ELEMENT_TOTAL_KEYS`.
  */
 const TOTAL_TAKEN_KEYS = new Set(["totalDefDwn"]);
+/**
+ * An attacker's cut or boost on its own Total, read at stage 15: Avicebron's
+ * Normal Attacks at -75% (#394). The dealt mirror of `TOTAL_TAKEN_KEYS`.
+ */
+const TOTAL_DEALT_KEYS = new Set(["totalDealt"]);
 /** An attacker's "N% extra damage" held as a buff, read at stage 3 (#359). */
 const DAMAGE_MULTIPLIER_KEYS = new Set(["damageMultiplier"]);
 /** Element keys whose magnitude *reduces* the damage. */
@@ -1547,7 +1567,7 @@ export const MODIFIER_KEYS = Object.freeze([
   ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
-  ...ELEMENT_TOTAL_KEYS, ...TOTAL_TAKEN_KEYS, ...DAMAGE_MULTIPLIER_KEYS,
+  ...ELEMENT_TOTAL_KEYS, ...TOTAL_TAKEN_KEYS, ...TOTAL_DEALT_KEYS, ...DAMAGE_MULTIPLIER_KEYS,
   // Stage 15's own bucket. `engine/attack.mjs#totalModifiersFor` emits it from
   // an ability's `damage.totalModifiers`; it is deliberately in neither
   // `ATTACKER_BUCKET_KEYS` nor `DEFENDER_BUCKET_KEYS`, so a Total modifier is

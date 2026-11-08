@@ -7989,3 +7989,57 @@ Also new: the `allyDamageStep` window, `rules/unit-groups.mjs` for what a sheet 
 **#387 landed first:** an ability's public tag (Ch. 30). Pressing her found what the first pass missed: a stored card held the GM's real names, and a Cooldown row read a name in one chain, so the guard now reads that shape too.
 
 **Staged:** BB by True Name, for no BB is built, the Moon Cell and Debuff ChDwn. **The last presses, of Clauses first closed from their files, found four defects:** a refused use from inside Bug Space emptied it first, with no line, and the offer never asked the gate; a removal's line was a bare effect name; pressing Atomicros Form while in it took 7 Tokens and every stolen Skill for nothing; and the sheet's refusals dropped every placeholder they did not list. **Follow-ups:** Effects named for their Skill and areas a sheet names (#387), and what a chance card may print (#386). Asked what a stored card was, I read one: it was the GM's whole view, not a name for a frame, and it is now a stranger's (#388).
+
+## 46.57 Avicebron (Caster) — Golems that count a fifth, a pool that builds, and a Golem that grows
+
+**#394, 139 Clauses, 2026-11-08.** Clause list and readings: `docs/superpowers/specs/2026-11-07-avicebron-clauses.md`.
+
+Built on kin first: Karl's Carolus Patricius Auctoritas for GKM, Bridal Chest's counters for its growth, Medea's
+Dragon Tooth Warriors for the summon, the Bašmu's guard, Semiramis's Construction and Gather. New, each generic:
+
+- **The budget counts in sixtieths** (Ch. 19, #291). It counted in halves, so a 0.2 Golem cost nothing, and a Unit
+  that acts once per Turn was never charged at all: the act-once branch returned free before any pool was read. A
+  summon states its own `unitWeight`.
+- **Gather is the pool owner's `gather`** (`rules/gather.mjs`, #298), read by the bar's offer and the press alike. It
+  was written in code for Semiramis alone.
+- **`finalDefeat`**, heard once the revival chain has left a Unit down, fired at the one door every defeat passes
+  (`engine/io.mjs#fireFinalDefeat`, Appendix E). `unitDefeated`'s handlers run before the revival query.
+- **A summon cap on the field, placement within Range, a grant per so many created, and a felled tally on the
+  summoner** (Ch. 31); **a platform raised beside its owner** (`adjacentAnchor`, Ch. 27); **an attacker's cut on its
+  own Total** (`totalDealt`, stage 15); **a selection and a count of one's own summons** (`ownSummons`).
+
+**Found building, each fixed:** an event's `ApplyEffect` dropped its charges and its stacking at `entryOfIntent`, so
+Fig Tree's *"Invuln ... for 3 times"* landed with none; a Normal Attack's `relations` was read from a variant only,
+never the sheet, and the platform model had no `summonVariant` (both Silent Drops the validator named). A
+`VariantOverride`'s predicate cannot read its holder's own counters at collection, so GKM's 3x3 rides a permanent
+effect its fifth Round applies.
+
+**Pressed live, all 139** (2026-11-08, the Gilgamesh Audit board): 75 Pressed as Player1, 16 Pressed (engine) for
+boundaries, defeats and revivals, and 48 Observed. Found live, each fixed and pressed again:
+
+- **Gather:**
+  - Gather wrote the War from the player's client. It now runs on the GM.
+  - A full pool still offered Gather. The bar now greys a slot its gate blocks.
+- **Cards** (pools, the Round's start, dice, names):
+  - A Round's end and start now say the pools their handlers moved.
+  - Territory Creation's dice are on the card.
+  - The Turn card names an NP by its public tag.
+  - A shared Luck reads its owner's pool.
+- **GKM, held at collection:** two predicates that can only be asked later are `defer`.
+- **GKM as a platform:**
+  - Dragging the platform bills its rider.
+  - Its aura measures footprint to footprint and re-syncs on a move.
+  - A mount's Normal Attack aims with the mount's shape.
+  - A grant sync that a teardown raced runs once more.
+- **`finalDefeat` on a platform:**
+  - It now runs on the Unit and the board as they stood when it fell. Its actor is deleted before the rule runs,
+    and the canvas loses the rider mid-teardown, so Construction stayed at 50.
+  - That board drops the Units that left with the fall.
+  - Its lines go on a card, *"As a Unit falls"*.
+- **Fig Tree:**
+  - *Once* is a `whenValue` gate on each action. A predicate on a `self:resource:` option no reader builds was
+    never false, and a second fall gave it all again.
+  - Its heal is said once.
+
+Ruled after: he may not *Jump Off* GKM's deck (reading 30). GKM authors `lockAboard: [owner]`, Golden Hind's key,
+which the Jump's gate (`canUnboard`) already reads; his Move drives GKM, so the Jump was the one way off.
