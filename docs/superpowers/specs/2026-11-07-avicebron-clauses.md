@@ -68,7 +68,7 @@ What he needs that nobody has yet, each to be built as a generic piece:
 - **A summon that refuses while a platform stands** (no Golems while GKM is active).
 - **A resource that resets when a platform falls** (Construction to 0).
 
-**137 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
+**138 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
 
 ### Not Clauses
 
@@ -98,7 +98,7 @@ Ch. 31) · *"Move/Attack once per Turn"* is `actsOncePerTurn`: one Move, one Att
 
 ## Readings
 
-Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 the same day, as recommended but 28, which the user's *"no golem guard the GAME"* rules as *no Golem guards GKM*. 24 waits on the user.
+Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 the same day, as recommended but 28, which the user's *"no golem guard the GAME"* rules as *no Golem guards GKM*. 24 the same day, as recommended: every reading is ruled.
 
 | # | Question | Ruling | Clauses |
 |---|---|---|---|
@@ -125,7 +125,7 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 | 21 | GKM may Move to any panel: past terrain, walls and Units, as the Bašmu? *"Knocked back by 1 panel until the space is free"*: pushed one panel at a time outward until GKM fits? | Any panel, as the Bašmu: terrain and walls still bind its path; Units are pushed one panel at a time, outward from its footprint, until it fits. | GK.move.* |
 | 22 | High-Speed Incantation: *"all Skills"* includes his Class Skills and Item Construction: Golems, not itself, not GKM. | As written. | HS.cd.* |
 | 23 | Fig Tree: *"allied Units"* include Golems, GKM and Masters. Invuln 3 charges, no duration. *"Can only be used once"* holds across revivals. | As written; a second revival after the first final defeat does not fire it again. | FT.* |
-| 24 | The Normal Attack cut of 75%: does it reach GKM's Normal Attacks, if he drives them? | Round 2. | SB.na.cut, GK.na |
+| 24 | The Normal Attack cut of 75%: does it reach GKM's Normal Attacks, if he drives them? | **No.** The swing is GKM's own (BA(STR) 150 to 300); the cut is his own Normal Attack's. | SB.na.cut, GK.na |
 | 25 | *"(5◈ Turns)"* beside *"5 full Rounds"* is not struck: a gloss, the Round count rules. | Yes. | GK.grow.range |
 | 26 | *"Within Range"* (4): his Range at use? | His Range at the moment of use, a buff included, from his footprint. | GO.place |
 | 27 | When do the Golems disappear (8)? | At his final defeat, after the revival chain. They do not count for Source 4. | GL.leave, GK.cp.felled |
@@ -147,6 +147,7 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 - [ ] **SB.sus** · Sustainability: 4◈
 - [ ] **SB.na** · Normal Attacks use Base Attack (MAG)
 - [ ] **SB.na.cut** · Total damage dealt by his Normal Attacks is reduced by 75% (Q24)
+- [ ] **SB.na.cut.gkm** · …and not GKM's Normal Attacks, which he drives (Q24)
 - [ ] **SB.cp** · Construction Points: 0, maximum 50 (Q13)
 - [ ] **SB.items** · Items held: none
 
