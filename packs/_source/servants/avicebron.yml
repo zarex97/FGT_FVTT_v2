@@ -1,0 +1,91 @@
+# Avicebron (Caster), char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# The Clause list is docs/superpowers/specs/2026-11-07-avicebron-clauses.md, and
+# every reading it names is ruled there (29, 2026-11-08). The sheet prints no
+# Class line: Caster is its folder and his two Caster Class Skills.
+#
+# Max Health and Base Attack derive from the tables and agree with the sheet:
+# END E 500, STR E 50, MAG A 200 (§46.6).
+schema: 1
+id: avicebron
+name: "Avicebron"
+type: servant
+
+trueName: Avicebron, Solomon ibn Gabirol
+servantClasses: [caster]
+classContainer: caster
+alignment: { order: lawful, morality: neutral }
+region: [europe]
+attributes: [male, servant, man, humanoid]
+
+parameters: { str: E, end: E, agi: D, mag: A, luc: B }
+baseHealth: 500
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 50, mag: 200 }
+# A Caster attacks with MAG unless the sheet says otherwise (Medea).
+normalAttack: { mode: fixed, component: mag }
+sustainability: "4◈"
+
+# "Construction Points: 0/50", GKM's gate and his pool. `golemsFelled` carries the
+# part of five of Source 4 (ruling 14); `figTreeSpent` is Fig Tree's *"once"*.
+resources:
+  construction: { value: 0, max: 50 }
+  golemsFelled: { value: 0, max: 4 }
+  figTreeSpent: { value: 0, max: 1 }
+
+passiveRules:
+  # *"Note: Total Damage dealt by Avicebron's Normal Attacks is reduced by 75%."*
+  # A cut on his own Total, stage 15. Not GKM's swing while he drives it: that
+  # is GKM's (ruling 24).
+  - key: DamageModifier
+    modifierKey: totalDealt
+    direction: dealt
+    value: -75
+    predicate: ["attack:kind:normal", { not: "self:onPlatform:golem-keter-malkuth" }]
+  # Construction Source 1: *"Increased by 1 at the end of every Round."* Lost
+  # past 50 (ruling 13).
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: construction, delta: 1 }
+
+abilities:
+  # Nitocris's word for word, on Van Gogh's aura as U-Olga Marie and Summer
+  # Habetrot carry it: the printed 45 / 25 / 15 both ways at B+.
+  - ref: class-item-construction-gogh
+    rank: "B+"
+    description: |
+      This Skill affects all allied Units within a 2 panel area of this Unit.
+      (Passive 1) The chance of inflicting debuffs is increased by 45%; this effect is halved for
+      @effect[instakill]{Instakill} (25%), and further halved for @effect[death]{Death} (15%).
+      (Passive 2) The chance of being inflicted by debuffs is reduced by 45%; this effect is halved for
+      Instakill (25%), and further halved for Death (15%).
+      Note: If a Unit is affected by multiple instances of this Skill, only the Item Construction with the
+      highest Rank takes effect (i.e. Item Construction does not stack).
+    passiveRules:
+      - key: Aura
+        radius: 2
+        relations: [ally, self]
+        stacking: highestOnly
+        group: itemConstruction
+        rank: "B+"
+        elements:
+          - { key: ApplicationChance, direction: outgoing, severity: normal, value: 45 }
+          - { key: ApplicationChance, direction: outgoing, severity: instakill, value: 25 }
+          - { key: ApplicationChance, direction: outgoing, severity: death, value: 15 }
+          - { key: ApplicationChance, direction: incoming, severity: normal, value: 45 }
+          - { key: ApplicationChance, direction: incoming, severity: instakill, value: 25 }
+          - { key: ApplicationChance, direction: incoming, severity: death, value: 15 }
+  - { ref: avicebron-item-construction-golems }
+  # 5d10 and 3d10+15 at B, the tables' and the sheet's.
+  - { ref: class-territory-creation, rank: B }
+  - { ref: avicebron-numerology }
+  - { ref: avicebron-high-speed-incantation }
+  - { ref: avicebron-fig-tree-of-tranquility }
+
+notes: |
+  A Caster who fights through his Golems: up to 30 of them, each a fifth of a Servant on the
+  budget, guarding his allies from Attacks, and a Construction pool that builds toward Golem
+  Keter Malkuth.

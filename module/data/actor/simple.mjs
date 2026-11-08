@@ -28,6 +28,11 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // What one of it counts as, when it counts: *"one Golem counts as 0.2 of a
       // Servant (i.e. 5 Golems are equal to 1 Servant)"* (Avicebron, #291).
       unitWeight: new fields.NumberField({ initial: 1, min: 0 }),
+      // A tally its summoner keeps of it felled by an enemy: Avicebron's *"for
+      // every 5 Golems destroyed/defeated by enemy Units, Construction +1"*
+      // (#394). `{counter, every, pays: {resource, delta}}`, read by
+      // `engine/io.mjs#tallyFelledSummon`. Untyped, as rule elements are.
+      felledTally: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // Medea's second clause: "The same Dragon Tooth Warrior can only
       // Move/Attack once per Turn." Distinct from the budget exemption -- being
       // outside the Unit limit does not mean acting without limit.

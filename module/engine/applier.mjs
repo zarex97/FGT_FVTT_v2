@@ -1031,6 +1031,11 @@ function entryOfIntent(effect) {
   const stages = effect.stages ?? effect.stage;
   if (typeof stages === "number" && stages > 0) entry.stages = stages;
   if (typeof effect.times === "number") entry.times = effect.times;
+  // Charges, and the stacking that counts them, as a phase's entry carries
+  // them: Fig Tree's *"Invuln ... for 3 times"* from an event handler landed
+  // with none, both dropped here (#394).
+  if (typeof effect.uses === "number" && effect.uses > 0) entry.uses = effect.uses;
+  if (effect.stacking) entry.stacking = effect.stacking;
   if (effect.visibility) entry.visibility = effect.visibility;
   if (effect.permanent) entry.permanent = true;
   if (effect.unremovable) entry.unremovable = true;

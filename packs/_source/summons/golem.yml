@@ -1,0 +1,47 @@
+# Avicebron's Golem, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"Health: 500, Agility: 12, Luck: 6, MOV: 3, Range: 1 panel, 1 target, Base
+# > Attack (STR): 100, Attributes: [Sky], Mechanical, Detect: 3 panels. When
+# > counting the number of Units who Move/Attack during your Turn, one Golem
+# > counts as 0.2 of a Servant (i.e. 5 Golems are equal to 1 Servant). The same
+# > Golem can only Move/Attack once per Turn. There can only be a maximum of 30
+# > Golems on the field. An allied Unit cannot be targeted for an Attack if there
+# > is a Golem within a 2 panel area of the Unit."*
+#
+# Unlike every summon before it, a Golem COUNTS on the budget, at a fifth of a
+# Servant (`unitWeight`, #291), and still acts once per Turn. The cap of 30 is
+# the summoning phase's (`maxOnField`), since it limits a use and not a Golem.
+#
+# The guard is the Bašmu's `TargetabilityModifier`, at 2 panels. It shields no
+# Golem, itself included, and not GKM (#394 rulings 7, 28), and it keeps a
+# guarded Unit out of an area Attack too, as the Bašmu's does (ruling 7b).
+schema: 1
+id: golem
+name: "Golem"
+type: summon
+attributes: [summon, sky, mechanical]
+baseHealth: 500
+agility: 12
+luck: 6
+mov: 3
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 100, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+detect: 3
+countsTowardBudget: true
+unitWeight: 0.2
+actsOncePerTurn: true
+# *"They disappear"* at his final defeat (ruling 8, 27): dismissed, not
+# defeated, so the tally below never counts them.
+leavesWithSummoner: true
+# Construction Source 4 (ruling 14): every 5 felled by an enemy pay 1, the rest
+# carried on his `golemsFelled`.
+felledTally: { counter: golemsFelled, every: 5, pays: { resource: construction, delta: 1 } }
+passiveRules:
+  - key: TargetabilityModifier
+    radius: 2
+    relations: [ally]
+    exceptContentIds: [golem, golem-keter-malkuth]
+notes: |
+  Summoned by Avicebron's Item Construction: Golems, 1d10 in his Home Base and 1d6 outside it,
+  at most 30 on the field.

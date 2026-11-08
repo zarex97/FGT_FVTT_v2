@@ -1,0 +1,39 @@
+# Avicebron, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"(Active) Used during your Turn. Reduce the Cooldown of all Skills by 1◈
+# > Turns, then gain 5 Construction Points. Cooldown: 3◈-⅓◈ Turns. Note: This
+# > Skill cannot be used and its effects are negated while inflicted with
+# > Silence."*
+#
+# Medea's High-Speed Divine Words' shape for Silence (`notHasEffect` and
+# `negatedBy`), and Olga's Unparalleled's Skill Cooldown cut: every Skill of his,
+# his Class Skills and Item Construction: Golems among them, not itself and not
+# an NP (ruling 22; #328 ruling 11). Then the 5, lost past 50 (ruling 13).
+schema: 1
+id: avicebron-high-speed-incantation
+name: "High-Speed Incantation"
+rank: "B+"
+cooldown: "3◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Reduce the Cooldown of all Skills by 1◈ Turns, then gain 5
+  Construction Points. Cooldown: 3◈-⅓◈ Turns.
+  Note: This Skill cannot be used and its effects are negated while inflicted with
+  @effect[silence]{Silence}.
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+negatedBy: [silence]
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: skills, excludeSelf: true, ticks: "1◈", direction: down }
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.construction.value, delta: 5 }

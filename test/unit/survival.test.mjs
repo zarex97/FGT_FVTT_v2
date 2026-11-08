@@ -60,6 +60,7 @@ export const UNIT_ROUTES = {
   countsTowardBudget: same("countsTowardBudget"),
   // A summon's own weight on the budget: Avicebron's Golem 0.2 (#291).
   unitWeight: same("unitWeight"),
+  felledTally: doc("module/engine/io.mjs", "read off a summon felled by an enemy, tallied on its summoner"),
   crossLevel: same("crossLevel"),
   deactivateOn: same("deactivateOn"),
   deactivation: same("deactivation"),

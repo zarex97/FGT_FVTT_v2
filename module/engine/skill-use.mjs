@@ -1138,9 +1138,14 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // number. Resolved here rather than left as a string -- the
               // applier refuses a non-finite delta outright, which is how this
               // was found rather than silently restoring nothing.
+              // ...or a Count: Numerology's *"Construction is increased by 1 for
+              // every 2 Golems on the field (Max increase is 10)"* is
+              // `{count: {of: board, ownSummons, ...}, each: 2, max: 10}` (#394).
               const delta = typeof c.delta === "string"
                 ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: currentWar()?.system?.globalTurn ?? null, ...extras }) })
-                : c.delta;
+                : (c.delta && typeof c.delta === "object")
+                  ? countedValue(c.delta, { board, self: unitOf(actor, board) })
+                  : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
               // Servant above the maximum it rolled at summon.

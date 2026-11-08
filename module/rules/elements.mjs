@@ -2629,6 +2629,9 @@ export const EXECUTORS = Object.freeze({
       // file can know a document id. Absent means every unit the relation
       // admits, which is what Bašmu wants.
       recipientRoles: el.recipientRoles ?? null,
+      // Units it never shields, by content id: Avicebron's Golem guards *"an
+      // allied Unit"*, never a Golem nor GKM (#394 rulings 7, 28).
+      exceptContentIds: el.exceptContentIds ?? null,
       value: true, stacking: "noneRefresh", source,
     });
   },

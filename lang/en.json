@@ -138,6 +138,7 @@
   "FGT.Summon.Split": "{name} is defeated: {formula} → {rolled}. It turns into {count} × {into}.",
   "FGT.Summon.SplitExempt": "{name} is defeated by Light damage or an Attack that deals extra damage to Dark or Outsider Units: it does not split.",
   "FGT.Summon.NoSplit": "{name} is defeated: {formula} → {rolled}. It does not split.",
+  "FGT.Summon.FelledTallyPaid": "{count} of them felled by the enemy: {resource} +{delta}.",
   "FGT.SealEnds.Title": "Skill Seal",
   "FGT.SealEnds.Ended": "{name}'s {skill} is deactivated by Skill Seal.",
   "FGT.SealEnds.EffectEnded": "{name}'s {effect} is removed by Skill Seal.",

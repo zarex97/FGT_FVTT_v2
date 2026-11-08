@@ -764,6 +764,8 @@ export function worldIO() {
       const { discardAllStolen, offerObtainedSkill } = await import("./stolen-skills.mjs");
       await discardAllStolen(actor);
       if (killerId) void offerObtainedSkill(killerId, unitId);
+      await tallyFelledSummon(actor, killerId);
+      await fireFinalDefeat(actor, killerId);
     },
 
     async banish(unitId, untilTick, fieldId) {
@@ -1908,6 +1910,80 @@ function resolve(unitId) {
   // For a linked token the two are the same document, so this changes nothing
   // in the common case and fixes the unlinked one.
   return unitActor(unitId);
+}
+
+/**
+ * `finalDefeat`, heard by the Unit itself once the revival chain has left it
+ * defeated, whatever path defeated it: Fig Tree of Tranquility *"is
+ * automatically activated when Avicebron is defeated and not revived"* (#394).
+ * `unitDefeated` fires before the revival query, so a clause about a defeat that
+ * stands had nowhere to hang. Fired here, in the one door every defeat passes.
+ *
+ * @param {object} actor the defeated Unit
+ * @param {string|null} killerId
+ * @returns {Promise<void>}
+ */
+async function fireFinalDefeat(actor, killerId) {
+  const { currentBoard, unitFrom } = await import("./board.mjs");
+  const board = currentBoard();
+  const unit = unitFrom(board, actor);
+  if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
+  const { fireEvent } = await import("./scheduler.mjs");
+  const { currentWar } = await import("./war.mjs");
+  const intents = fireEvent("finalDefeat", [unit], {
+    board, killerId, tick: currentWar()?.system?.globalTurn ?? 0, rolls: {},
+  });
+  if (intents.length === 0) return;
+  const { applyWorldIntents } = await import("./applier.mjs");
+  await applyWorldIntents(intents, `finalDefeat:${actor.id}`);
+}
+
+/**
+ * A summon felled by an enemy, tallied on its summoner: Avicebron's *"For every
+ * 5 Golems that are destroyed/defeated by enemy Units, Construction is increased
+ * by 1"* (#394 reading 14). The summon authors `felledTally`: the summoner's
+ * counter, how many make a payment, and what it pays. The count of a part five
+ * carries; a summon that leaves with its summoner is dismissed, never defeated,
+ * and counts none. Asked only of a kill whose killer is known and an enemy.
+ *
+ * @param {object} actor the defeated Unit
+ * @param {string|null} killerId
+ * @returns {Promise<void>}
+ */
+async function tallyFelledSummon(actor, killerId) {
+  const tally = actor?.system?.felledTally;
+  if (!tally?.counter || !killerId) return;
+  const summoner = resolve(actor.system?.summonerId);
+  const killer = resolve(killerId);
+  if (!summoner || !killer) return;
+  const { relationOf } = await import("../rules/relations.mjs");
+  const { currentBoard, unitFrom } = await import("./board.mjs");
+  const board = currentBoard();
+  const a = unitFrom(board, killer);
+  const b = unitFrom(board, actor);
+  if (!a || !b || relationOf(a, b, board) !== "enemy") return;
+  const counter = `system.resources.${tally.counter}.value`;
+  const every = Math.max(1, Number(tally.every ?? 1));
+  const held = Number(foundry.utils.getProperty(summoner, counter) ?? 0) + 1;
+  const paid = Math.floor(held / every);
+  const patch = { [counter]: held - paid * every };
+  if (paid > 0 && tally.pays?.resource) {
+    const path = `system.resources.${tally.pays.resource}`;
+    const now = Number(foundry.utils.getProperty(summoner, `${path}.value`) ?? 0);
+    const max = foundry.utils.getProperty(summoner, `${path}.max`);
+    const next = now + paid * Number(tally.pays.delta ?? 1);
+    patch[`${path}.value`] = typeof max === "number" ? Math.min(max, next) : next;
+  }
+  await summoner.update(patch);
+  if (paid > 0 && tally.pays?.resource) {
+    const { resourceLabel } = await import("../domain/resources.mjs");
+    await ChatMessage.create({
+      content: game.i18n.format("FGT.Summon.FelledTallyPaid", {
+        count: every, resource: resourceLabel(tally.pays.resource), delta: paid * Number(tally.pays.delta ?? 1),
+      }),
+      speaker: ChatMessage.getSpeaker({ actor: summoner }),
+    });
+  }
 }
 
 /**

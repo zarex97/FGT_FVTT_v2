@@ -1,0 +1,56 @@
+# Avicebron, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"(Active) Used during your Turn. When used, all Golems on the field restore
+# > 3 Luck. Then, Atk Up is applied to all Golems on the field for 1◈ Turns, all
+# > damage dealt is increased by 40%; if NP, 30%. Cooldown: 4◈ Turns."*
+#
+# GKM's own sheet: *"When Avicebron uses Numerology, Construction is increased by
+# 1 for every 2 Golems on the field (Max increase is 10)"* and *"For Avicebron's
+# 'Numerology' Skill, GKM counts as a Golem."*
+#
+# His own Golems (ruling 9), and his GKM with them: `ownSummons` over the field,
+# by content. GKM's Luck is his pool, so its 3 land on his (ruling 11). The NP
+# figure is authored as printed; no Golem has an NP, nor GKM (ruling 10). The
+# Construction counts the same Golems at the use, GKM among them, at most 10.
+schema: 1
+id: avicebron-numerology
+name: "Numerology"
+rank: B
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. When used, all Golems on the field restore 3 Luck. Then,
+  @effect[atkUp]{Atk Up} is applied to all Golems on the field for 1◈ Turns, all damage dealt is
+  increased by 40%; if NP, 30%. Construction is increased by 1 for every 2 Golems on the field (Max
+  increase is 10). For this Skill, Golem Keter Malkuth counts as a Golem.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: resource
+    targeting: &golemsOnField
+      anchor: { kind: global }
+      shape: { kind: unit }
+      selection:
+        relations: [ally]
+        kinds: [summon, platform]
+        ownSummons: true
+        attributes: [{ or: ["target:contentId:golem", "target:contentId:golem-keter-malkuth"] }]
+        chooser: all
+    changes:
+      - { key: luck.value, delta: 3, clampToMax: true }
+  - kind: applyEffects
+    targeting: *golemsOnField
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+  - kind: resource
+    target: self
+    changes:
+      - key: resources.construction.value
+        delta:
+          count: { of: board, ownSummons: true, standing: true, requires: [{ or: ["self:contentId:golem", "self:contentId:golem-keter-malkuth"] }] }
+          each: 2
+          max: 10

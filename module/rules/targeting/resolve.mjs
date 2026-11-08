@@ -26,6 +26,7 @@ import { normalAttackAt } from "../normal-attack.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
 import { shownNameOf } from "../identity.mjs";
+import { isOwnSummon } from "../count.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -482,6 +483,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //      panel area of Noah are not affected by this NP"* (#232). The Master is
   //      the caster's by CONTRACT (`masterId`), never every Master; a spared
   //      Unit is named by content, with the allies standing within N of it.
+  // 6a''. THE CASTER'S OWN SUMMONS. Numerology's *"all Golems on the field"*,
+  //       his own and no other Avicebron's (#394 reading 9): a summon he
+  //       summoned, or a platform he owns.
+  if (sel.ownSummons) {
+    survivors = survivors.filter((u) => isOwnSummon(u, caster) || drop(u, "not the caster's own summon"));
+  }
   if (sel.excludeOwnMaster && caster.masterId) {
     survivors = survivors.filter((u) => u.id !== caster.masterId || drop(u, "the caster's own Master"));
   }

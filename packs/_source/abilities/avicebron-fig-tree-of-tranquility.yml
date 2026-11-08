@@ -1,0 +1,31 @@
+# Avicebron, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"(Passive) This Skill is automatically activated when Avicebron is defeated
+# > and not revived. Applies Invuln to all allied Units within a 7x7 panel area
+# > of himself for 3 times, and restores the Health of those affected allied
+# > Units by 20% of their maximum value. Can only be used once."*
+#
+# `finalDefeat`, heard once the revival chain has left him down, by whatever path
+# (`engine/io.mjs#fireFinalDefeat`). A 7x7 of himself is 3 panels around his last
+# panel; his allies only, Golems and Masters among them, and he is down (ruling
+# 23). Invuln for 3 times is 3 charges with no clock. Each restores 20% of its
+# own maximum. *"Once"* holds across a later revival: `figTreeSpent`.
+schema: 1
+id: avicebron-fig-tree-of-tranquility
+name: "Fig Tree of Tranquility"
+rank: EX
+passive: true
+description: |
+  (Passive) This Skill is automatically activated when Avicebron is defeated and not revived.
+  Applies @effect[invuln]{Invuln} to all allied Units within a 7x7 panel area of himself for 3
+  times, and restores the Health of those affected allied Units by 20% of their maximum value.
+  Can only be used once.
+passiveRules:
+  - key: OnEvent
+    event: finalDefeat
+    automatic: true
+    predicate: [{ not: "self:resource:figTreeSpent:gte:1" }]
+    then:
+      - { key: ApplyEffect, target: nearby, radius: 3, relations: [ally], effect: { id: invuln, uses: 3, stacking: count } }
+      - { key: Heal, target: nearby, radius: 3, relations: [ally], percentOfMax: 20 }
+      - { key: ResourceDelta, resource: figTreeSpent, delta: 1 }
