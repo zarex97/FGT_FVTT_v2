@@ -1927,7 +1927,7 @@ async function fireFinalDefeat(actor, killerId, fallen = null) {
   const { currentBoard, unitFrom } = await import("./board.mjs");
   const board = currentBoard();
   // As it stood before the defeat, when the defeat took it off the board.
-  const unit = unitFrom(board, actor) ?? fallen;
+  const unit = fallen ?? unitFrom(board, actor);
   if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
   const { fireEvent } = await import("./scheduler.mjs");
   const intents = fireEvent("finalDefeat", [unit], { board, killerId, tick: currentMoment().tick, rolls: {} });
