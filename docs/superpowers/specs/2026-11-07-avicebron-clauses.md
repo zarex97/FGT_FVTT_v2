@@ -68,7 +68,7 @@ What he needs that nobody has yet, each to be built as a generic piece:
 - **A summon that refuses while a platform stands** (no Golems while GKM is active).
 - **A resource that resets when a platform falls** (Construction to 0).
 
-**134 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
+**137 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
 
 ### Not Clauses
 
@@ -98,7 +98,7 @@ Ch. 31) · *"Move/Attack once per Turn"* is `actsOncePerTurn`: one Move, one Att
 
 ## Readings
 
-Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 wait on round 2.
+Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 the same day, as recommended but 28, which the user's *"no golem guard the GAME"* rules as *no Golem guards GKM*. 24 waits on the user.
 
 | # | Question | Ruling | Clauses |
 |---|---|---|---|
@@ -109,11 +109,11 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 
 | 5 | Item Construction: Golems prints no *"Used during your Turn"* and no *"counts as his Attack"*. | His own Turn, as every Active. It is not his Attack. | GO.when |
 | 6 | At the cap of 30, a roll that would pass it summons up to 30. Construction counts the Golems actually created. | Yes to both. | GO.max, GK.cp.golems |
 | 7 | The Golem's guard: which Units, against which Attacks? Does a Golem guard other Golems and itself? Does an AoE still catch a guarded Unit, as the Bašmu's guard does today? | **A Golem guards no Golem**, itself included: every other Unit allied to Avicebron within 2 of a Golem, against enemy Attacks, an AoE included, as the Bašmu's guard runs. | GL.guard.* |
-| 8 | Do the Golems stay when Avicebron falls? | **They disappear** when he falls (`leavesWithSummoner`). | GL.leave |
+| 8 | Do the Golems stay when Avicebron falls? | **They disappear** at his final defeat, after the revival chain (`leavesWithSummoner`); they do not count for Source 4. | GL.leave |
 | 9 | Numerology's *"all Golems on the field"*: his own Golems, or any Golem? | His own Golems. | NU.luck, NU.atk |
 | 10 | Numerology's *"if NP, 30%"*: no Golem has an NP, nor GKM. A Clause no board reaches. | Authored as printed; no board reaches it, so it is recorded Observed on the element, and the audit says so. | NU.atk.np |
 | 11 | GKM counts as a Golem for Numerology, and its Luck is Avicebron's pool: does Numerology then restore 3 to Avicebron's Luck? | Yes: GKM's Luck is his pool, so 3 is restored to it. | NU.gkm |
-| 12 | Gather: Avicebron and his Master only. Gather while aboard GKM? A Unit allied to both Semiramis and Avicebron: whose pool? | Round 2. | GK.gather.* |
+| 12 | Gather: Avicebron and his Master only. Gather while aboard GKM? A Unit allied to both Semiramis and Avicebron: whose pool? | Refused while his pool is full, the refusal saying *"Construction is full (50/50)"*, which covers aboard GKM. A Unit that may Gather for two pools picks one on the button. | GK.gather.* |
 | 13 | Construction past 50 is lost. Do gains still count while GKM stands? | Lost past 50, and gains still count while GKM stands, to no effect. | SB.cp, GK.cp.* |
 | 14 | *"Destroyed/defeated by enemy Units"*: by any enemy Attack, Skill or effect; a Golem dismissed, or felled by an ally, does not count. GKM is not a Golem here. | Yes. | GK.cp.felled |
 | 15 | GKM's footprint is not printed. | 2x2, its Normal Attack's area and the Quetzalcoatlus's, Giant kin. | GK.sb |
@@ -127,6 +127,10 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 
 | 23 | Fig Tree: *"allied Units"* include Golems, GKM and Masters. Invuln 3 charges, no duration. *"Can only be used once"* holds across revivals. | As written; a second revival after the first final defeat does not fire it again. | FT.* |
 | 24 | The Normal Attack cut of 75%: does it reach GKM's Normal Attacks, if he drives them? | Round 2. | SB.na.cut, GK.na |
 | 25 | *"(5◈ Turns)"* beside *"5 full Rounds"* is not struck: a gloss, the Round count rules. | Yes. | GK.grow.range |
+| 26 | *"Within Range"* (4): his Range at use? | His Range at the moment of use, a buff included, from his footprint. | GO.place |
+| 27 | When do the Golems disappear (8)? | At his final defeat, after the revival chain. They do not count for Source 4. | GL.leave, GK.cp.felled |
+| 28 | Does a Golem guard GKM? | **No Golem guards GKM.** | GL.guard.gkm |
+| 29 | Golems already standing when GKM is raised? | They stay and act. Numerology reaches them and GKM. | GK.nogolems, NU.gkm |
 
 ## Statblock
 
@@ -164,7 +168,7 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 
 - [ ] **GO.home** · In his Home Base: 1d10 Golems
 - [ ] **GO.away** · Not in his Home Base: 1d6 Golems
 - [ ] **GO.die** · The die rolled is on the card, and the count equals it
-- [ ] **GO.place** · Each Golem on a free panel he picks within his Range (Q4)
+- [ ] **GO.place** · Each Golem on a free panel he picks within his Range at use (Q4, Q26)
 - [ ] **GO.max** · At most 30 Golems on the field (Q6)
 - [ ] **GO.gkm** · Refused while GKM is active (also GK.nogolems)
 - [ ] **GO.cd** · Cooldown 3◈−⅓◈
@@ -182,7 +186,9 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 
 - [ ] **GL.guard.out** · Beyond 2 panels, no guard
 - [ ] **GL.guard.aoe** · …an area Attack included: the guarded Unit is left out of it (Q7)
 - [ ] **GL.guard.golem** · …but no Golem: a Golem beside another Golem can still be aimed at (Q7)
-- [ ] **GL.leave** · Every Golem disappears when Avicebron is defeated (Q8)
+- [ ] **GL.guard.gkm** · …nor GKM: GKM beside a Golem can still be aimed at (Q28)
+- [ ] **GL.leave** · Every Golem disappears at Avicebron's final defeat (Q8, Q27)
+- [ ] **GL.leave.revived** · …and none when a revival brings him back (Q27)
 
 ## Territory Creation — Class Skill, Rank B *(Passive 1 + 2)*
 
@@ -307,6 +313,7 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 
 ### While it stands, and after
 
 - [ ] **GK.nogolems** · Avicebron cannot create Golems while GKM is active
+- [ ] **GK.golems.stay** · …and the Golems already standing stay and act (Q29)
 - [ ] **GK.fall.place** · When GKM is defeated, Avicebron returns to a panel within the area GKM last stood on
 - [ ] **GK.reset** · …and his Construction is reduced to 0 (Q3)
 - [ ] **GK.rebuild** · He can build GKM again from scratch
