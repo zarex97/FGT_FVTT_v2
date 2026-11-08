@@ -1,5 +1,6 @@
 # Avicebron (Caster), char_orig_sheets/by-class/Caster/Avicebron.md (#394).
 #
+# Conversion source: char_orig_sheets/by-class/Caster/Avicebron.md
 # The Clause list is docs/superpowers/specs/2026-11-07-avicebron-clauses.md, and
 # every reading it names is ruled there (29, 2026-11-08). The sheet prints no
 # Class line: Caster is its folder and his two Caster Class Skills.
@@ -87,6 +88,7 @@ abilities:
   - { ref: avicebron-numerology }
   - { ref: avicebron-high-speed-incantation }
   - { ref: avicebron-fig-tree-of-tranquility }
+  - { ref: avicebron-golem-keter-malkuth }
 
 notes: |
   A Caster who fights through his Golems: up to 30 of them, each a fifth of a Servant on the

@@ -1,0 +1,35 @@
+# Golem Keter Malkuth's aura, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"All allied Units within a 2 panel area of GKM gain the following effect- At
+# > the end of this Unit's Turn and at the end of any Turn this Unit Acts, NP
+# > Cooldown is reduced by 1 Turn; 2 Turns if ◈ is greater than 4."*
+#
+# Held while GKM's aura reaches the Unit (`grantsEffect`, `rules/aura-grants.mjs`),
+# Avicebron aboard among them (ruling 20). One Turn is one tick, not 1◈. The two
+# events on one handler fire once a Turn (Appendix E's deduplication), as
+# Kingprotea's GAO does.
+schema: 1
+id: gkmWisdom
+name: "Light of Wisdom"
+description: |
+  Granted by Golem Keter Malkuth to allied Units within 2 panels of it. At the end of this Unit's Turn and
+  at the end of any Turn it Acts, its NP Cooldown is reduced by 1 Turn; 2 Turns if ◈ is greater than 4.
+polarity: buff
+volatility: nonVolatile
+valence: supportive
+stacking: noneRefresh
+unremovable: true
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    predicate: [{ lte: ["@turnsPerRound", 4] }]
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1 }
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    predicate: [{ gt: ["@turnsPerRound", 4] }]
+    then:
+      - { key: CooldownDelta, scope: np, delta: -2 }

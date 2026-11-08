@@ -612,7 +612,7 @@ export function snapshotUnit(actor, {
       shape: variantOverride?.normalAttack?.shape ?? sys.normalAttack?.shape ?? null,
       // Whom that area hits. A form's own word: the Gigantic Horror's 3x3 hits
       // *"every Unit in it but himself"* (#323 reading 11g), his Horrors too.
-      relations: variantOverride?.normalAttack?.relations ?? null,
+      relations: variantOverride?.normalAttack?.relations ?? sys.normalAttack?.relations ?? null,
       // The Rank Magic Resistance meets it at (#187 reading 8).
       attackRank: variantOverride?.normalAttack?.attackRank ?? sys.normalAttack?.attackRank ?? null,
       // Ranged, Melee or Special, as the sheet states it (#281).

@@ -139,6 +139,9 @@ export const PHASE_DESCRIPTORS = describeTable([
   ]),
   entry("resource", 70, "Spends or grants a pool — tokens, counters, Sustainability.", [
     { key: "changes", type: "raw" },
+    // Whose pools, when not the caster's: Numerology's *"all Golems on the
+    // field restore 3 Luck"* (#394).
+    { key: "targeting", type: "raw" },
   ]),
   entry("transfer", 65, "Moves a named effect from a radius onto the caster, stages intact.", [
     { key: "defId", type: "effectId" },
@@ -308,7 +311,7 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "boardMasterIfAdjacent", type: "checkbox" },
     // Carolus Patricius (#351): its middle panel the caster's, and every Unit on
     // the ground within it carried aboard.
-    { key: "placement", type: "select", choices: ["", "centred"] },
+    { key: "placement", type: "select", choices: ["", "centred", "adjacent"] },
     { key: "carriesAllWithin", type: "checkbox" },
     // Auctoritas (#351): the owner's platforms of these content ids end first.
     { key: "replaces", type: "tokenList" },

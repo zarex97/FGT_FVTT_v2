@@ -67,7 +67,7 @@ import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform, PLATFORM_SORT } from "./platforms.mjs";
-import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
+import { summonAnchor, masterSeat, adjacentAnchor } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance, veiledSpec } from "../rules/concealment.mjs";
@@ -3315,10 +3315,21 @@ async function summonPlatform(phase, actor, board) {
   // the board when she stands at its edge, her own panel still under it. A
   // `centred` one has the caster's panel in its middle: Carolus Patricius,
   // *"with the middle panel being the panel Karl was standing on"* (#351).
-  const anchor = phase.placement === "centred"
+  // `adjacent`: GKM *"is summoned directly next to Avicebron. Avicebron then
+  // moves onto the top of GKM"* (#394). Beside him, on free panels; he is moved
+  // onto it below, before it is activated.
+  const groundTaken = new Set((board.units ?? [])
+    .filter((u) => u.id !== actor.id && !u.defeated && u.kind !== "platform" && u.kind !== "structure" && (u.level ?? 0) === (self.level ?? 0))
+    .flatMap((u) => (u.panels?.length ? u.panels : [u.panel]).filter(Boolean).map((p) => `${p.i},${p.j}`)));
+  const beside = phase.placement === "adjacent" ? adjacentAnchor(stood, footprint, board.bounds, groundTaken) : null;
+  if (phase.placement === "adjacent" && !beside) {
+    await platform.delete();
+    return { ok: false, reason: "noRoomBeside" };
+  }
+  const anchor = beside ?? (phase.placement === "centred"
     ? summonAnchor({ i: stood.i - Math.floor(footprint.h / 2), j: stood.j - Math.floor(footprint.w / 2) },
       footprint, board.bounds)
-    : summonAnchor(stood, footprint, board.bounds);
+    : summonAnchor(stood, footprint, board.bounds));
   const token = await platform.getTokenDocument({
     x: anchor.j * scene.grid.size,
     y: anchor.i * scene.grid.size,
@@ -3326,6 +3337,15 @@ async function summonPlatform(phase, actor, board) {
     height: footprint.h,
   });
   await scene.createEmbeddedDocuments("Token", [token.toObject()]);
+
+  // Summoned beside him: he moves onto the top of it, the panel of its deck
+  // nearest the one he stood on (#394).
+  if (beside) {
+    const deck = [];
+    for (let di = 0; di < footprint.h; di += 1) for (let dj = 0; dj < footprint.w; dj += 1) deck.push({ i: beside.i + di, j: beside.j + dj });
+    const onto = deck.sort((a, b) => Math.max(Math.abs(a.i - stood.i), Math.abs(a.j - stood.j)) - Math.max(Math.abs(b.i - stood.i), Math.abs(b.j - stood.j)))[0];
+    await applyWorldIntents([I.move(actor.id, [onto], true)], "platform:summonBeside");
+  }
 
   // Who rides. The owner always; her Master only if he is standing next to the
   // MOUNT -- the sheet's own condition, measured from its footprint and not from

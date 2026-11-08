@@ -20,10 +20,9 @@ the built piece:
 
 - **Territory Creation B** is `class-territory-creation` at B: `territoryCreationOffence` gives 5d10 and
   `territoryCreationDefence` 3d10+15, both as printed, highest Rank only (`group: territoryCreation`).
-- **Item Construction B+** is word for word Nitocris's (45 / 25 / 15, 2 panels, highest Rank only). The shape is
-  `class-item-construction-gogh` (an `Aura`, radius 2, `[ally, self]`, `group: itemConstruction`, six
-  `ApplicationChance` rows), whose figures are written in. The figures become parameters, so Van Gogh, Nitocris
-  and Avicebron are one template, and Medea's file stays her own (her Death figure is 10, not half of 25).
+- **Item Construction B+** is word for word Nitocris's (45 / 25 / 15, 2 panels, highest Rank only), on
+  `class-item-construction-gogh`'s aura (radius 2, `[ally, self]`, `group: itemConstruction`) with his figures and
+  sheet text given beside the ref, as U-Olga Marie and Summer Habetrot carry theirs. Medea's file stays her own.
 - **The Golems' summon** is Medea's Dragon Tooth Warriors' `summon` phase: `countRoll`, `actsOncePerTurn`,
   `placement`, `leavesWithSummoner` (`engine/summoning.mjs`).
 - **"An allied Unit cannot be targeted for an Attack if there is a Golem within 2"** is `TargetabilityModifier`,
@@ -36,10 +35,11 @@ the built piece:
 - **Gather** is `engine/gather.mjs`, Semiramis's. It is written for her alone: the owner is the first ally with
   `hgobConstruction`, the amounts 5 / 4 / 3 are in code and the Region scale is hers. #298 is the open issue
   for an Action a sheet defines, and names Avicebron's Gather.
-- **GKM is a platform**, nearest kin the Quetzalcoatlus (`packs/_source/platforms/quetzalcoatlus.yml`): a giant
-  summon its owner boards (`boarding`, `sharesPanel`), drives (`replacesRiderAction`), whose passengers cannot
-  be targeted (`crossLevel.protectedAgainst: attacks`), whose Luck is its owner's pool (`inherit.luck`; one pool,
-  #162, Ch. 27), and whose fall sets its passengers down (Ch. 27).
+- **GKM is a platform**, nearest kin Karl's Carolus Patricius Auctoritas (`carolus-patricius-auctoritas.yml`, #351):
+  a 2x2 Giant its owner drives (`replacesRiderAction`), whose rider no Attack reaches (`crossLevel`), that walks onto
+  occupied panels and knocks their Units back, and whose Normal Attack knocks the DU back. Its Luck is its owner's
+  pool (`inherit.luck`; #162, Ch. 27), and its fall sets its rider down (Ch. 27). Its growth is Bridal Chest's
+  shape (#345): counters in `resources` read by `MaxDelta`, `BaseAttackModifier` and `MovDelta`.
 - **"Can only be used when Construction reaches 50"** is HGoB's `resourceAtLeast` requirement.
 - **Moving onto occupied panels and knocking their Units back** is `movesOntoOccupiedPanels` and
   `knockBackOccupants` (`engine/movement-hooks.mjs`), the Bašmu's; **a Normal Attack that knocks the DU back** is

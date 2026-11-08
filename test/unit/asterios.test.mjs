@@ -313,6 +313,7 @@ describe("a non-damaging Noble Phantasm", () => {
       "arturia-avalon",
       "asterios-chaos-labyrinthos",
       "avalon-master",
+      "avicebron-golem-keter-malkuth",
       // Golden Hind: Wild Hunt. "(Non-damaging/Passive/Activation)" is the
       // first thing its sheet entry says, and its one phase puts a ship on the
       // board -- every rule that follows is the platform's, not the NP's.

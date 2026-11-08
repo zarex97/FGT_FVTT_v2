@@ -33,7 +33,9 @@ Prevention and compulsion run separately. A unit whose turn is blocked by an eff
 
 The budget lives on a single flag of the Combat document, keyed by faction (`module/engine/budget.mjs:19-20`). It is reset at the start of each faction's turn, not at the end — a budget the player can see after their turn is the one they want to inspect (`module/engine/budget.mjs:98-100`).
 
-Each pool tracks `usedHalves`, `maxHalves`, and the displayed `used` and `max` (`module/rules/budget.mjs:116-121`). Pools are stored in halves, not floats, to avoid floating-point accumulation when a linked pair (twins) splits one slot as 0.5 + 0.5 (`module/rules/budget.mjs:111-113`). At the boundary, an odd result is exact: at 3.5 of 4, a twin may still move (7 + 1 ≤ 8) and a whole Servant may not (7 + 2 > 8) (`module/engine/budget.mjs:141-142`).
+Each pool tracks `usedParts`, `maxParts`, and the displayed `used` and `max` (`module/rules/budget.mjs#emptyBudget`). Pools are stored in **parts**, sixtieths of a Unit, as integers, not floats, to avoid floating-point accumulation: sixty holds every weight a sheet prints exactly, a linked twin's 0.5, Babbage's 0.33, Edison's 0.25 and Avicebron's Golem's 0.2 (`BUDGET_PARTS`, #291, #394). They were halves until the Golem, which `Math.round(0.2 * 2)` charged nothing. At the boundary, an odd result is exact: at 3.5 of 4, a twin may still move (210 + 30 ≤ 240) and a whole Servant may not (210 + 60 > 240); five Golems are one Servant. A budget stored in halves is still read (`poolParts`), so a world saved mid-Turn keeps its count.
+
+**A summon may count, and weigh less than a Servant.** `countsTowardBudget` puts it in its side's pools and `unitWeight` says what one of it costs (`rules/linked-group.mjs#unitWeight`: a linked group's weight, else the Unit's own). One that also acts once per Turn (`actsOncePerTurn`) is held to one Move and one Attack **and** charged its weight: the act-once branch returned free before any pool was read, so it charged nothing (#291).
 
 An action routes to its pool by action kind and unit type (`module/rules/budget.mjs:138-170`). Attack, NP, Spell, Riding Attack, and Mark all draw from the attack pool. Move, Gather, and Active Skill all draw from the move pool — `skill` draws from move, not attack, by decision D18.2 (`module/rules/budget.mjs:163-166`).
 
@@ -70,7 +72,7 @@ Masters have an unlimited attack pool but are capped at one attack per turn by t
 
 ### Linked units (twins)
 
-A linked pair counts as one unit for move slots, each member spending 0.5 halves (`module/rules/budget.mjs:286`). *"Counts as both Castor and Pollux's Attack for the Turn"* — if a joint attack is declared, both twins are marked as having attacked and their combined weight (1.0 halves) is deducted once from the attack pool (`module/rules/budget.mjs:314-327`).
+A linked pair counts as one unit for move slots, each member spending half a slot (30 parts). *"Counts as both Castor and Pollux's Attack for the Turn"* — if a joint attack is declared, both twins are marked as having attacked and their combined weight (one slot) is deducted once from the attack pool (`module/rules/budget.mjs#consume`).
 
 ### The first Round: no Attack of any kind
 
@@ -119,11 +121,10 @@ Moves and self-only Skills alike. Kirihanasu itself is a `freeAction`. The revea
 ## Open questions
 
 - **Resolved: the boundary is exact by representation, not by careful arithmetic.** Pools are stored
-  as **integer halves** -- `usedHalves`, and `maxHalves: max * 2` (`module/rules/budget.mjs:111-118`)
-  -- and the file says why: *"Ch. 45 names floating-point accumulation as the risk of a 0.5-weight
-  unit; halves remove it rather than manage it."* So 3.5 of 4 is seven halves of eight: a twin costs
-  one half and fits, a whole Servant costs two and does not. Nothing can drift, and `Infinity * 2`
-  stays `Infinity`, so an unlimited pool survives the doubling.
+  as **integer parts**, sixtieths of a Unit -- `usedParts`, and `maxParts: max * 60`
+  (`module/rules/budget.mjs#emptyBudget`). So 3.5 of 4 is 210 parts of 240: a twin costs 30 and fits,
+  a whole Servant costs 60 and does not, and a Golem costs 12. Nothing can drift, and `Infinity * 60`
+  stays `Infinity`, so an unlimited pool survives. Halves were enough until Avicebron's Golem (#291, #394).
 
 - **Still open; it needs a live charm across two factions.** `reset` fires at faction-turn-start,
   and a charmed unit acts on the charmer's turn from the charmer's pool -- so the question is whether

@@ -1929,10 +1929,7 @@ async function fireFinalDefeat(actor, killerId) {
   const unit = unitFrom(board, actor);
   if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
   const { fireEvent } = await import("./scheduler.mjs");
-  const { currentWar } = await import("./war.mjs");
-  const intents = fireEvent("finalDefeat", [unit], {
-    board, killerId, tick: currentWar()?.system?.globalTurn ?? 0, rolls: {},
-  });
+  const intents = fireEvent("finalDefeat", [unit], { board, killerId, tick: currentMoment().tick, rolls: {} });
   if (intents.length === 0) return;
   const { applyWorldIntents } = await import("./applier.mjs");
   await applyWorldIntents(intents, `finalDefeat:${actor.id}`);

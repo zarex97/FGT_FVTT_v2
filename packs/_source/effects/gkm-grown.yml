@@ -1,0 +1,19 @@
+# Golem Keter Malkuth's fifth Round, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"At the start of the Round, 5 full Rounds (5◈ Turns) since GKM is summoned,
+# > its Range increases from a 2x2 panel area to a 3x3 panel area."*
+#
+# Applied by GKM's own Round-start handler at its fifth step, for good. It
+# carries the variant, as Shisarot Form carries Habetrot's (ruling 18, 25).
+schema: 1
+id: gkmGrown
+name: "Royal Crown Grown"
+description: "Golem Keter Malkuth's Normal Attack covers a 3x3 panel area instead of a 2x2."
+polarity: status
+volatility: nonVolatile
+valence: offensive
+stacking: noneNoRefresh
+unremovable: true
+baseChance: 100
+rules:
+  - { key: VariantOverride, branch: grown }

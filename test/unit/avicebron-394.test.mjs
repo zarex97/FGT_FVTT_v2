@@ -295,3 +295,135 @@ describe("Gather (GK.gather.*, ruling 12)", () => {
     }, WAR);
   });
 });
+
+describe("Golem Keter Malkuth (GK.*)", () => {
+  const GKM = "avicebronGkm0001";
+  const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));
+  const gkm = (resources = {}) => ({
+    from: "golem-keter-malkuth", id: GKM, footprint: FOUR(6, 6),
+    state: { ownerId: AV, factionId: "A", activatedAt: 18, ...(Object.keys(resources).length ? { resources: {
+      gkmRounds: { value: 0, max: 99 }, gkmHealthSteps: { value: 0, max: 10 }, gkmBaSmall: { value: 0, max: 5 },
+      gkmBaLarge: { value: 0, max: 5 }, gkmCycle: { value: 0, max: 2 }, gkmAgiSteps: { value: 0, max: 3 }, ...resources,
+    } } : {}) },
+  });
+  const rider = () => ({ from: "avicebron", id: AV, panel: { i: 6, j: 6, k: 1 }, state: { factionId: "A" } });
+
+  it("is his NP, gated at 50 Construction, raised beside him; no Golems while it stands (GK.kind, GK.gate, GK.nogolems)", async () => {
+    await withSubjects([{ from: "avicebron", id: AV }], ({ world: w }) => {
+      const np = abilityOf(w, AV, "avicebron-golem-keter-malkuth");
+      expect(np.system.kind ?? "noblePhantasm").toBe("noblePhantasm");
+      expect(np.system.isNP).toBe(true);
+      expect(np.system.rank).toBe("EX");
+      expect(np.system.requirements).toEqual(expect.arrayContaining([
+        expect.objectContaining({ kind: "resourceAtLeast", key: "construction", amount: 50 }),
+      ]));
+      expect(np.system.phases[0]).toMatchObject({ kind: "summonPlatform", platformId: "golem-keter-malkuth", placement: "adjacent" });
+    });
+  });
+
+  it("stands at 2000, Agility 6, his Luck, MOV 3, Range 1 with a 2x2 that hits every Unit, BA(STR) 150, Giant, Detect 5, 2x2 (GK.sb, GK.luck)", async () => {
+    await withSubjects([rider(), gkm()], ({ unit }) => {
+      const g = unit(GKM);
+      expect(g.maxHealth ?? g.health?.max).toBe(2000);
+      expect(g.agility).toBe(6);
+      expect(g.luck).toBe(unit(AV).luck);
+      expect(g.mov).toBe(3);
+      expect(g.range).toBe(1);
+      expect(g.baseAttack).toEqual(expect.objectContaining({ str: 150 }));
+      expect(g.attributes).toContain("giant");
+      expect(g.attributes).not.toContain("mechanical");
+      expect(g.normalAttack).toMatchObject({ shape: { kind: "square", size: 2 }, relations: ["enemy", "ally", "neutral"] });
+      expect(g.panels).toHaveLength(4);
+      expect(g.ignoresOccupancy).toBe(true);
+    });
+  });
+
+  it("grows by its counters: 200 Health a step to 4000, BA +10 then +20 to 300, Agility +2 and MOV +1 a step, 3x3 from the fifth (GK.grow.*)", async () => {
+    await withSubjects([rider(), gkm({
+      gkmRounds: { value: 5, max: 99 }, gkmHealthSteps: { value: 5, max: 10 }, gkmBaSmall: { value: 5, max: 5 },
+      gkmBaLarge: { value: 0, max: 5 }, gkmAgiSteps: { value: 1, max: 3 },
+    })], ({ unit }) => {
+      const g = unit(GKM);
+      expect(g.maxHealth).toBe(3000);
+      expect(g.baseAttack.str).toBe(200);
+      expect(g.maxAgility).toBe(8);
+      expect(g.mov).toBe(4);
+      expect(g.normalAttack.shape).toEqual({ kind: "square", size: 2 });
+    });
+    // The 3x3 is the variant `gkmGrown` carries, applied at the fifth step.
+    await withSubjects([rider(), { ...gkm(), effects: [{ defId: "gkmGrown" }] }], ({ unit }) => {
+      expect(unit(GKM).normalAttack.shape).toEqual({ kind: "square", size: 3 });
+    });
+    await withSubjects([rider(), gkm({
+      gkmRounds: { value: 12, max: 99 }, gkmHealthSteps: { value: 10, max: 10 }, gkmBaSmall: { value: 5, max: 5 },
+      gkmBaLarge: { value: 5, max: 5 }, gkmAgiSteps: { value: 3, max: 3 },
+    })], ({ unit }) => {
+      const g = unit(GKM);
+      expect([g.maxHealth, g.baseAttack.str, g.maxAgility, g.mov]).toEqual([4000, 300, 12, 6]);
+    });
+  });
+
+  it("keeps Avicebron aboard out of every Attack, an area's too (GK.untarget, ruling 16)", async () => {
+    await withSubjects([rider(), gkm(), { from: "heracles", id: FOE, panel: { i: 6, j: 9 }, state: { factionId: "B" } }],
+      async ({ unit, board }) => {
+        const { crossLevelLegal } = await import("../../module/rules/platforms.mjs");
+        expect(crossLevelLegal(unit(FOE), unit(AV), board).ok).toBe(false);
+        expect(crossLevelLegal(unit(FOE), unit(AV), board, { area: true }).ok).toBe(false);
+        expect(crossLevelLegal(unit(FOE), unit(AV), board, { area: true, isNP: true }).ok).toBe(false);
+      });
+  });
+
+  it("places beside him, never on his panel (GK.place)", async () => {
+    const { adjacentAnchor } = await import("../../module/rules/platforms.mjs");
+    const bounds = { iMin: 0, jMin: 0, iMax: 14, jMax: 14 };
+    expect(adjacentAnchor({ i: 5, j: 5 }, { w: 2, h: 2 }, bounds, new Set())).toEqual({ i: 5, j: 6 });
+    // East blocked: south.
+    expect(adjacentAnchor({ i: 5, j: 5 }, { w: 2, h: 2 }, bounds, new Set(["5,6", "4,6"]))).toEqual({ i: 6, j: 5 });
+    // At the east edge: not off the board.
+    expect(adjacentAnchor({ i: 5, j: 14 }, { w: 2, h: 2 }, bounds, new Set())).toEqual({ i: 6, j: 13 });
+  });
+});
+
+describe("GKM's Round clocks, run (GK.grow.*, ruling 18)", () => {
+  const GKM = "avicebronGkm0001";
+  const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));
+  it("steps each Round start: Health and BA every Round, Agility and MOV on the 3rd, 6th, 9th, the 3x3 on the 5th", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 6, j: 6, k: 1 }, state: { factionId: "A" } },
+      { from: "golem-keter-malkuth", id: GKM, panel: { i: 6, j: 6 }, footprint: FOUR(6, 6), state: { ownerId: AV, factionId: "A", activatedAt: 18 } },
+    ], async ({ world: w }) => {
+      const { currentBoard, unitFrom } = await import("../../module/engine/board.mjs");
+      const { beginRound } = await import("../../module/engine/scheduler.mjs");
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const seen = [];
+      for (let round = 7; round <= 18; round += 1) {
+        await applyWorldIntents(beginRound(currentBoard(), { round, tick: round * 3 }), "test:roundStart");
+        const g = unitFrom(currentBoard(), w.actor(GKM));
+        seen.push([g.maxHealth, g.health ?? null, g.baseAttack.str, g.maxAgility, g.mov, g.normalAttack.shape.size]);
+      }
+      expect(seen.map((r) => r[0])).toEqual([2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4000, 4000]);
+      expect(seen.map((r) => r[2])).toEqual([160, 170, 180, 190, 200, 220, 240, 260, 280, 300, 300, 300]);
+      expect(seen.map((r) => r[3])).toEqual([6, 6, 8, 8, 8, 10, 10, 10, 12, 12, 12, 12]);
+      expect(seen.map((r) => r[4])).toEqual([3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6]);
+      expect(seen.map((r) => r[5])).toEqual([2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3]);
+      expect(w.actor(GKM).system.health.value).toBe(4000);
+    }, WAR);
+  });
+});
+
+describe("GKM's fall (GK.reset, ruling 3)", () => {
+  const GKM = "avicebronGkm0001";
+  const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));
+  it("takes his Construction to 0 when it is defeated", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 6, j: 6, k: 1 }, state: { factionId: "A", resources: { construction: { value: 50, max: 50 }, golemsFelled: { value: 0, max: 4 }, figTreeSpent: { value: 0, max: 1 } } } },
+      { from: "golem-keter-malkuth", id: GKM, panel: { i: 6, j: 6 }, footprint: FOUR(6, 6), state: { ownerId: AV, factionId: "A", activatedAt: 18 } },
+      { from: "heracles", id: FOE, panel: { i: 6, j: 9 }, state: { factionId: "B" } },
+    ], async ({ world: w }) => {
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const I = await import("../../module/engine/intents.mjs");
+      await applyWorldIntents([I.defeat(GKM, "damage", FOE)], "test");
+      expect(w.actor(AV).system.resources.construction.value).toBe(0);
+    }, WAR);
+  });
+});

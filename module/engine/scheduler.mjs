@@ -852,6 +852,13 @@ export function subjectOf(action, unit, ctx) {
     return units.find((u) => u.id === unit?.summonerId) ?? null;
   }
 
+  // The Unit that owns this platform: GKM's fall resets Avicebron's
+  // Construction (#394 ruling 3). A platform's `summonerId` is no field; its
+  // owner is `ownerId`.
+  if (subject === "owner") {
+    return units.find((u) => u.id === unit?.ownerId) ?? null;
+  }
+
   // TWO hops: the Master of whoever summoned this one. Tenmōkaikai's upkeep is
   // *"at the end of any Turn Raikou OR ANY OF HER COPIES Acts, Raikou's Master
   // loses 25 Health"* -- and neither hop is available to the acting unit. A

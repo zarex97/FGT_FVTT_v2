@@ -1,0 +1,37 @@
+# Avicebron, char_orig_sheets/by-class/Caster/Avicebron.md (#394).
+#
+# > *"Golem Keter Malkuth (GKM) can only be used when Construction Points reach
+# > 50. [...] When Construction Points reaches 50, GKM can be used; and when it
+# > is, it is summoned directly next to Avicebron. Avicebron then moves onto the
+# > top of GKM. Avicebron cannot be targeted by Attacks while GKM is active."*
+#
+# His Noble Phantasm, the only one (ruling 1): the Master pays, the Round gate
+# and NP Seal hold. No Cooldown: Construction is the gate, as HGoB states none.
+# The 50 are not spent: they stay while GKM stands (ruling 3), and fall to 0 when
+# it falls (GKM's own `finalDefeat`, `platforms/golem-keter-malkuth.yml`).
+schema: 1
+id: avicebron-golem-keter-malkuth
+name: "Golem Keter Malkuth: Royal Crown, the Light of Wisdom"
+rank: EX
+kind: noblePhantasm
+slug: golemKeterMalkuth
+isNP: true
+timing: { window: ownTurn }
+creates: [giant]
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: resourceAtLeast, key: construction, amount: 50 }
+  - { kind: platformInactive, contentId: golem-keter-malkuth, name: "Golem Keter Malkuth" }
+description: |
+  (Non-damaging) Can only be used when Construction Points reach 50. Golem Keter Malkuth is summoned directly next to
+  Avicebron, and Avicebron then moves onto the top of it. Avicebron cannot be targeted by Attacks while GKM is active,
+  and cannot create Golems. When GKM is defeated, Avicebron is returned to a panel within the area GKM was last
+  standing on, and his Construction is reduced to 0: he can attempt to rebuild GKM from scratch.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: summonPlatform
+    platformId: golem-keter-malkuth
+    placement: adjacent

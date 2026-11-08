@@ -129,6 +129,9 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // and without the field every write to it was dropped (§46.4-BQ).
       turnState: turnStateField(),
       description: new fields.HTMLField({ required: false, blank: true }),
+      // A form it takes by a rule's `VariantOverride`: GKM's 3x3 from the fifth
+      // Round (#394). Read by `rules/snapshot.mjs` as a Servant's is.
+      summonVariant: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // A Platform can Attack (the HGoB's own Dragon Wing Warriors and Aerial
       // Garden of Vanity both read it) but has no Parameters of its own on
       // any reference sheet, so this is declared directly rather than by
