@@ -24,8 +24,10 @@ passiveRules:
   - key: OnEvent
     event: finalDefeat
     automatic: true
-    predicate: [{ not: "self:resource:figTreeSpent:gte:1" }]
+    # *"Once"* is a gate on each action (`whenValue`), read off his pool as he
+    # fell. No `self:resource:` option exists: a predicate on one was never
+    # false, and a second fall gave Invuln and Health again (#394, live).
     then:
-      - { key: ApplyEffect, target: nearby, radius: 3, relations: [ally], effect: { id: invuln, uses: 3, stacking: count } }
-      - { key: Heal, target: nearby, radius: 3, relations: [ally], percentOfMax: 20 }
-      - { key: ResourceDelta, resource: figTreeSpent, delta: 1 }
+      - { key: ApplyEffect, target: nearby, radius: 3, relations: [ally], effect: { id: invuln, uses: 3, stacking: count }, whenValue: { stat: resources.figTreeSpent.value, lte: 0 } }
+      - { key: Heal, target: nearby, radius: 3, relations: [ally], percentOfMax: 20, whenValue: { stat: resources.figTreeSpent.value, lte: 0 } }
+      - { key: ResourceDelta, resource: figTreeSpent, delta: 1, whenValue: { stat: resources.figTreeSpent.value, lte: 0 } }

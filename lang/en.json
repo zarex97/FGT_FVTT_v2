@@ -1020,6 +1020,7 @@
   "FGT.TurnReport.Pool": "{who}: {pool} {before} → {after} ({source})",
   "FGT.TurnReport.StartTitle": "Start of the Turn",
   "FGT.TurnReport.RoundStartTitle": "Start of the Round",
+  "FGT.TurnReport.FinalDefeatTitle": "As a Unit falls",
   "FGT.TurnReport.StateEnded": "{effect} ends.",
   "FGT.TurnReport.StateEndedTook": "{effect} ends: {what}.",
   "FGT.TurnReport.Removed": "{effect} removed",

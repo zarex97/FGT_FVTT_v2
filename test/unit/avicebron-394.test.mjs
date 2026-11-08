@@ -264,6 +264,23 @@ describe("Fig Tree of Tranquility (FT.*, ruling 23)", () => {
       expect(w.actor(AV).system.resources.figTreeSpent.value).toBe(1);
     }, WAR);
   });
+
+  // FT.once (ruling 23), live: a predicate on a `self:resource:` option no
+  // reader builds was never false, and his second fall gave it all again.
+  it("gives nothing at a second fall once it has been spent", async () => {
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 5, j: 5 }, state: { factionId: "A", health: { value: 0, max: 500 }, resources: { construction: { value: 0, max: 50 }, golemsFelled: { value: 0, max: 4 }, figTreeSpent: { value: 1, max: 1 } } } },
+      { from: "heracles", id: MA, panel: { i: 5, j: 8 }, state: { factionId: "A", health: { value: 100, max: 1500 } } },
+      { from: "heracles", id: FOE, panel: { i: 6, j: 6 }, state: { factionId: "B" } },
+    ], async ({ world: w }) => {
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const I = await import("../../module/engine/intents.mjs");
+      await applyWorldIntents([I.defeat(AV, "damage", FOE)], "test");
+      expect(w.actor(AV).system.defeated).toBe(true);
+      expect([...w.actor(MA).effects].some((e) => e.system?.defId === "invuln")).toBe(false);
+      expect(w.actor(MA).system.health.value).toBe(100);
+    }, WAR);
+  });
 });
 
 describe("Gather (GK.gather.*, ruling 12)", () => {

@@ -1270,14 +1270,15 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       // platform's token is gone by the time `noteFinalDefeat` runs, and GKM's
       // *"Construction is reduced to 0"* found nobody to run on (#394, live).
       const { currentBoard } = await import("./board.mjs");
-      const fallen = (currentBoard().units ?? []).find((u) => u.id === unitId) ?? null;
+      const fallenBoard = currentBoard();
+      const fallen = (fallenBoard.units ?? []).find((u) => u.id === unitId) ?? null;
       await io.defeat(unitId, intents[0].cause, intents[0].killerId ?? null);
       // A defeated platform falls, and one that goes with its owner goes with
       // it (Ch. 46 §46.4-CH).
       if (io.destroyPlatformsOf) await io.destroyPlatformsOf(unitId);
       // What its abilities do once it has fallen: Antares Snipe (#326).
       if (io.notePosthumous) await io.notePosthumous(unitId, intents[0].killerId ?? null);
-      if (io.noteFinalDefeat) await io.noteFinalDefeat(unitId, intents[0].killerId ?? null, fallen);
+      if (io.noteFinalDefeat) await io.noteFinalDefeat(unitId, intents[0].killerId ?? null, fallen, fallen ? fallenBoard : null);
       // ...and a teaching it was in ends with it (#326 ruling 11b).
       if (io.noteTeachingDefeat) await io.noteTeachingDefeat(unitId);
       // ...and what it inflicted that ends with it: Curse (Bolg) (#339).

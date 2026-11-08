@@ -8013,3 +8013,32 @@ Fig Tree's *"Invuln ... for 3 times"* landed with none; a Normal Attack's `relat
 never the sheet, and the platform model had no `summonVariant` (both Silent Drops the validator named). A
 `VariantOverride`'s predicate cannot read its holder's own counters at collection, so GKM's 3x3 rides a permanent
 effect its fifth Round applies.
+
+**Pressed live, all 138** (2026-11-08, the Gilgamesh Audit board): 74 Pressed as Player1, 16 Pressed (engine) for
+boundaries, defeats and revivals, and 48 Observed. Found live, each fixed and pressed again:
+
+- **Gather:**
+  - Gather wrote the War from the player's client. It now runs on the GM.
+  - A full pool still offered Gather. The bar now greys a slot its gate blocks.
+- **Cards** (pools, the Round's start, dice, names):
+  - A Round's end and start now say the pools their handlers moved.
+  - Territory Creation's dice are on the card.
+  - The Turn card names an NP by its public tag.
+  - A shared Luck reads its owner's pool.
+- **GKM, held at collection:** two predicates that can only be asked later are `defer`.
+- **GKM as a platform:**
+  - Dragging the platform bills its rider.
+  - Its aura measures footprint to footprint and re-syncs on a move.
+  - A mount's Normal Attack aims with the mount's shape.
+  - A grant sync that a teardown raced runs once more.
+- **`finalDefeat` on a platform:**
+  - It now runs on the Unit and the board as they stood when it fell. Its actor is deleted before the rule runs,
+    and the canvas loses the rider mid-teardown, so Construction stayed at 50.
+  - That board drops the Units that left with the fall.
+  - Its lines go on a card, *"As a Unit falls"*.
+- **Fig Tree:**
+  - *Once* is a `whenValue` gate on each action. A predicate on a `self:resource:` option no reader builds was
+    never false, and a second fall gave it all again.
+  - Its heal is said once.
+
+Open: *Jump Off* from GKM's deck, which no ruling covers.

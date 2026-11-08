@@ -754,9 +754,15 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string|null} killerId
      */
-    async noteFinalDefeat(unitId, killerId, fallen = null) {
+    async noteFinalDefeat(unitId, killerId, fallen = null, fallenBoard = null) {
       const actor = resolve(unitId);
-      if (!actor) return;
+      // A platform's actor is deleted when it falls (`destroyPlatformsOf`), and
+      // GKM's *"Construction is reduced to 0"* still runs, off the Unit as it
+      // stood (#394, live: the early return dropped it).
+      if (!actor) {
+        if (fallen) await fireFinalDefeat({ id: unitId }, killerId, fallen, fallenBoard);
+        return;
+      }
       const { onHolderDefeated, forceOut } = await import("./bug-space.mjs");
       await onHolderDefeated(actor);
       // A Unit that fell inside comes out as a body, where its holder stands.
@@ -765,7 +771,7 @@ export function worldIO() {
       await discardAllStolen(actor);
       if (killerId) void offerObtainedSkill(killerId, unitId);
       await tallyFelledSummon(actor, killerId);
-      await fireFinalDefeat(actor, killerId, fallen);
+      await fireFinalDefeat(actor, killerId, fallen, fallenBoard);
     },
 
     async banish(unitId, untilTick, fieldId) {
@@ -1921,11 +1927,21 @@ function resolve(unitId) {
  *
  * @param {object} actor the defeated Unit
  * @param {string|null} killerId
+ * @param {object|null} [fallen] the Unit as it stood before the defeat
+ * @param {object|null} [fallenBoard] the board it fell on
  * @returns {Promise<void>}
  */
-async function fireFinalDefeat(actor, killerId, fallen = null) {
+async function fireFinalDefeat(actor, killerId, fallen = null, fallenBoard = null) {
   const { currentBoard, unitFrom } = await import("./board.mjs");
-  const board = currentBoard();
+  // The board as it stood when the Unit fell, when the caller kept it: the
+  // live one is read off the canvas, and a platform's teardown has just moved
+  // its riders off its level, so GKM's owner was on no board to reset (#394,
+  // live: `subject: owner` found nobody).
+  // ...less every Unit that left as it fell: Golems with their summoner, GKM
+  // with its owner. Fig Tree healed both by their ids on that board (#394, live).
+  const board = fallenBoard
+    ? { ...fallenBoard, units: (fallenBoard.units ?? []).filter((u) => u.id === fallen?.id || unitActor(u.id)) }
+    : currentBoard();
   // As it stood before the defeat, when the defeat took it off the board.
   const unit = fallen ?? unitFrom(board, actor);
   if (!(unit?.eventHandlers ?? []).some((h) => (h.events ?? [h.event]).includes("finalDefeat") && !h.script)) return;
@@ -1933,7 +1949,14 @@ async function fireFinalDefeat(actor, killerId, fallen = null) {
   const intents = fireEvent("finalDefeat", [unit], { board, killerId, tick: currentMoment().tick, rolls: {} });
   if (intents.length === 0) return;
   const { applyWorldIntents } = await import("./applier.mjs");
-  await applyWorldIntents(intents, `finalDefeat:${actor.id}`);
+  const out = await applyWorldIntents(intents, `finalDefeat:${actor.id}`, { lines: true });
+  // Said on a card of its own: GKM's fall took Avicebron's Construction to 0
+  // and no player read it (#394, live), as `round-phase.mjs` says a phase's.
+  const { postTurnEndReport } = await import("./turn-report.mjs");
+  // A heal and a pool are the batch's own lines (clamped, before → after);
+  // read off the intents too, the Master's heal was said twice.
+  await postTurnEndReport(intents.filter((i) => i?.t !== "heal" && i?.t !== "resource"), null, null,
+    "FGT.TurnReport.FinalDefeatTitle", out?.lines ?? []);
 }
 
 /**
