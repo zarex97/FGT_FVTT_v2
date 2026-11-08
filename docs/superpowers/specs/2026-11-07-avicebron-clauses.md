@@ -96,24 +96,24 @@ summon's panels can be its owner's pick, and it leaves with its summoner only wh
 Ch. 31) · *"Move/Attack once per Turn"* is `actsOncePerTurn`: one Move, one Attack, no Move after the Attack
 (§46.4-BK) · a sheet binds only its owner.
 
-## Readings to settle
+## Readings
 
-To be grilled. Each names the reading the build would take without a ruling.
+Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. 12 and 24 wait on round 2.
 
-| # | Question | Default reading | Clauses |
+| # | Question | Ruling | Clauses |
 |---|---|---|---|
 | 1 | GKM prints no NP tag, and Avicebron has no other NP. Is GKM a Noble Phantasm (Master's Health cost, Round gate, NP Seal, NP Cooldown) or an Active gated only by Construction? | An NP: his only one, named as NPs are, Rank EX. Master's Health cost and NP Seal apply; no Cooldown, since Construction is the gate (as HGoB, which states none). | GK.kind |
 | 2 | Who drives GKM: Avicebron from on top, as the Quetzalcoatlus is driven, or GKM as a Unit of its own with its own Move and Attack? What does it weigh on the budget? | Avicebron drives, as the Quetzalcoatlus: his Move and his Attack become GKM's. GKM weighs as he does, one Servant. | GK.drive, GK.budget |
 | 3 | Does summoning GKM spend the 50 Construction, or do they stay at 50 until GKM falls (*"its Construction is reduced to 0"* after)? | They stay at 50 while GKM stands, and fall to 0 when it falls. | GK.gate, GK.reset |
-| 4 | Where are the Golems placed? The sheet says nothing. | His pick, one free panel each within a 5x5 around him, as Medea's Warriors. | GO.place |
+| 4 | Where are the Golems placed? The sheet says nothing. | **Within his Range.** His pick, one free panel each within his Range (2), footprint to footprint. | GO.place |
 | 5 | Item Construction: Golems prints no *"Used during your Turn"* and no *"counts as his Attack"*. | His own Turn, as every Active. It is not his Attack. | GO.when |
 | 6 | At the cap of 30, a roll that would pass it summons up to 30. Construction counts the Golems actually created. | Yes to both. | GO.max, GK.cp.golems |
-| 7 | The Golem's guard: which Units, against which Attacks? Does a Golem guard other Golems and itself? Does an AoE still catch a guarded Unit, as the Bašmu's guard does today? | Every Unit allied to Avicebron within 2 of a Golem, other Golems included and not the Golem itself, against enemy Attacks, an AoE included, as the Bašmu's guard runs. | GL.guard.* |
-| 8 | Do the Golems stay when Avicebron falls? | They stay: the sheet does not say they leave. | GL.leave |
+| 7 | The Golem's guard: which Units, against which Attacks? Does a Golem guard other Golems and itself? Does an AoE still catch a guarded Unit, as the Bašmu's guard does today? | **A Golem guards no Golem**, itself included: every other Unit allied to Avicebron within 2 of a Golem, against enemy Attacks, an AoE included, as the Bašmu's guard runs. | GL.guard.* |
+| 8 | Do the Golems stay when Avicebron falls? | **They disappear** when he falls (`leavesWithSummoner`). | GL.leave |
 | 9 | Numerology's *"all Golems on the field"*: his own Golems, or any Golem? | His own Golems. | NU.luck, NU.atk |
 | 10 | Numerology's *"if NP, 30%"*: no Golem has an NP, nor GKM. A Clause no board reaches. | Authored as printed; no board reaches it, so it is recorded Observed on the element, and the audit says so. | NU.atk.np |
 | 11 | GKM counts as a Golem for Numerology, and its Luck is Avicebron's pool: does Numerology then restore 3 to Avicebron's Luck? | Yes: GKM's Luck is his pool, so 3 is restored to it. | NU.gkm |
-| 12 | Gather: Avicebron and his Master only. Gather while aboard GKM? A Unit allied to both Semiramis and Avicebron: whose pool? | Only those two. Aboard GKM he may Gather, his Move being spent. An ally of both picks the pool on the button. | GK.gather.* |
+| 12 | Gather: Avicebron and his Master only. Gather while aboard GKM? A Unit allied to both Semiramis and Avicebron: whose pool? | Round 2. | GK.gather.* |
 | 13 | Construction past 50 is lost. Do gains still count while GKM stands? | Lost past 50, and gains still count while GKM stands, to no effect. | SB.cp, GK.cp.* |
 | 14 | *"Destroyed/defeated by enemy Units"*: by any enemy Attack, Skill or effect; a Golem dismissed, or felled by an ally, does not count. GKM is not a Golem here. | Yes. | GK.cp.felled |
 | 15 | GKM's footprint is not printed. | 2x2, its Normal Attack's area and the Quetzalcoatlus's, Giant kin. | GK.sb |
@@ -125,7 +125,7 @@ To be grilled. Each names the reading the build would take without a ruling.
 | 21 | GKM may Move to any panel: past terrain, walls and Units, as the Bašmu? *"Knocked back by 1 panel until the space is free"*: pushed one panel at a time outward until GKM fits? | Any panel, as the Bašmu: terrain and walls still bind its path; Units are pushed one panel at a time, outward from its footprint, until it fits. | GK.move.* |
 | 22 | High-Speed Incantation: *"all Skills"* includes his Class Skills and Item Construction: Golems, not itself, not GKM. | As written. | HS.cd.* |
 | 23 | Fig Tree: *"allied Units"* include Golems, GKM and Masters. Invuln 3 charges, no duration. *"Can only be used once"* holds across revivals. | As written; a second revival after the first final defeat does not fire it again. | FT.* |
-| 24 | The Normal Attack cut of 75%: does it reach GKM's Normal Attacks, if he drives them? | Yes: the cut is on his Normal Attacks, and GKM's are his while he drives. | SB.na.cut, GK.na |
+| 24 | The Normal Attack cut of 75%: does it reach GKM's Normal Attacks, if he drives them? | Round 2. | SB.na.cut, GK.na |
 | 25 | *"(5◈ Turns)"* beside *"5 full Rounds"* is not struck: a gloss, the Round count rules. | Yes. | GK.grow.range |
 
 ## Statblock
@@ -160,11 +160,11 @@ To be grilled. Each names the reading the build would take without a ruling.
 
 ## Item Construction: Golems *(Active)*
 
-- [ ] **GO.when** · Used during his Turn (Q5)
+- [ ] **GO.when** · Used during his Turn, and not his Attack (Q5)
 - [ ] **GO.home** · In his Home Base: 1d10 Golems
 - [ ] **GO.away** · Not in his Home Base: 1d6 Golems
 - [ ] **GO.die** · The die rolled is on the card, and the count equals it
-- [ ] **GO.place** · Where each Golem is placed (Q4)
+- [ ] **GO.place** · Each Golem on a free panel he picks within his Range (Q4)
 - [ ] **GO.max** · At most 30 Golems on the field (Q6)
 - [ ] **GO.gkm** · Refused while GKM is active (also GK.nogolems)
 - [ ] **GO.cd** · Cooldown 3◈−⅓◈
@@ -180,9 +180,9 @@ To be grilled. Each names the reading the build would take without a ruling.
 - [ ] **GL.guard.enemy** · …by an enemy: an ally may still aim at it
 - [ ] **GL.guard.name** · The refusal names the Golem
 - [ ] **GL.guard.out** · Beyond 2 panels, no guard
-- [ ] **GL.guard.aoe** · …against an area Attack (Q7)
-- [ ] **GL.guard.golem** · …whether a Golem guards other Golems and itself (Q7)
-- [ ] **GL.leave** · Golems at Avicebron's defeat (Q8)
+- [ ] **GL.guard.aoe** · …an area Attack included: the guarded Unit is left out of it (Q7)
+- [ ] **GL.guard.golem** · …but no Golem: a Golem beside another Golem can still be aimed at (Q7)
+- [ ] **GL.leave** · Every Golem disappears when Avicebron is defeated (Q8)
 
 ## Territory Creation — Class Skill, Rank B *(Passive 1 + 2)*
 
