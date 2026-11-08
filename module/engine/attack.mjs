@@ -8378,8 +8378,11 @@ function targetSpecFor(attacker, ability, options = null, board = boardSnapshot(
   // ...and the war Region's say over an area that is the ability's own field.
   // `specForAbility` is pure and shared by every ability in the game; the
   // Region belongs to the board, which only this layer has.
+  // ...and its SHAPE: GKM's swing is a 2x2 that hits every Unit in it, and the
+  // rider's own one-panel Normal Attack was what the targeting read (#394, live).
+  const swinger = source?.platform ? { ...projected, normalAttack: source.platform.normalAttack } : projected;
   const spec = regionSizedTargeting(
-    specForAbility(ability, range, options, projected), ability, board.warRegion ?? null,
+    specForAbility(ability, range, options, swinger), ability, board.warRegion ?? null,
   );
   return source?.platform ? { ...spec, anchor: { ...spec.anchor, originUnitId: source.platform.id } } : spec;
 }
