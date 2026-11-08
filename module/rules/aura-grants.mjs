@@ -14,6 +14,7 @@
  */
 
 import { relationOf } from "./relations.mjs";
+import { unitDistance } from "./count.mjs";
 
 /** The Units an aura may grant to: no platform, structure or Civilian. */
 const RECIPIENT_KINDS = Object.freeze(["servant", "master", "summon"]);
@@ -35,7 +36,9 @@ export function auraGrantPlan(board) {
       for (const u of units) {
         if (u.defeated || !u.panel || !RECIPIENT_KINDS.includes(u.kind)) continue;
         if (!(aura.relations ?? ["ally", "self"]).includes(relationOf(source, u, board))) continue;
-        if (aura.scope !== "field" && chebyshev(source.panel, u.panel) > (aura.radius ?? 0)) continue;
+        // Footprint to footprint (`unitDistance`): GKM is 2x2, and measured from
+        // its top-left panel a Unit two off its far side was three away (#394).
+        if (aura.scope !== "field" && unitDistance(source, u) > (aura.radius ?? 0)) continue;
         const key = `${u.id}|${aura.grantsEffect}`;
         if (!want.has(key)) want.set(key, source.id);
       }
@@ -60,11 +63,3 @@ export function auraGrantPlan(board) {
   return { add, remove };
 }
 
-/**
- * @param {{i: number, j: number}} a
- * @param {{i: number, j: number}} b
- * @returns {number}
- */
-function chebyshev(a, b) {
-  return Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
-}
