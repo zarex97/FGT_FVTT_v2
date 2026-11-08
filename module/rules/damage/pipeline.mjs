@@ -924,7 +924,9 @@ function stage7FlatAttackBonuses(s) {
       continue;
     }
     flat += value;
-    s.contribute(m.key, value, m.source, "attacker");
+    // With its die, when one decided it: Territory Creation's *"5d10"* read
+    // "Territory Creation +26" alone (#394, live).
+    s.contribute(m.key, value, m.roll?.formula ? `${m.source} (${m.roll.formula} = ${value})` : m.source, "attacker");
   }
   if (flat !== 0) s.addProportional(flat);
 
