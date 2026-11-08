@@ -156,10 +156,12 @@ export const UNIT_ACTIONS = Object.freeze([
       const offers = gatherOffers(unit, board);
       if (offers.length === 0) return null;
       const open = offers.filter((o) => !o.full);
+      const first = open[0] ?? offers[0];
       return {
-        ownerId: (open[0] ?? offers[0]).ownerId,
+        ownerId: first.ownerId,
         owners: offers.map((o) => o.ownerId),
         blocked: open.length === 0 ? "poolFull" : null,
+        ...(open.length === 0 ? { pool: { resource: first.resource, value: first.value, max: first.max } } : {}),
       };
     },
   },
