@@ -797,6 +797,7 @@
   "FGT.Gather.ChoosePool": "Gather for which pool?",
   "FGT.Gather.PoolOption": "{owner}'s {resource} (+{amount})",
   "FGT.Gather.Full": "{resource} is full ({value}/{max}).",
+  "FGT.Gather.Line": "{who} Gathers: {owner}'s {resource} {before} → {after}.",
   "FGT.Action.Refusal.boardFailed": "The boarding roll failed.",
   "FGT.Action.Refusal.notYourSeat": "Only its owner and her Master can ride this platform.",
   "FGT.Action.Refusal.noDestination": "Pick a destination first.",

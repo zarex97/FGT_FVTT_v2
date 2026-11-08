@@ -243,6 +243,32 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * Gather (#298), for its performer.
+   *
+   * Proxied because it writes the pool owner's resource, the performer's Turn
+   * Record and the side's budget on the Combat, none of which a player may
+   * write: Avicebron's player pressed Gather and Foundry refused the Combat
+   * (found live, #394). Authorized by the performer's owner;
+   * `engine/gather.mjs#gather` re-reads who may Gather for which pool on the GM.
+   */
+  gather: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = unitActor(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown unit." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (!actor.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { gather } = await import("../engine/gather.mjs");
+      return gather({ actorId: payload.actorId, ownerId: payload.ownerId ?? null });
+    },
+  },
+
+  /**
    * Place a Bloodmark (Medusa's Mark Action).
    *
    * Proxied because a Bloodmark is an Actor and a Token, which no player may

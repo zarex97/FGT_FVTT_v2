@@ -19,6 +19,7 @@ import { currentBoard, unitFrom, unitActor } from "./board.mjs";
 import { gatherOffers } from "../rules/gather.mjs";
 import { shownNameOf } from "../rules/identity.mjs";
 import { chooseFor } from "./ask.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -36,6 +37,12 @@ import { currentWar } from "./war.mjs";
  * @returns {Promise<{ok: boolean, reason?: string, amount?: number}>}
  */
 export async function gather({ actorId, ownerId = null }) {
+  // Run on the GM: it writes the pool's owner, the Turn Record and the budget
+  // on the Combat, and a player may write none of them (#394, live).
+  if (!game.user?.isGM) {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    return FGTSocket.request("gather", { actorId, ownerId });
+  }
   const actor = unitActor(actorId);
   if (!actor) return { ok: false, reason: "notFound" };
 
@@ -101,6 +108,16 @@ export async function gather({ actorId, ownerId = null }) {
   );
 
   if (combat?.started) await budget.spend({ combat, unit, action: "gather" });
+
+  // On a card, what it gave and into whose pool: it was a log entry no player
+  // read, so a Gather looked like a Move that did nothing (#394, live).
+  const after = Number(foundry.utils.getProperty(unitActor(owner.id), `system.${resourcePathFor(offer.resource, owner)}`) ?? 0);
+  const name = (id) => publicIdentityOf(unitActor(id), board).name;
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Gather.Line", {
+      who: name(actorId), owner: name(owner.id), resource: resourceLabel(offer.resource), before: offer.value, after,
+    })}</p>`,
+  });
 
   return { ok: true, amount };
 }
