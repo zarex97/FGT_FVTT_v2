@@ -428,6 +428,23 @@ describe("GKM's Round clocks, run (GK.grow.*, ruling 18)", () => {
   });
 });
 
+describe("GKM holds its owner (GK.nojump, reading 30)", () => {
+  it("projects lockAboard: owner, so its owner has no Jump Off and its Master does", async () => {
+    const { canUnboard } = await import("../../module/rules/platforms.mjs");
+    const GKM = "avicebronGkm0002";
+    const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));
+    await withSubjects([
+      { from: "avicebron", id: AV, panel: { i: 6, j: 6, k: 1 }, state: { factionId: "A", masterId: MA } },
+      { from: { type: "master", id: MA, name: "Master of Avicebron" }, id: MA, panel: { i: 6, j: 7, k: 1 }, state: { factionId: "A" } },
+      { from: "golem-keter-malkuth", id: GKM, panel: { i: 6, j: 6 }, footprint: FOUR(6, 6), state: { ownerId: AV, factionId: "A", activatedAt: 18 } },
+    ], ({ unit }) => {
+      expect(unit(GKM).lockAboard).toEqual(["owner"]);
+      expect(canUnboard(unit(AV), unit(GKM))).toMatchObject({ ok: false, reason: "lockedAboard" });
+      expect(canUnboard(unit(MA), unit(GKM))).toMatchObject({ ok: true });
+    }, WAR);
+  });
+});
+
 describe("GKM's fall (GK.reset, ruling 3)", () => {
   const GKM = "avicebronGkm0001";
   const FOUR = (i, j) => [0, 1, 2, 3].map((n) => ({ i: i + Math.floor(n / 2), j: j + (n % 2), k: 1 }));

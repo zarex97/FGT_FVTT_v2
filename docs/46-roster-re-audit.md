@@ -7992,7 +7992,7 @@ Also new: the `allyDamageStep` window, `rules/unit-groups.mjs` for what a sheet 
 
 ## 46.57 Avicebron (Caster) — Golems that count a fifth, a pool that builds, and a Golem that grows
 
-**#394, 138 Clauses, 2026-11-08.** Clause list and readings: `docs/superpowers/specs/2026-11-07-avicebron-clauses.md`.
+**#394, 139 Clauses, 2026-11-08.** Clause list and readings: `docs/superpowers/specs/2026-11-07-avicebron-clauses.md`.
 
 Built on kin first: Karl's Carolus Patricius Auctoritas for GKM, Bridal Chest's counters for its growth, Medea's
 Dragon Tooth Warriors for the summon, the Bašmu's guard, Semiramis's Construction and Gather. New, each generic:
@@ -8014,7 +8014,7 @@ never the sheet, and the platform model had no `summonVariant` (both Silent Drop
 `VariantOverride`'s predicate cannot read its holder's own counters at collection, so GKM's 3x3 rides a permanent
 effect its fifth Round applies.
 
-**Pressed live, all 138** (2026-11-08, the Gilgamesh Audit board): 74 Pressed as Player1, 16 Pressed (engine) for
+**Pressed live, all 139** (2026-11-08, the Gilgamesh Audit board): 75 Pressed as Player1, 16 Pressed (engine) for
 boundaries, defeats and revivals, and 48 Observed. Found live, each fixed and pressed again:
 
 - **Gather:**
@@ -8041,4 +8041,5 @@ boundaries, defeats and revivals, and 48 Observed. Found live, each fixed and pr
     never false, and a second fall gave it all again.
   - Its heal is said once.
 
-Open: *Jump Off* from GKM's deck, which no ruling covers.
+Ruled after: he may not *Jump Off* GKM's deck (reading 30). GKM authors `lockAboard: [owner]`, Golden Hind's key,
+which the Jump's gate (`canUnboard`) already reads; his Move drives GKM, so the Jump was the one way off.

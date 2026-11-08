@@ -68,13 +68,13 @@ What he needs that nobody has yet, each to be built as a generic piece:
 - **A summon that refuses while a platform stands** (no Golems while GKM is active).
 - **A resource that resets when a platform falls** (Construction to 0).
 
-**138 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
+**139 Clauses** across 7 Abilities, the statblock, the Golem and GKM.
 
-## Live audit — 2026-11-08, all 138 ticked
+## Live audit — 2026-11-08, all 139 ticked
 
 Pressed or observed live on the Gilgamesh Audit board (`fgt2026`, cloud session), from tick 80 to Round 43:
 
-- **74 Pressed** as Player1 through the bar, the targeting preview and the windows.
+- **75 Pressed** as Player1 through the bar, the targeting preview and the windows.
 - **16 Pressed (engine)**: what the engine fires and no button reaches, such as a boundary, a defeat or a revival.
 - **48 Observed**, each with a differential.
 
@@ -112,7 +112,8 @@ Defects found live, each fixed and its fix pressed again:
     false. *Once* is now a `whenValue` gate on each action.
   - Its heal was said twice on the card.
 
-**Open, put to the user:** while GKM stands, his bar offers *Jump Off*. No ruling covers leaving GKM's deck.
+**Ruled after the press (reading 30):** his bar offered *Jump Off* from GKM's deck. He may not leave it. GKM now
+authors `lockAboard: [owner]`; the slot is gone from his bar (GK.nojump).
 
 ### Not Clauses
 
@@ -175,6 +176,7 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 | 27 | When do the Golems disappear (8)? | At his final defeat, after the revival chain. They do not count for Source 4. | GL.leave, GK.cp.felled |
 | 28 | Does a Golem guard GKM? | **No Golem guards GKM.** | GL.guard.gkm |
 | 29 | Golems already standing when GKM is raised? | They stay and act. Numerology reaches them and GKM. | GK.nogolems, NU.gkm |
+| 30 | May Avicebron Jump Off GKM's deck? | No: he is not allowed to leave it (the user, 2026-11-08). `lockAboard: [owner]`; his Move drives GKM. | GK.nojump |
 
 ## Statblock
 
@@ -363,5 +365,6 @@ Round 1 ruled by the user 2026-11-08, as recommended but 4, 7a and 8. Round 2 th
 - [x] **GK.reset** · …and his Construction is reduced to 0 (Q3) · *Pressed (engine): GKM raised by Player1, then defeated by Achilles: *"As a Unit falls — Caster: Construction 50 → 0"* (two live defects fixed: the platform's actor was gone before its rule ran, and the board read off the canvas had lost its owner)*
 - [x] **GK.rebuild** · He can build GKM again from scratch · *Pressed as Player1: at 50 again the NP raised a fresh GKM: 2000, BA 150, every counter at 0, his Master paying again 175 → 100*
 - [x] **GK.owner.fall** · GKM when Avicebron falls aboard it (Q17) · *Pressed (engine): Avicebron defeated aboard GKM: *"Golem Keter Malkuth ends. Its owner was defeated."*; no platform left on the board*
+- [x] **GK.nojump** · He may not leave GKM: no Jump Off from its deck (reading 30) · *Pressed live 2026-11-08 as Player1: aboard GKM on its edge panel (14,16) with his Move unspent, the bar shows attack, move, gather, facing and his abilities, and no Jump; `canUnboard` → `lockedAboard`*
 - [x] **GK.numer** · For Numerology, GKM counts as a Golem (NU.gkm) · *Pressed: as NU.gkm*
 - [x] **GK.notgolem** · …and for nothing else: not the cap of 30, the weight, the guard nor Source 4 · *Observed: GKM drew no Golem's guard, carries no felled tally, weighs nothing of its own on the budget (its drag billed him, 0 → 1), and the cap counts Golems by content only*

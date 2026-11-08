@@ -45,6 +45,9 @@ capacity: 1
 level: 1
 boarding: { seats: [owner] }
 replacesRiderAction: { roles: [owner], move: true, normalAttack: true }
+# He never leaves it: no Jump Off from its deck (the user's ruling of 2026-11-08,
+# reading 30). His Move drives it, so a Jump was the one way off.
+lockAboard: [owner]
 movesOntoOccupiedPanels: true
 destroyedWithOwner: true
 summonVariant:
