@@ -1116,7 +1116,17 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // restored 4 Agility under a card that read "Atk Up" alone, and a
           // restore the maximum clamped could not be seen at all.
           const keys = (phase.changes ?? []).map((c) => c.key);
-          const before = keys.map((k) => resourceValue(unitActor(target.unitId), k));
+          // Read where the write lands: a platform's shared Luck is its owner's
+          // pool, and GKM's line read "Luck 10 (no change)" while Avicebron's
+          // rose 7 → 10 (#394, live).
+          const poolHolder = (k) => {
+            const a = unitActor(target.unitId);
+            if (a?.type === "platform" && String(k).startsWith("luck") && a.system?.inherit?.luck?.from === "summoner") {
+              return unitActor(a.system?.ownerId) ?? a;
+            }
+            return a;
+          };
+          const before = keys.map((k) => resourceValue(poolHolder(k), k));
           // A gain the die decides: Sealing Mystic Code Release's *"Gain 1d6
           // Mythos Counters"* (#362 SM.5). Rolled once per change, and on the
           // card beside the line it moved.
@@ -1160,7 +1170,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             `skill:${ability.id}:resource`,
           );
           keys.forEach((k, n) => {
-            const moved = resourceLine(k, before[n], resourceValue(unitActor(target.unitId), k));
+            const moved = resourceLine(k, before[n], resourceValue(poolHolder(k), k));
             const die = dice[n] === null ? null : `${phase.changes[n].roll} = ${dice[n]}`;
             const line = die && moved ? `${die}: ${moved}` : moved;
             if (line) applied.push({ unitId: target.unitId, summary: { id: "resource", name: line, outcome: "applied", reason: null } });
