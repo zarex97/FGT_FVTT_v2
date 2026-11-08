@@ -1186,8 +1186,10 @@ const ACTIONS = Object.freeze({
     // `set: 0`, and expressing it as a very large negative delta would work by
     // accident and read as a bug -- the same argument `cooldownChanges` makes
     // for its own `set`.
+    // The handler's source rides on the intent, so a boundary's card can say
+    // whose rule moved the pool (#394).
     if (a.set !== undefined) {
-      return [I.setResource(u.id, resourcePathFor(a.resource, u), a.set)];
+      return [{ ...I.setResource(u.id, resourcePathFor(a.resource, u), a.set), source: h?.source ?? null }];
     }
     // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
     // shape every ResourceDelta shipped with before Semiramis's HGoB
@@ -1204,7 +1206,7 @@ const ACTIONS = Object.freeze({
     const scaled = raw * per;
     const amount = a.regionScaled ? regionScale(scaled, a.regionScaled, c.board?.warRegion) : scaled;
     if (amount === 0) return [];
-    return [I.resource(u.id, resourcePathFor(a.resource, u), amount)];
+    return [{ ...I.resource(u.id, resourcePathFor(a.resource, u), amount), source: h?.source ?? null }];
   },
 
   /**

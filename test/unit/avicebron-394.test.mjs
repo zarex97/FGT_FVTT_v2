@@ -427,3 +427,21 @@ describe("GKM's fall (GK.reset, ruling 3)", () => {
     }, WAR);
   });
 });
+
+describe("a boundary's card says a pool its handlers moved (#394, live)", () => {
+  it("names who, the pool, before and after, and whose rule; a gain lost past the maximum is no line", async () => {
+    const { turnEndCard } = await import("../../module/engine/turn-report.mjs");
+    const t = (key, data) => (key === "FGT.TurnReport.Pool" ? `${data.who}: ${data.pool} ${data.before} → ${data.after} (${data.source})` : key);
+    const intents = [
+      { t: "resource", unitId: AV, key: "resources.construction.value", delta: 1, source: "Avicebron" },
+      { t: "resource", unitId: "full", key: "resources.construction.value", delta: 1, source: "Avicebron" },
+    ];
+    const before = new Map([
+      [`pool:${AV}|resources.construction.value`, { value: 10, max: 50 }],
+      ["pool:full|resources.construction.value", { value: 50, max: 50 }],
+    ]);
+    const card = turnEndCard(intents, (id) => (id === AV ? "Caster" : id), t, undefined, null, before, "FGT.TurnReport.RoundTitle");
+    expect(card).toContain("Caster: Construction 10 → 11 (Avicebron)");
+    expect(card).not.toContain("full:");
+  });
+});

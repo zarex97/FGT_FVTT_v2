@@ -553,7 +553,7 @@ async function endRoundSequence(combat, round, tick) {
   // A Round's end heals too (Regen *"and at the end of the Round"*): said on
   // its own card, the heals alone, since the periodic card says the rest (#234),
   // with what its handlers landed (#202).
-  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal"), null, healthRound, "FGT.TurnReport.RoundTitle", landedRound);
+  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal" || (i?.t === "resource" && i.source)), null, healthRound, "FGT.TurnReport.RoundTitle", landedRound);
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
   // tick period. The Golden Hind is the only one: *"At the end of every
