@@ -1149,7 +1149,10 @@ function stage12FlatReductions(s) {
     const value = typeof n === "number" ? n : (n.value ?? 0);
     if (!value) continue;
     flat += value;
-    s.contribute("damageNegation", -value, typeof n === "number" ? "damage negation" : n.source, "defender");
+    // With its die, when one decided it: Territory Creation's *"(3d10+15)"* read
+    // "Territory Creation −44" and nobody could tell whose Rank rolled (#394, live).
+    const note = typeof n === "number" ? "damage negation" : n.formula ? `${n.source} (${n.formula} = ${value})` : n.source;
+    s.contribute("damageNegation", -value, note, "defender");
   }
   const tcDef = s.ctx.rolls?.territoryCreationDef ?? 0;
   if (tcDef) {
