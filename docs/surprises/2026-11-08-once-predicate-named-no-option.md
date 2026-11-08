@@ -3,7 +3,8 @@ id: 2026-11-08-once-predicate-named-no-option
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Fig Tree fires once. `predicate: [{ not: "self:resource:figTreeSpent:gte:1" }]` holds it back once `figTreeSpent` is 1 (ruling 23).
 **Actual:** He was revived and defeated with `figTreeSpent` at 1. The card said *"Master of Archer of Faction 1: Invuln … regains 50 Health (Fig Tree of Tranquility)"* again.

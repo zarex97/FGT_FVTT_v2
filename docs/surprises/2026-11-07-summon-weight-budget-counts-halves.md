@@ -3,7 +3,8 @@ id: 2026-11-07-summon-weight-budget-counts-halves
 found: retraction
 kind: claim-without-reading-the-path
 status: open
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** #291 and `docs/model/summon.md` say a summon's weight (Avicebron's Golem 0.2, Babbage's 0.33, Edison's
 0.25) is missing only because `unitWeight` is declared on the Servant document alone, so declaring it on a summon

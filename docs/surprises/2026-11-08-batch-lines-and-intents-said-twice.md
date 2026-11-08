@@ -3,7 +3,8 @@ id: 2026-11-08-batch-lines-and-intents-said-twice
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Fig Tree's card says each ally's heal once, copying `round-phase.mjs`'s `postTurnEndReport(intents, null, null, title, out.lines)`.
 **Actual:** *"Master of Archer of Faction 1 regains 50 Health (Fig Tree of Tranquility). … Master of Archer of Faction 1: Master of Archer of Faction 1 regains 50 Health (Fig Tree of Tranquility)."*

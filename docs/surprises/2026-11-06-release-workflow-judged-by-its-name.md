@@ -3,7 +3,8 @@ id: 2026-11-06-release-workflow-judged-by-its-name
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** I told the owner in a grill pick that `isaacsHBPF2e`'s `release.yml` "only runs on `v*` tags", so a commit on its `main` would start nothing.
 **Actual:** It runs on every branch push, on pull requests and on published releases. PR 148 started it. Only its `release` job is limited, to published releases, so no release ran.

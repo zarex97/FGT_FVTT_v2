@@ -3,7 +3,8 @@ id: 2026-11-08-gather-written-from-player-client
 found: live press
 kind: live-client-only
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** Gather, pressed on the bar by its owner, adds to the pool and spends the Move, as Semiramis's always had.
 
