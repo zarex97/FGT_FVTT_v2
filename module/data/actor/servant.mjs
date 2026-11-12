@@ -78,6 +78,9 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // other than its container. Derived when blank, so the common case needs
       // no authoring.
       concealedIdentity: new fields.StringField({ required: false, blank: true, initial: "" }),
+      // Camouflage (#405, HE.*): the false Class and Parameters her player
+      // picked at War setup, read by `engine/intel.mjs#falseViewOf`.
+      falseInformation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // The true name is hidden until this is set, which is what gives
       // closed-information play (Ch. 38) something to conceal.

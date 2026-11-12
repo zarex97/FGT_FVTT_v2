@@ -74,6 +74,10 @@ async function tellWitness(witness, ability, { roll, chance, learned }, board) {
       title: ability.name, // fgt-name-ok: the learner's own prompt
       content: `<p>${escape(String(ability.system?.description ?? ""))}</p>`,
     });
+    // ...and its Entry in the witness's Faction's Dossier on its user, in full (#405, AA.entry).
+    const { teachAbility } = await import("./intel.mjs");
+    const owner = unitActor(ability.parent?.id ?? ability.actor?.id);
+    await teachAbility(witness.faction ?? witness.factionId ?? null, owner, ability);
   }
   // A miss names whose NP it was, never the NP: its name is what was not learned.
   const userName = publicIdentityOf(unitActor(ability.parent?.id ?? ability.actor?.id), board).name;
@@ -124,6 +128,8 @@ export async function learnServantPage(entry, board = currentBoard()) {
   const seen = (board.units ?? []).find((u) => u.id === entry.targetId);
   if (!reader || !seen || reader.defeated) return null;
   if (seen.kind !== "servant" || !reader.faction || seen.faction === reader.faction) return null;
+  // Shadow Lantern, 72 True Names: its passive does nothing against this Unit (#405, HA.passive, MJ.none).
+  if ((seen.trueNameShrouds ?? []).length > 0) return null;
   const user = readerOf(reader);
   const key = `servant:${seen.id}`;
   if (!user || notebookHolds(user, key)) return null;
@@ -153,6 +159,9 @@ export async function learnServantPage(entry, board = currentBoard()) {
   if (learned && doc) {
     // fgt-name-ok: the page True Name Discernment learns is the True Name, in its reader's own Notebook
     await recordInNotebook(user, { key, title: doc.system?.trueName || doc.name, content: servantPage(doc) });
+    // ...and the whole Dossier, past every price and Section, the True Name with it (#405, TN.first).
+    const { keepKnowledgeOf } = await import("./intel.mjs");
+    await keepKnowledgeOf(reader.faction, doc);
   }
   const escape = foundry.utils.escapeHTML;
   const name = publicIdentityOf(unitActor(reader.id), board).name;

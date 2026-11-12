@@ -350,6 +350,16 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "radius", type: "number" },
     { key: "tags", type: "tokenList" },
   ]),
+  entry("HidesInformation", "Hides this Unit's page: a Faction may buy only the Entries and Sections named, and of the Stats listed, the Rank alone.", [
+    { key: "buyable", type: "tokenList" },
+    { key: "ranksOnly", type: "tokenList" },
+  ]),
+  entry("FalseInformation", "This Unit's Class and Parameters show the false ones its player chose at War setup.", []),
+  entry("ErasesInformation", "Leaving an enemy Unit's Detect erases that Faction's record of this Unit.", []),
+  entry("TrueNameShroud", "What True Name Discernment does against this Unit: its passive negated; its active negated, or a coin.", [
+    { key: "passive", type: "text" },
+    { key: "active", type: "text" },
+  ]),
   entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
     { key: "terrain", type: "text" },
   ]),

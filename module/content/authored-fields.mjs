@@ -36,7 +36,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "inherit", "rules", "passiveRules", "activeRules", "summonerId", "capacity",
   "ownerId", "level", "crossLevel", "dimension", "contentId", "contentVersion", "trueName",
   "servantClasses",
-  "classContainer", "concealedIdentity", "identityRevealed", "detect",
+  "classContainer", "concealedIdentity", "falseInformation", "identityRevealed", "detect",
   "defaultImage", "alignment", "region", "attributes", "withheldAttributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
   // The linked-group binding (Ch. 32). Settings only: `memberIds` is
@@ -168,6 +168,10 @@ export const SEEDED_THEN_OWNED = Object.freeze({
     // reading 9). Pack-owned, a reload put `true` back and his next defeat
     // took them all (live).
     "leavesWithSummoner",
+    // Camouflage's false Class and Parameters, picked by her player at War
+    // setup (#405, HE.setup): never authored, and a pack rebuild would wipe them.
+    // `concealedIdentity` carries the false Class to the table.
+    "falseInformation", "concealedIdentity",
   ]),
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",

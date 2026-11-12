@@ -230,6 +230,31 @@ export function entryValue(key, actor, { ranksOnly = false } = {}) {
 }
 
 /**
+ * What a bought Stat shows of a Unit that shows false Parameters (Camouflage,
+ * HE.stat): the false Rank, and the figure the tables derive from it, where they
+ * derive one. Agility and Luck are rolled, never derived: the Rank alone.
+ *
+ * @param {string} key
+ * @param {Record<string, string>} parameters the false Ranks
+ * @param {object} deps the table readers, injected
+ * @param {(sheet: object) => {str: number, mag: number}} deps.baseAttackFor
+ * @param {(sheet: object) => number} deps.maxHealthOf
+ * @returns {{rank?: string|null, base?: number|null, value?: number|null, max?: number|null}}
+ */
+export function falseEntryValue(key, parameters, { baseAttackFor, maxHealthOf }) {
+  const rank = parameters?.[key] ?? null;
+  const sheet = { parameters: { ...parameters } };
+  switch (key) {
+    case "str": return { rank, base: baseAttackFor(sheet).str };
+    case "mag": return { rank, base: baseAttackFor(sheet).mag };
+    case "end": { const max = maxHealthOf(sheet); return { rank, value: max, max }; }
+    case "agi":
+    case "luc": return { rank };
+    default: return {};
+  }
+}
+
+/**
  * One random ability of a Section the Faction does not know yet, or null when
  * none is left (reading 22). `pick` takes the count and returns an index, so the
  * GM's die decides it.

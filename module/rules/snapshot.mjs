@@ -432,6 +432,11 @@ export function snapshotUnit(actor, {
     // Chances of learning an NP's True Name used near this Unit (#297), read by
     // `engine/true-name.mjs#witnessNP`.
     learnsTrueNames: contributions.learnsTrueNames ?? [],
+    // The Information System's sheet clauses (#405): read by `engine/intel.mjs`.
+    hidesInformation: contributions.hidesInformation ?? [],
+    falseInformation: contributions.falseInformation ?? [],
+    erasesInformation: contributions.erasesInformation ?? [],
+    trueNameShrouds: contributions.trueNameShrouds ?? [],
     // An additional Normal Attack after one of this Unit's (Bab-ilu, #232),
     // read by `engine/follow-up.mjs#offerFollowUp`.
     followUps: contributions.followUps ?? [],

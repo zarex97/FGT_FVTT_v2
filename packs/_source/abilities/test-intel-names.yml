@@ -1,0 +1,13 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: Metatron Jeanne's 72 True Names, its Passive 1. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-names
+name: "Test Intel: Names"
+kind: skill
+passive: true
+rank: "A"
+slug: testIntelNames
+description: "TEST SKILL (Passive). True Name Discernment has no effect on this Unit."
+passiveRules:
+  - { key: TrueNameShroud, passive: negated, active: negated }

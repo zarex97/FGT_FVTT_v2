@@ -13,8 +13,12 @@
 import { currentBoard, unitActor, factions } from "../engine/board.mjs";
 import { currentWar } from "../engine/war.mjs";
 import { intelOn, factionOfUser, notebookOf, stateOf } from "../engine/intel-store.mjs";
-import { buy, hasFallen, hiddenFrom, knownNameOf } from "../engine/intel.mjs";
-import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, sectionOf, abilitySummary, DOSSIER_KINDS } from "../rules/intel.mjs";
+import { buy, falseViewOf, hasFallen, hiddenFrom, knownNameOf } from "../engine/intel.mjs";
+import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, falseEntryValue, sectionOf, abilitySummary, DOSSIER_KINDS } from "../rules/intel.mjs";
+import { baseAttackFor } from "../domain/base-attack.mjs";
+import { maxHealthFor } from "../domain/health.mjs";
+import { lookup } from "../domain/tables.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { isSpellAbility } from "../rules/costs.mjs";
 import { abilityTag } from "../engine/public-ability.mjs";
 import { publicIdentityOf } from "../engine/public-identity.mjs";
@@ -146,6 +150,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     const known = await this.#identity(actor, factionId, state, off, board);
     const fallen = hasFallen(actor);
     const hidden = hiddenFrom(actor);
+    // Camouflage: the false Class and Ranks, to a Faction that does not know her (HE.*).
+    const falseView = falseViewOf(actor, factionId);
     const intel = dossier.intel ?? 0;
     const t = (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k));
     const canSpend = (price) => !off && !fallen && intel >= price;
@@ -158,7 +164,7 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         key, price, open,
         label: t(`FGT.Intel.Entry.${key}`),
-        text: open ? this.#entryText(key, actor, { ranksOnly: !off && hidden.ranksOnly.includes(key) }) : t("FGT.Intel.Locked"),
+        text: open ? this.#entryText(key, actor, { ranksOnly: !off && hidden.ranksOnly.includes(key), falseView: off ? null : falseView }) : t("FGT.Intel.Locked"),
         hiddenReason: isHidden ? t("FGT.Intel.Hidden") : null,
         canBuy: !open && !isHidden && canSpend(price),
         reason: open || isHidden ? null : reasonFor(price),
@@ -209,7 +215,7 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       name: known.name,
       img: known.img,
       kind: t(`FGT.Intel.Kind.${actor.type}`),
-      publicName: publicIdentityOf(actor, board).name,
+      publicName: falseView?.className ?? publicIdentityOf(actor, board).name,
       intel,
       intelLabel: t("FGT.Intel.Held", { intel }),
       fallen,
@@ -224,7 +230,12 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {string}
    */
   #entryText(key, actor, opts) {
-    const v = entryValue(key, actor, opts);
+    const v = opts.falseView && ["str", "end", "agi", "mag", "luc"].includes(key)
+      ? falseEntryValue(key, opts.falseView.parameters, {
+        baseAttackFor,
+        maxHealthOf: (sheet) => maxHealthFor(sheet, lookup, Rank),
+      })
+      : entryValue(key, actor, opts);
     const t = (k, d) => game.i18n.format(k, d);
     const parts = [];
     if (v.rank) parts.push(v.rank);

@@ -397,6 +397,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Tamamo (#353): Yata no Kagami *"(Non-damaging)"* opens the Amaterasu
       // Area and restores who stands in it.
       "tamamo-yata-no-kagami",
+      // The Information System's bench (#405): Official Classifieds' information
+      // clause, "(Non-damaging)", its one phase the whole page shared.
+      "test-intel-classified",
       // Gray's three test NPs for MY.2.except (#362): a self buff each, tagged.
       "test-mythos-army-secret-technique",
       "test-mythos-mystic-sword",

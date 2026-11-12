@@ -235,6 +235,11 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "options", type: "raw" },
     { key: "count", type: "number" },
   ]),
+  // The Information System (#405): Coercion's one Skill, Classified's whole page.
+  entry("revealSkill", 25, "The target's player gives one of its Skills other than Class Skills; the caster's Faction learns it in full.", []),
+  entry("revealDossier", 25, "The target's whole page and True Name go to every Faction with a Unit within the radius of it, but its own.", [
+    { key: "radius", type: "number" },
+  ]),
   // Doppelganger (#253 readings 10-12): the target's look, put on the caster.
   entry("disguise", 25, "Puts the chosen Unit's appearance on the caster, for everyone but its own side's owner and the GM.", []),
   entry("rollTable", 20, "Rolls dice against a table and applies what comes up.", [

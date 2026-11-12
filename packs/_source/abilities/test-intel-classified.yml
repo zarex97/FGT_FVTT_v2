@@ -1,0 +1,20 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: First Director of FBI's Official Classifieds, its information clause. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-classified
+name: "Test Intel: Classified"
+isNP: true
+rank: "C"
+ignoresNPGate: true
+slug: testIntelClassified
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: "TEST NOBLE PHANTASM (Non-damaging). Range=2. Used on an enemy Unit. All of its information is shared to all Units within a 2 panel area of itself."
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+phases:
+  - kind: revealDossier
+    radius: 2

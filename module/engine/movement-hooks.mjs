@@ -431,6 +431,9 @@ async function onMove(document, movement, operation) {
     const to = canvas.grid.getOffset(movement.destination);
     const { noteActSafely } = await import("./intel.mjs");
     void noteActSafely({ unitId: payer.id, kind: "move", panels: [{ i: from.i, j: from.j }, { i: to.i, j: to.j }] });
+    // Information Erasure (#405, JA.*): a Unit that erases, leaving a watcher's Detect.
+    const { eraseOnLeaving } = await import("./intel.mjs");
+    void eraseOnLeaving({ moverId: payer.id, from, to }).catch((err) => console.error("FGT | Erasure:", err));
   }
 
   Hooks.callAll("fgtUnitMoved", actor, { panels: spent, forced: false });

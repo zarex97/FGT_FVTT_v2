@@ -26,7 +26,7 @@ watching a Unit act. ADR-0008 records the decision.
 **(UI)** is pressed in **both skins**, nocturne and classic, its evidence naming both. A Clause is ticked only on
 live evidence; a unit test is a guard, not evidence.
 
-**185 Clauses.** Slices of the build are on the map issue (#398, slices #399–#405).
+**186 Clauses.** Slices of the build are on the map issue (#398, slices #399–#405).
 
 ## Readings
 
@@ -70,6 +70,23 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 | 29 | A Move crosses panels. Who witnesses it: who sees its start, its end, or any panel it passes? | Who sees its start **or** its end panel. | EA.see.moment |
 | 30 | Is earning said? A Faction does not otherwise know its Intel grew. | A card whispered to the Faction once per Turn, at the Turn's end, naming each Unit and its gain; nothing to any other Faction. | EA.card, EA.silent.other |
 | 31 | The War Rule switched mid-War, and a player with no Faction at migration | The Notebooks stay through a switch; a Faction-less player's Notebook is skipped and named to the GM. | WR.switch, ST.mig.none |
+
+## Built (2026-11-12)
+
+Slices #399–#405 are built and guarded by `test/unit/intel-399-400.test.mjs` and `test/unit/intel-405.test.mjs`.
+Where the build departs from a word above, the Clause says so:
+
+- **ID.store** keeps identity in the Faction's own Notebook. Q12 named `identityKnownBy` on the actor; but every
+  client reads actor data, so a list there would tell every player which Factions know a Unit. The per-viewer
+  drawing is the same: each client reads its own Faction's Notebook (`engine/intel.mjs#viewerKnowsIdentity`).
+- **The Notebook is read, not owned, by its players** (OBSERVER): its state is the GM's to write (ST.write), and a
+  player who owned it could write it from the console. Pages are still readable as before.
+- **CL.stored**: a figure is stored as a mark, `⟦c|unit|entry|figure⟧`, which every client shows as ■■■ and opens
+  only for a viewer whose Faction holds the Entry (`openCloaks`, on `renderChatMessageHTML`).
+- **The unbuilt Servants' Clauses** (Mordred, Lancelot, Hephaestion, Hassan (Fathomless), Metatron Jeanne, the FBI
+  Director, Mozart, Rikyū) are pressed on staged bench Servants, `test-intel-*`, through the same elements their
+  sheets will author: `HidesInformation`, `FalseInformation`, `ErasesInformation`, `TrueNameShroud`, and the
+  phases `revealSkill` and `revealDossier`. Jack, Karl and Gilles (Caster) are built and pressed as themselves.
 
 ## The War Rule
 
@@ -129,7 +146,8 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 - [ ] **EA.once.attack** · A second Attack by one Unit in one Turn adds nothing for any Faction
 - [ ] **EA.repeat.react** · Each Evade, Block and Counter pays every time, two in one Turn included
 - [ ] **EA.both** · An Evade and then a Counter on one Attack pay both (1 + 2)
-- [ ] **EA.fail** · A failed act pays: a missed Attack, a failed Evade
+- [ ] **EA.fail** · A failed act pays: a missed Attack, a failed Evade the player chose
+- [ ] **EA.auto** · An Evade no player chose (Instinct, Trofa, a Dodge) pays when it succeeds; a failed automatic roll is no act (derived 2026-11-12)
 - [ ] **EA.example** · The user's example: A moves, attacks B, B counters, A evades the Counter → Faction 2 on A 7 (1 + 4 + 2); Faction 1 on B 4
 
 ### Abilities
@@ -162,7 +180,7 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 
 ## Identity per Faction (Q12)
 
-- [ ] **ID.store** · Who knows a Unit's identity is a list of Faction ids on it (`identityKnownBy`)
+- [ ] **ID.store** · Who knows a Unit's identity is the `identity` mark of each Faction's Dossier on it, in that Faction's Notebook (not a list on the actor, which every client reads: built 2026-11-12, see *Built* below)
 - [ ] **ID.card** · A card's True Name and real ability names open for a viewer whose Faction is on the list, through the #387 swap
 - [ ] **ID.token** · A token's nameplate and portrait read true for those viewers, public for the rest, from one token document
 - [ ] **ID.tooltip** · A hover nameplate reads the same as the token for each viewer
@@ -294,7 +312,7 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 - [ ] **JA.intel** · …and its Intel banked on him
 - [ ] **JA.id** · …and its knowledge of his identity
 - [ ] **JA.line** · …said to that Faction alone
-- [ ] **JA.other** · A Faction with another Unit still seeing him keeps everything
+- [ ] **JA.other** · Another Faction, whose Units have not lost sight of him, keeps everything (reading 17: *"Other enemies still watching him keep theirs"*)
 - [ ] **JA.any** · Leaving any one enemy Unit's Detect is enough, for that Unit's Faction
 
 ### True Name Discernment (Rulers), Hassan (Fathomless), Metatron Jeanne (Q18)

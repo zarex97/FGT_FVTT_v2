@@ -1286,6 +1286,20 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "revealSkill": {
+          // Coercion (#405, FB.coerce): the DU gives one Skill's full text.
+          const { revealSkill } = await import("./intel.mjs");
+          applied.push(...await revealSkill(actor, doc));
+          break;
+        }
+
+        case "revealDossier": {
+          // Classified (#405, FB.classified): its whole page to every Faction near it.
+          const { revealDossier } = await import("./intel.mjs");
+          await revealDossier(doc, Number(phase.radius ?? 2), board);
+          break;
+        }
+
         case "choose": {
           // A phase that asks a question. Trace, On's second clause is "apply
           // ONE OF the following effects OF YOUR CHOICE" -- the choice is the
@@ -2819,8 +2833,12 @@ export async function fireAbilityUsed(actor, ability, { involvedIds = [] } = {})
   // never reaches here as a use.
   if (ability && !ability.system?.passive) {
     const isNP = ability.type === "noblePhantasm" || Boolean(ability.system?.isNP) || Boolean(ability.system?.categorizedAsNP);
-    const { noteActSafely } = await import("./intel.mjs");
+    const { noteActSafely, shroudedDiscernment } = await import("./intel.mjs");
     await noteActSafely({ unitId: actor?.id, kind: isNP ? "np" : "skill", involvedIds });
+    // True Name Discernment's active on a Unit that shrouds it (#405, HA.coin, MJ.none).
+    if (ability.system?.slug === "trueNameDiscernment") {
+      for (const id of involvedIds) await shroudedDiscernment(actor, unitActor(id));
+    }
   }
   const board = currentBoard();
   const unit = unitOf(actor, board);

@@ -25,6 +25,7 @@ const ALLOWED = {
   "module/engine/movement-hooks.mjs": "mid-move: the token document passed in holds the new position the board does not have yet",
   "module/engine/io.mjs": "the writer reads its own document's turn record and Sustainability, no position-derived facts",
   "module/engine/public-identity.mjs": "the board's row first; pure fallback for callers with no board and no Foundry globals (tests, chat render)",
+  "module/engine/intel.mjs": "a Unit's own information rules (HidesInformation, FalseInformation, TrueNameShroud), from its own sheet; read per cloak mark and per token refresh, where a board each time is too dear",
   "module/engine/token-vision.mjs": "detection range only, from the Unit's own sheet; called where no board or globals exist",
 };
 

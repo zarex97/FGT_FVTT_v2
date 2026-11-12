@@ -1,0 +1,29 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: the FBI Director's Coercion and Classified. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-coercer
+name: "Test Intel Coercer"
+type: servant
+
+trueName: "Coercer Bench"
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: lawful, morality: neutral }
+region: [europe]
+attributes: [servant, humanoid]
+
+parameters: { str: B, end: B, agi: B, mag: B, luc: B }
+baseHealth: 1250
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: test-intel-coercion }
+  - { ref: test-intel-classified }
+
+notes: |
+  A test Servant for the Information System's live presses (#405): the FBI Director's Coercion and Classified.

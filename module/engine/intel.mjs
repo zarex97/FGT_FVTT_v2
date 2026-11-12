@@ -10,9 +10,11 @@
  * `payAct`. Everything is written on the War's GM, never on a player's client.
  */
 
-import { currentBoard, currentMoment, unitActor } from "./board.mjs";
+import { currentBoard, currentMoment, unitActor, unitSnapshot } from "./board.mjs";
 import { currentWar, isWarGM, warRule } from "./war.mjs";
-import { witnessesOf, payAct } from "../rules/intel.mjs";
+import { witnessesOf, payAct, entriesOf, SECTIONS, sectionOf } from "../rules/intel.mjs";
+import { isSpellAbility } from "../rules/costs.mjs";
+import { sees } from "../rules/identity.mjs";
 import { abilityTag } from "./public-ability.mjs";
 import { shownName } from "./public-identity.mjs";
 import { changeNotebook, emptyDossier, factionOfUser, intelOn, notebookOf, playersOf, stateOf } from "./intel-store.mjs";
@@ -209,14 +211,42 @@ export function hasFallen(actor) {
 }
 
 /**
- * What a Faction may not buy of a Unit, and why: filled by the sheets that hide
- * a page (Mordred's Secret of Pedigree, #405). Section and Entry keys.
+ * What a Faction may not buy of a Unit: the Entries and Sections a
+ * `HidesInformation` rule leaves out, and the Stats it sells the Rank of alone
+ * (Secret of Pedigree, MO.*). Read off the Unit's projection, so a Mode switched
+ * off hides nothing.
  *
- * @param {object} _actor
+ * @param {object} actor
  * @returns {{entries: string[], sections: string[], ranksOnly: string[]}}
  */
-export function hiddenFrom(_actor) {
-  return { entries: [], sections: [], ranksOnly: [] };
+export function hiddenFrom(actor) {
+  const none = { entries: [], sections: [], ranksOnly: [] };
+  if (!actor) return none;
+  const rules = unitSnapshot(actor)?.hidesInformation ?? [];
+  if (rules.length === 0) return none;
+  const buyable = new Set(rules.flatMap((r) => r.buyable ?? []));
+  return {
+    entries: entriesOf(actor).filter((k) => !buyable.has(k)),
+    sections: SECTIONS.map((x) => x.key).filter((k) => !buyable.has(k)),
+    ranksOnly: [...new Set(rules.flatMap((r) => r.ranksOnly ?? []))],
+  };
+}
+
+/**
+ * The false Class and Parameters a Faction reads of a Unit that shows them
+ * (Camouflage, HE.*): null when it shows none, or when the Faction knows the
+ * truth (its NP witnessed, HE.np).
+ *
+ * @param {object|null} actor
+ * @param {string|null} factionId
+ * @returns {{className: string, parameters: Record<string, string>}|null}
+ */
+export function falseViewOf(actor, factionId) {
+  if (!actor || !(unitSnapshot(actor)?.falseInformation ?? []).length) return null;
+  const view = actor.system?.falseInformation ?? null;
+  if (!view?.parameters) return null;
+  if (factionId && stateOf(notebookOf(factionId)).dossiers[actor.id]?.identity) return null;
+  return view;
 }
 
 /**
@@ -346,6 +376,8 @@ export async function keepKnowledgeOf(factionId, actor) {
  * @returns {void}
  */
 export function attachIntel() {
+  // Camouflage's picks, asked when a War begins (HE.setup).
+  Hooks.on("combatStart", () => { void askCamouflage().catch((err) => console.error("FGT | Camouflage:", err)); });
   // FC.left: the GM notes the Faction a Unit leaves, then keeps its knowledge.
   Hooks.on("preUpdateActor", (actor, changes) => {
     if (!game.user?.isGM || changes?.system?.factionId === undefined) return;
@@ -529,4 +561,232 @@ export function cloakRoll(r, user = game.user) {
  */
 export function openMarks(text, opens = () => true) {
   return String(text ?? "").replace(MARK, (_m, unitId, entry, figure) => (opens(unitId, entry) ? figure : CLOAK));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  The sheets that teach and erase (#405)                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Open one ability for a Faction, name and full text, out of its Section's draw
+ * (Appreciation of the Arts, Coercion: AA.entry, FB.coerce.open).
+ *
+ * @param {string} factionId
+ * @param {object} owner the ability's bearer
+ * @param {object} item the ability
+ * @returns {Promise<void>}
+ */
+export async function teachAbility(factionId, owner, item) {
+  if (!factionId || !owner || !item) return;
+  const cid = item.system?.contentId ?? item.id;
+  const section = sectionOf(item, isSpellAbility);
+  await changeNotebook(factionId, (state) => {
+    const dossier = state.dossiers[owner.id] ?? emptyDossier();
+    dossier.abilities = { ...dossier.abilities, [cid]: { full: true } };
+    if (section) {
+      const mark = dossier.sections?.[section] ?? { known: [], complete: false };
+      if (!(mark.known ?? []).includes(cid)) mark.known = [...(mark.known ?? []), cid];
+      dossier.sections = { ...dossier.sections, [section]: mark };
+    }
+    state.dossiers[owner.id] = dossier;
+  });
+}
+
+/**
+ * Coercion: *"force the DU to give full information of one of its Skills other
+ * than Class Skills"* (FB.coerce). The DU's player picks; the caster's Faction
+ * learns it in full.
+ *
+ * @param {object} caster
+ * @param {object} target the DU's actor
+ * @returns {Promise<object[]>} card rows
+ */
+export async function revealSkill(caster, target) {
+  const factionId = caster?.system?.factionId ?? null;
+  const skills = [...(target?.items ?? [])].filter((i) => i.type === "ability" && i.system?.kind !== "classSkill");
+  if (!factionId || skills.length === 0) return [];
+  const { chooseFor } = await import("./ask.mjs");
+  const picked = await chooseFor(target, {
+    title: game.i18n.localize("FGT.Intel.CoerceTitle"),
+    hint: game.i18n.localize("FGT.Intel.CoerceHint"),
+    count: 1, min: 1,
+    // fgt-name-ok: the DU's own player chooses among its own Skills
+    options: skills.map((i) => ({ id: i.id, name: i.name })),
+  });
+  const item = skills.find((i) => i.id === (picked ?? [])[0]) ?? skills[0];
+  await teachAbility(factionId, target, item);
+  const row = game.i18n.format("FGT.Intel.Coerced", { tag: abilityTag(item) });
+  return [{ unitId: target.id, summary: { id: "revealSkill", name: row, outcome: "applied", reason: null, chance: null } }];
+}
+
+/**
+ * Classified: *"all of its information (from its Notebook page) is immediately
+ * shared to all Units within a 2 panel area of itself"* (FB.classified): every
+ * Faction with a Unit within `radius` of it, but its own, learns its whole page.
+ *
+ * @param {object} target the DU's actor
+ * @param {number} radius
+ * @param {object} board
+ * @returns {Promise<string[]>} the Factions told
+ */
+export async function revealDossier(target, radius, board = currentBoard()) {
+  const unit = (board.units ?? []).find((u) => u.id === target?.id);
+  if (!unit?.panel) return [];
+  const own = target.system?.factionId ?? null;
+  const factions = new Set();
+  for (const u of board.units ?? []) {
+    if (u.id === unit.id || u.defeated || !u.panel) continue;
+    const f = u.faction ?? u.factionId ?? null;
+    if (!f || f === own) continue;
+    const d = Math.max(Math.abs(u.panel.i - unit.panel.i), Math.abs(u.panel.j - unit.panel.j));
+    if (d <= radius) factions.add(f);
+  }
+  for (const f of factions) {
+    await keepKnowledgeOf(f, target);
+    await sayToFaction(f, game.i18n.format("FGT.Intel.Classified", { name: foundry.utils.escapeHTML(shownName(target)) }), "intelClassified");
+  }
+  return [...factions];
+}
+
+/**
+ * A line whispered to one Faction and the GM.
+ *
+ * @param {string} factionId
+ * @param {string} line HTML
+ * @param {string} flag
+ * @returns {Promise<void>}
+ */
+async function sayToFaction(factionId, line, flag) {
+  const war = currentWar();
+  const whisper = [...playersOf(factionId, war), ...game.users.filter((u) => u.isGM).map((u) => u.id)];
+  await ChatMessage.create({ content: `<div class="fgt-card fgt-card--intel"><p>${line}</p></div>`, whisper, flags: { fgt: { [flag]: factionId } } });
+}
+
+/**
+ * Information Erasure: when a Unit that erases leaves an enemy Unit's Detect,
+ * that Unit's Faction loses every Entry, its Intel and its knowledge of its
+ * identity on it, said to that Faction (JA.*, reading 17). Asked after a
+ * voluntary Move, of the mover and of every eraser the mover watched.
+ *
+ * @param {object} args
+ * @param {string} args.moverId
+ * @param {{i: number, j: number}} args.from
+ * @param {{i: number, j: number}} args.to
+ * @returns {Promise<string[]>} the Factions whose record was erased
+ */
+export async function eraseOnLeaving({ moverId, from, to }) {
+  const war = currentWar();
+  if (!war || !intelOn(war) || !isWarGM(war)) return [];
+  const board = currentBoard();
+  const mover = (board.units ?? []).find((u) => u.id === moverId);
+  if (!mover) return [];
+  const at = (u, p) => ({ ...u, panel: { ...(u.panel ?? {}), i: p.i, j: p.j } });
+  const erasers = (board.units ?? []).filter((u) => (u.erasesInformation ?? []).length > 0 && !u.defeated);
+  const lost = new Set();
+  for (const jack of erasers) {
+    const own = jack.faction ?? jack.factionId ?? null;
+    const watchers = (board.units ?? []).filter((w) => w.id !== jack.id && !w.defeated && w.panel
+      && (w.faction ?? w.factionId) && (w.faction ?? w.factionId) !== own);
+    for (const w of watchers) {
+      let before;
+      let after;
+      if (mover.id === jack.id) {
+        before = sees(w, at(jack, from), board);
+        after = sees(w, at(jack, to), board);
+      } else if (mover.id === w.id) {
+        before = sees(at(w, from), jack, board);
+        after = sees(at(w, to), jack, board);
+      } else continue;
+      if (before && !after) lost.add(`${w.faction ?? w.factionId}|${jack.id}`);
+    }
+  }
+  const told = [];
+  for (const key of lost) {
+    const [factionId, jackId] = key.split("|");
+    const had = await changeNotebook(factionId, (state) => {
+      const held = Boolean(state.dossiers[jackId]);
+      delete state.dossiers[jackId];
+      return held;
+    }, war);
+    if (!had) continue;
+    await sayToFaction(factionId, game.i18n.format("FGT.Intel.Erased", { name: foundry.utils.escapeHTML(shownName(unitActor(jackId))) }), "intelErased");
+    told.push(factionId);
+  }
+  return told;
+}
+
+/**
+ * True Name Discernment's active on a Unit that shrouds it with a coin (Hassan
+ * of the Fathomless Rift, HA.coin, HA.luck): Heads opens its seven Stats to the
+ * user's Faction, unless its own Luck Check succeeds.
+ *
+ * @param {object} userActor the Ruler
+ * @param {object} target
+ * @returns {Promise<{coin: number|null, check: boolean|null, opened: boolean}>}
+ */
+export async function shroudedDiscernment(userActor, target) {
+  const shrouds = unitSnapshot(target)?.trueNameShrouds ?? [];
+  const out = { coin: null, check: null, opened: false };
+  if (shrouds.length === 0) return out;
+  if (shrouds.some((s) => s.active === "negated")) return out;
+  const factionId = userActor?.system?.factionId ?? null;
+  out.coin = (await new Roll("1d2").evaluate()).total;
+  if (out.coin === 1) {
+    const { luckCheck } = await import("../rules/checks.mjs");
+    const roll = (await new Roll("1d20").evaluate()).total;
+    const result = luckCheck({ roll, luck: Number(target.system?.luck?.value ?? 0) });
+    out.check = Boolean(result?.success);
+    if (!out.check && factionId) {
+      await changeNotebook(factionId, (state) => {
+        const dossier = state.dossiers[target.id] ?? emptyDossier();
+        dossier.open = { ...dossier.open, str: true, end: true, agi: true, mag: true, luc: true, mov: true, range: true };
+        state.dossiers[target.id] = dossier;
+      });
+      out.opened = true;
+    }
+  }
+  if (factionId) {
+    const key = out.coin === null ? null : (out.coin !== 1 ? "FGT.Intel.ShroudTails" : (out.opened ? "FGT.Intel.ShroudOpened" : "FGT.Intel.ShroudHeld"));
+    if (key) await sayToFaction(factionId, game.i18n.format(key, { name: foundry.utils.escapeHTML(shownName(target)) }), "intelShroud");
+  }
+  return out;
+}
+
+/** The Ranks a false Parameter may show (HE.setup). */
+const FALSE_RANKS = Object.freeze(["E", "D", "C", "B", "A", "A+", "EX"]);
+
+/**
+ * Camouflage's setup (HE.setup): her player picks a false Class, then a false
+ * Rank for each Parameter. Asked once a War, on its GM, of every Servant that
+ * shows false information and has none yet. Her owner answers; nobody else sees
+ * the question.
+ *
+ * @param {object|null} [war]
+ * @returns {Promise<string[]>} the Servants set up
+ */
+export async function askCamouflage(war = currentWar()) {
+  const done = [];
+  if (!war || !isWarGM(war)) return done;
+  const { SERVANT_CLASSES } = await import("../domain/enums.mjs");
+  const { chooseFor } = await import("./ask.mjs");
+  const board = currentBoard();
+  for (const unit of board.units ?? []) {
+    if (unit.kind !== "servant" || !(unit.falseInformation ?? []).length) continue;
+    const actor = unitActor(unit.id);
+    if (!actor || actor.system?.falseInformation?.parameters) continue;
+    const pick = async (title, options) => ((await chooseFor(actor, { title, count: 1, min: 1, options })) ?? [])[0] ?? null;
+    const cls = await pick(game.i18n.localize("FGT.Intel.FalseClass"),
+      SERVANT_CLASSES.map((c) => ({ id: c, name: game.i18n.localize(`FGT.Class.${c}`) })));
+    if (!cls) continue;
+    const parameters = {};
+    for (const key of ["str", "end", "agi", "mag", "luc"]) {
+      const rank = await pick(game.i18n.format("FGT.Intel.FalseRank", { stat: game.i18n.localize(`FGT.Intel.Entry.${key}`) }),
+        FALSE_RANKS.map((r) => ({ id: r, name: r })));
+      parameters[key] = rank ?? actor.system?.parameters?.[key] ?? "E";
+    }
+    const className = game.i18n.localize(`FGT.Class.${cls}`);
+    await actor.update({ "system.falseInformation": { className, parameters }, "system.concealedIdentity": className });
+    done.push(actor.id);
+  }
+  return done;
 }

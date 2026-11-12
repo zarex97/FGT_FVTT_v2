@@ -1,0 +1,19 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: First Director of FBI's Coercion, its information clause. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-coercion
+name: "Test Intel: Coercion"
+kind: skill
+rank: "A"
+slug: testIntelCoercion
+cooldown: "1 turns"
+timing: { window: ownTurn }
+description: "TEST SKILL. Range=2. Used on an enemy Unit. The DU gives full information of one of its Skills other than Class Skills."
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+phases:
+  - kind: revealSkill
+    target: reuse
