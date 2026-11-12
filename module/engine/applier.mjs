@@ -14,6 +14,7 @@
  * leaving half a Noble Phantasm applied.
  */
 
+import { cloakMark } from "./intel.mjs";
 import * as I from "./intents.mjs";
 import { acquisitionTarget } from "../rules/items.mjs";
 import { useClassesOf } from "../rules/costs.mjs";
@@ -175,6 +176,9 @@ export function cooldownLine(name, before, after) {
  * @param {number|null} [after] the stat as read after it
  * @returns {string|null}
  */
+/** The Stat whose Entry opens a pool's figures (CL.pool). */
+const POOL_ENTRY = Object.freeze({ health: "end", agility: "agi", luck: "luc" });
+
 export function statChangeLine(intent, before = null, after = null) {
   const key = intent?.stat ?? intent?.key ?? null;
   const delta = Number(intent?.delta);
@@ -184,7 +188,11 @@ export function statChangeLine(intent, before = null, after = null) {
   // The numbers when the caller read them, so a clamp says so; the authored
   // delta otherwise.
   if (Number.isFinite(before) && Number.isFinite(after)) {
-    return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
+    const figure = before === after ? `${after} (no change)` : `${before} → ${after}`;
+    // A pool's figures, cloaked for a viewer whose Faction has not bought the
+    // Stat behind it (CL.pool, #404): the line still says the pool moved.
+    const entry = POOL_ENTRY[word];
+    return `${label} ${entry && intent?.unitId ? cloakMark(intent.unitId, entry, figure) : figure}`;
   }
   return `${label} ${delta > 0 ? "+" : ""}${delta}`;
 }

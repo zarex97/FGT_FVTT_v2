@@ -31,7 +31,7 @@ import { seesThroughOwnField } from "../../rules/identity.mjs";
 import { markSeenBy } from "../../rules/bloodmarks.mjs";
 import { disguiseOf, seesTruth } from "../../rules/disguise.mjs";
 import { publicIdentityOf } from "../../engine/public-identity.mjs";
-import { viewerKnowsIdentity } from "../../engine/intel.mjs";
+import { viewerKnowsIdentity, viewerOpens } from "../../engine/intel.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -363,6 +363,13 @@ export class FGTToken extends Token {
    */
   _refreshState() {
     super._refreshState();
+    // An enemy's bars are hidden from a viewer whose Faction has not bought its
+    // END, and shown as Foundry says once it has (TB.hide, TB.show, #404).
+    const actor = this.actor;
+    if (this.bars && actor && !game.user?.isGM && !actor.isOwner && ["servant", "master"].includes(actor.type)
+      && !viewerOpens(actor.id, "end")) {
+      this.bars.visible = false;
+    }
     if (!this.nameplate || this.document.displayName !== CONST.TOKEN_DISPLAY_MODES.NONE) return;
     this.nameplate.visible = !this.document.isSecret
       && (this.hover || this.controlled || Boolean(this.layer?.highlightObjects));

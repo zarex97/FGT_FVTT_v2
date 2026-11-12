@@ -7,6 +7,7 @@
  * also what lets the reaction ladder resume after a reconnect.
  */
 
+import { cloakRoll, openCloaks } from "../../engine/intel.mjs";
 import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
 import { cardFor, skillEffectsFor, redactBreakdown, effectLine } from "../../rules/card-visibility.mjs";
@@ -250,7 +251,7 @@ async function cardContext({
     rolls: visibleTo(state.rolls ?? [], forViewer ? {
       isGM: game.user.isGM,
       ownedActorIds: game.actors.filter((a) => a.isOwner).map((a) => a.id),
-    } : {}).map((r) => ({ ...r, lines: renderBreakdown(r) })),
+    } : {}).map((r) => (forViewer ? cloakRoll(r) : r)).map((r) => ({ ...r, lines: r.breakdownHidden ? [] : renderBreakdown(r) })),
   };
 }
 
@@ -670,6 +671,8 @@ export function activateChatListeners() {
     fillSkillEffects(message, html);
     fillAttackCard(message, html);
     swapAbilityTags(html);
+    // A figure a viewer's Faction has not bought stays cloaked (CL.pool, #404).
+    openCloaks(html);
     armCounterRung(message);
     bindCardEvents(message, html);
   });

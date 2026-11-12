@@ -9821,6 +9821,8 @@ async function instinctOf(state, defender) {
       actorId: defender.id,
     }),
     check: "instinct", target: chance, outcome: success ? "success" : "fail",
+    // Its ability, for the cloak (CL.name, #404).
+    abilityRef: auto.defId ?? null,
   };
   if (!success) return { ...state, rolls: rollLog.append(state.rolls ?? [], rollRecord) };
 

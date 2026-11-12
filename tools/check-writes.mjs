@@ -68,6 +68,7 @@ const ALLOWED = [
 
   // ── A player's own journal ───────────────────────────────────────────────
   { file: "engine/notebook.mjs", category: "journal", why: "a player's Notebook is a Journal Entry and its pages, no Unit's state (#297)" },
+  { file: "engine/intel-store.mjs", category: "journal", why: "a Faction's Notebook is a Journal Entry, its state one JSON flag, no Unit's state (#399)" },
 
   // ── Scene-embedded document lifecycle ────────────────────────────────────
   // Regions, RegionBehaviors, Levels and Tokens are created and destroyed, not

@@ -48,7 +48,7 @@ export function emptyDossier() {
  */
 export function stateOf(journal) {
   const raw = journal?.getFlag?.("fgt", STATE);
-  let parsed = null;
+  let parsed;
   try {
     parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch {

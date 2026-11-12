@@ -186,7 +186,9 @@ describe("Armor of Fafnir, the wound from behind (AF.4.max; ruling 7)", () => {
       expect(h.value).toBeLessThan(1500);
       expect(h.max).toBe(h.value);
       // The card names what lowered the maximum.
-      const said = w.messages.contents.map((m) => JSON.stringify(m.flags?.fgt?.effects ?? [])).join(" ");
+      // As the GM reads it: a pool's figures are cloak marks for the rest (#404).
+      const { openMarks } = await import("../../module/engine/intel.mjs");
+      const said = openMarks(w.messages.contents.map((m) => JSON.stringify(m.flags?.fgt?.effects ?? [])).join(" "));
       expect(said).toContain(`Health max 1500 → ${h.max} (Armor of Fafnir`);
     }, WAR);
   });

@@ -106,6 +106,7 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         selected: id === this.unitId,
       });
     }
+    // fgt-name-ok: each row's name is already the one its Faction knows (`#identity`)
     rows.sort((a, b) => a.name.localeCompare(b.name));
     if (this.unitId && !rows.some((r) => r.id === this.unitId)) this.unitId = null;
 

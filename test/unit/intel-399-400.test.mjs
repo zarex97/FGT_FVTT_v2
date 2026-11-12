@@ -151,7 +151,7 @@ describe("the Faction Notebook (ST.*)", () => {
       expect(told).toEqual(["A"]);
       const card = [...w.messages.values()].find((m) => (m.flags ?? m.doc?.flags)?.fgt?.intelGains === "A");
       expect(card, "the gains card").toBeTruthy();
-      expect([...(card.whisper ?? card.doc?.whisper)].sort()).toEqual(["p1", "u1"]);
+      expect([...(card.whisper ?? card.doc?.whisper ?? [])].sort()).toEqual(["p1", "u1"]);
       expect(card.content ?? card.doc?.content).toContain("FGT.Intel.GainLine");
       // Said once: a second call finds nothing.
       expect(await sayIntelGains(18)).toEqual([]);
@@ -262,7 +262,7 @@ describe("buying (BU.*, PR.*, SE.*)", () => {
       await buy({ factionId: "A", unitId: HE, entry: "agi", userId: "p1" });
       const card = [...w.messages.values()].find((m) => (m.flags ?? m.doc?.flags)?.fgt?.intelBuy === "A");
       expect(card).toBeTruthy();
-      expect([...(card.whisper ?? card.doc?.whisper)].sort()).toEqual(["p1", "u1"]);
+      expect([...(card.whisper ?? card.doc?.whisper ?? [])].sort()).toEqual(["p1", "u1"]);
     }, WAR);
   });
 
@@ -305,7 +305,7 @@ describe("identity per Faction and the NP reveal (ID.*, NP.*, FC.*)", () => {
       expect(d.sections).toEqual({});
       expect(viewerKnowsIdentity(w.actor(HE), p1)).toBe(true);
       const card = [...w.messages.values()].find((m) => (m.flags ?? m.doc?.flags)?.fgt?.intelReveal === "A");
-      expect([...(card.whisper ?? card.doc?.whisper)].sort()).toEqual(["p1", "u1"]);
+      expect([...(card.whisper ?? card.doc?.whisper ?? [])].sort()).toEqual(["p1", "u1"]);
     }, WAR);
   });
 
@@ -338,5 +338,51 @@ describe("identity per Faction and the NP reveal (ID.*, NP.*, FC.*)", () => {
       expect(d.open.end).toBe(true);
       expect(Object.values(d.sections).every((s) => s.complete)).toBe(true);
     }, WAR);
+  });
+});
+
+describe("cloaked lines (CL.*)", () => {
+  it("a pool line's figures are a mark: closed to a viewer whose Faction has not bought it, open once it has (CL.pool)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { statChangeLine } = await import("../../module/engine/applier.mjs");
+      const { viewerOpens, cloakMark, CLOAK } = await import("../../module/engine/intel.mjs");
+      const line = statChangeLine({ unitId: HE, stat: "health.value", delta: -50 }, 300, 250);
+      expect(line).toBe(`Health ${cloakMark(HE, "end", "300 → 250")}`);
+      const p1 = game.users.get("p1");
+      expect(viewerOpens(HE, "end", p1)).toBe(false);
+      expect(viewerOpens(HE, "end", game.users.get("u1"))).toBe(true);
+      const { changeNotebook, emptyDossier } = await import("../../module/engine/intel-store.mjs");
+      await changeNotebook("A", (s) => { s.dossiers[HE] = { ...emptyDossier(), open: { end: true } }; });
+      expect(viewerOpens(HE, "end", p1)).toBe(true);
+      expect(CLOAK).toBe("■■■");
+      // Arturia is p1's own.
+      expect(viewerOpens(AR, "end", p1)).toBe(true);
+      void w;
+    }, WAR);
+  });
+
+  it("a roll line reads cloaked to a viewer who holds nothing of it, and opens on the Stat it reads (CL.roll, CL.evade, CL.face)", async () => {
+    await withSubjects(scene, async () => {
+      const { cloakRoll } = await import("../../module/engine/intel.mjs");
+      const p1 = game.users.get("p1");
+      const r = { actorId: HE, check: "evade", purpose: "Berserker's Evade: 14 against 12, success", total: 14, target: 12 };
+      const closed = cloakRoll(r, p1);
+      expect(closed.purpose).toBe("FGT.Intel.CloakedRoll");
+      expect(closed.breakdownHidden).toBe(true);
+      expect(cloakRoll(r, game.users.get("u1"))).toBe(r);
+      const { changeNotebook, emptyDossier } = await import("../../module/engine/intel-store.mjs");
+      await changeNotebook("A", (s) => { s.dossiers[HE] = { ...emptyDossier(), open: { agi: true } }; });
+      expect(cloakRoll(r, p1)).toBe(r);
+    }, WAR);
+  });
+
+  it("the War Rule off, nothing is cloaked (WR.off.cloak)", async () => {
+    await withSubjects(scene, async () => {
+      const { cloakRoll, viewerOpens } = await import("../../module/engine/intel.mjs");
+      const p1 = game.users.get("p1");
+      const r = { actorId: HE, check: "evade", total: 1, target: 2 };
+      expect(cloakRoll(r, p1)).toBe(r);
+      expect(viewerOpens(HE, "end", p1)).toBe(true);
+    }, OFF);
   });
 });

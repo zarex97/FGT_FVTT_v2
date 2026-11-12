@@ -287,7 +287,9 @@ describe("Mana Burst's restore card says what moved, and on whom (#209, live)", 
       const mb = w.actor(CASTOR).items.find((i) => i.system.contentId === "dioscuri-mana-burst-castor");
       await playAttack(w, { attacker: CASTOR, ability: mb.id, target: FOE, react: { [FOE]: ["nothing", "declined"] } });
       const card = [...w.messages.values()].filter((m) => m.getFlag("fgt", "kind") === "skill").at(-1);
-      rows = card.getFlag("fgt", "rows").map((r) => r.name);
+      // As the GM reads them: a pool's figures are cloak marks for the rest (#404).
+      const { openMarks } = await import("../../module/engine/intel.mjs");
+      rows = card.getFlag("fgt", "rows").map((r) => openMarks(r.name));
     }, { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "A" } });
     return rows;
   };

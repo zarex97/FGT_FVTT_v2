@@ -11,8 +11,10 @@
  */
 
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
-import { currentWar, isWarGM } from "./war.mjs";
+import { currentWar, isWarGM, warRule } from "./war.mjs";
 import { witnessesOf, payAct } from "../rules/intel.mjs";
+import { abilityTag } from "./public-ability.mjs";
+import { shownName } from "./public-identity.mjs";
 import { changeNotebook, emptyDossier, factionOfUser, intelOn, notebookOf, playersOf, stateOf } from "./intel-store.mjs";
 
 /**
@@ -59,7 +61,7 @@ export async function noteAct({ unitId, kind, involvedIds = [], panels = null })
   const board = currentBoard();
   const actor = (board.units ?? []).find((u) => u.id === unitId);
   if (!actor) return paid;
-  const tick = currentMoment().tick ?? war.system?.globalTurn ?? 0;
+  const tick = currentMoment().tick ?? 0;
   const earned = witnessesOf({ actor, board, kind, involvedIds, panels });
   for (const [factionId, value] of earned) {
     let revealed = false;
@@ -364,9 +366,167 @@ export function attachIntel() {
     const { forgetAbilityTruths } = await import("./public-ability.mjs");
     forgetAbilityTruths();
     for (const token of globalThis.canvas?.tokens?.placeables ?? []) {
+      // A face known now is redrawn; a bar bought now is shown.
       if (token.actor?.type === "servant") token.renderFlags?.set?.({ redraw: true });
+      else if (token.actor?.type === "master") token.renderFlags?.set?.({ refreshState: true });
     }
   };
   Hooks.on("updateJournalEntry", (j) => void refresh(j));
   Hooks.on("createJournalEntry", (j) => void refresh(j));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Cloaked lines (#404)                                                       */
+/* -------------------------------------------------------------------------- */
+
+/** What a cloaked figure reads. */
+export const CLOAK = "■■■";
+
+/** The Stat a roll reads, by its check (CL.target, CL.luck, CL.evade). */
+const CHECK_STAT = Object.freeze({
+  evade: "agi", agility: "agi",
+  luck: "luc", luckyEvasion: "luc", luckyHit: "luc", prevention: "luc", counterContest: "luc", overpower: "luc",
+});
+
+/**
+ * Does this viewer read everything of this Unit's lines? Its owner and the GM
+ * do, and everyone at an open table or with the Information System off (CL.owner,
+ * CL.gm, WR.off.cloak).
+ *
+ * @param {object|null} actor
+ * @param {object} user
+ * @returns {boolean}
+ */
+function readsAllOf(actor, user) {
+  if (!actor || user?.isGM) return true;
+  if (actor.testUserPermission?.(user, "OWNER")) return true;
+  const war = currentWar();
+  if (!war || !intelOn(war)) return true;
+  return !warRule("closedInfo", war);
+}
+
+/**
+ * The viewer's Faction's Dossier on a Unit, or null.
+ *
+ * @param {string} unitId
+ * @param {object} user
+ * @returns {object|null}
+ */
+function viewersDossier(unitId, user) {
+  const war = currentWar();
+  const factionId = factionOfUser(user, war);
+  return factionId ? (stateOf(notebookOf(factionId, war)).dossiers[unitId] ?? null) : null;
+}
+
+/**
+ * Does this viewer read this Stat of this Unit: its owner, or a Faction that
+ * bought it, and never a pool a sheet hides (Secret of Pedigree, MO.cloak)?
+ *
+ * @param {string} unitId
+ * @param {string} entry a Stat key
+ * @param {object} [user]
+ * @returns {boolean}
+ */
+export function viewerOpens(unitId, entry, user = game.user) {
+  const actor = unitActor(unitId);
+  if (readsAllOf(actor, user)) return true;
+  if (hiddenFrom(actor).ranksOnly.includes(entry)) return false;
+  return Boolean(viewersDossier(unitId, user)?.open?.[entry]);
+}
+
+/**
+ * Does this viewer know this ability of this Unit: drawn from its Section, or
+ * learned in full?
+ *
+ * @param {string} unitId
+ * @param {string} contentId
+ * @param {object} [user]
+ * @returns {boolean}
+ */
+export function viewerKnowsAbility(unitId, contentId, user = game.user) {
+  const actor = unitActor(unitId);
+  if (readsAllOf(actor, user)) return true;
+  const d = viewersDossier(unitId, user);
+  if (!d) return false;
+  if (d.abilities?.[contentId]?.full) return true;
+  return Object.values(d.sections ?? {}).some((s) => (s?.known ?? []).includes(contentId));
+}
+
+/**
+ * A figure on a stored line, cloaked until a viewer's client opens it: the
+ * text a client shows before it draws its own view is the cloak (CL.stored).
+ *
+ * @param {string} unitId
+ * @param {string} entry a Stat key
+ * @param {string} text the figure
+ * @returns {string}
+ */
+export function cloakMark(unitId, entry, text) {
+  return `⟦c|${unitId}|${entry}|${text}⟧`;
+}
+
+/** A cloak mark in text. */
+const MARK = /⟦c\|([^|⟧]*)\|([^|⟧]*)\|([^⟧]*)⟧/g;
+
+/**
+ * Open or keep closed every cloak mark in a rendered card, for this viewer.
+ *
+ * @param {HTMLElement} root
+ * @param {object} [user]
+ * @returns {void}
+ */
+export function openCloaks(root, user = game.user) {
+  if (!root?.ownerDocument) return;
+  const walker = root.ownerDocument.createTreeWalker(root, 4);
+  const nodes = [];
+  while (walker.nextNode()) if (walker.currentNode.nodeValue.includes("⟦c|")) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    node.nodeValue = node.nodeValue.replace(MARK, (_m, unitId, entry, text) => (viewerOpens(unitId, entry, user) ? text : CLOAK));
+  }
+}
+
+/**
+ * A roll record as this viewer may read it (CL.roll … CL.face): *"Saber's ■■■,
+ * rolled ■■■ against ■■■"*. The ability's blank opens as its Public Tag on its
+ * Entry; the target opens on that Entry or on the Stat the roll reads; the die
+ * face opens with its target, never alone. The breakdown shows only when the
+ * target does.
+ *
+ * @param {object} r a roll record
+ * @param {object} [user]
+ * @returns {object}
+ */
+export function cloakRoll(r, user = game.user) {
+  const actor = r?.actorId ? unitActor(r.actorId) : null;
+  if (!actor || readsAllOf(actor, user)) return r;
+  const item = r.abilityRef
+    ? (actor.items?.get?.(r.abilityRef) ?? [...(actor.items ?? [])].find((i) => i.system?.contentId === r.abilityRef) ?? null)
+    : null;
+  const cid = item ? (item.system?.contentId ?? item.id) : null;
+  const abilityOpen = cid ? viewerKnowsAbility(actor.id, cid, user) : false;
+  const stat = CHECK_STAT[r.check] ?? null;
+  const targetOpen = abilityOpen || (stat ? viewerOpens(actor.id, stat, user) : false);
+  if (targetOpen && (!item || abilityOpen)) return r;
+  const name = item
+    ? (abilityOpen ? abilityTag(item) : CLOAK)
+    : (stat ? game.i18n.localize(`FGT.Intel.Check.${r.check}`) : CLOAK);
+  const who = viewerKnowsIdentity(actor, user) ? (actor.system?.trueName || actor.name) : shownName(actor); // fgt-name-ok: the True Name only to a Faction that knows it
+  const purpose = game.i18n.format("FGT.Intel.CloakedRoll", {
+    who,
+    name,
+    roll: targetOpen ? String(r.total ?? r.raw ?? CLOAK) : CLOAK,
+    target: targetOpen ? String(r.target ?? CLOAK) : CLOAK,
+  });
+  return { ...r, purpose, cloaked: true, breakdownHidden: !targetOpen };
+}
+
+/**
+ * A stored line's cloak marks opened or closed: the text a viewer reads.
+ *
+ * @param {string} text
+ * @param {(unitId: string, entry: string) => boolean} [opens] open for everyone by default: the GM's reading
+ * @returns {string}
+ */
+export function openMarks(text, opens = () => true) {
+  return String(text ?? "").replace(MARK, (_m, unitId, entry, figure) => (opens(unitId, entry) ? figure : CLOAK));
 }
