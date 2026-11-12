@@ -20,6 +20,10 @@ A concealed Servant's **public identity** — the class and faction name shown o
 | `module/engine/token-vision.mjs` | Syncing Detect radius to Foundry token vision at creation, actor edit, and unit move |
 | `module/engine/token-image.mjs` | Syncing public portrait to token texture on identity reveal or portrait change |
 | `module/rules/relations.mjs` | How one Unit sees another (self, ally, enemy, neutral) |
+| `module/rules/intel.mjs` | The Information System's rules: who witnesses an act and what it pays, the per-Turn ledger, Entries, prices, Sections and the draw |
+| `module/engine/intel-store.mjs` | The Faction Notebook: one journal per Faction per War, its state one JSON flag the GM writes |
+| `module/engine/intel.mjs` | Earning, buying, identity per Faction, cloak marks, and the sheets that hide, fake, erase and teach |
+| `module/apps/intel-window.mjs` | The Intel window (Dossiers), the double-click and the Token Controls tool |
 
 ## How it works
 
@@ -184,6 +188,42 @@ reading 3). The Check is contested against the seen Servant's Luck and spends 1 
 once (a move's and a boarding's) each claim a pair in memory before any await, so a first sight fires once
 (`engine/vision.mjs`; found live, #351).
 
+### The Information System (#398, ADR-0008)
+
+A War Rule, `informationSystem`, on by default. Knowledge belongs to the **Faction**: each Faction keeps one
+**Notebook** per War (`engine/intel-store.mjs`), a journal its players may read and only the War's GM writes,
+holding one **Dossier** per enemy Servant or Master it has witnessed. Off, every page is open to every player and
+nothing is earned or cloaked (WR.off.*). The full ruling is `docs/superpowers/specs/2026-11-12-information-system.md`.
+
+**Earning.** A Faction is a **Witness** of an act when one of its Units `sees` the actor at the act (a Move at its
+start or end panel) or is involved in it, whatever the range; an act made under Presence Concealment is witnessed by
+nobody. Move 1, Attack 2, Evade 1, Block 1, Counter 2, Skill or Spell 2, NP 8, Command Spell 2 (on the Master); ×2
+for an involved Witness; the highest one Witness earns, never the sum (`rules/intel.mjs#witnessesOf`). A Move and an
+Attack pay once per Unit per Turn (`payAct`); reactions pay every time. A Summon's or Platform's acts pay nothing; a
+driven mount's Move is its rider's. The hooks sit where each act is decided (movement, `fireAttackDeclared`, the
+reaction and counter rungs, `fireAbilityUsed`, Command Spells); the GM writes, a player's client relays by socket
+(`intelAct`). The Turn's gains are whispered to the Faction at its end.
+
+**Buying.** Each Stat is an **Entry** (STR, END, AGI, MAG, LUC, MOV, Range: 4; Region, Attributes, Alignment: 1; a
+Master's Command Spells left: 4); END, AGI and LUC show their pools live. Abilities are bought by **Section** (Spells,
+Active, Passive 8; Class Skills 6; NPs 32; Items 4): a draw opens one at random among those left, as its Public Tag
+and its shape, never its name; a draw that finds none marks the Section Complete, free. A Section is Complete only
+while its mark says so and every ability the Unit holds in it is known (`isSectionComplete`), so a gained ability
+reopens it; a lost one stays, *"no longer held"*, under the tag its Faction kept. Buys run on the GM (`intelBuy`).
+
+**Identity per Faction.** An NP witnessed tells that Faction who its user is, and opens its seven Stats, Region and
+Attributes free. `viewerKnowsIdentity` is the one reader: nameplate, known portrait, the Dossier's name and Class, and
+`readsTruthOf`, which swaps ability tags on cards. The owner and the GM always read the truth.
+
+**Cloaked lines.** A figure on a stored line is a mark, `⟦c|unit|entry|figure⟧`, which each client opens for what
+its Faction holds when it draws the card (`openCloaks`): pool deltas, the Turn report's and the heal line's Health
+amounts, and roll lines (*"Saber's ■■■, rolled ■■■ against ■■■"*), whose ability opens on its Entry and whose
+target opens on the Stat it reads. An enemy's bars show only once its END is bought.
+
+**The sheets.** Secret of Pedigree (`HidesInformation`), Camouflage (`FalseInformation`), Information Erasure
+(`ErasesInformation`), the Shadow Lantern's 72 True Names (`TrueNameShroud`), True Name Discernment, Appreciation of
+the Arts, Coercion and Classified (phases `revealSkill`, `revealDossier`) all write to the Faction's Notebook.
+
 ## Invariants & edge cases
 
 1. **Concealment is an effect, not a boolean.** The effect carries duration, so the state can expire at a clock tick. The polarity is `status` with `unremovable: true` (`module/rules/concealment.mjs:16-20`).
@@ -211,6 +251,12 @@ once (a move's and a boarding's) each claim a pair in memory before any await, s
 **Concealment not triggering visibility updates.** A Presence Concealment effect applied to a token did not prompt Foundry to check whether it should be visible to each viewer, so the Servant stayed on-screen until somebody happened to move. `canvas.perception.update` was not called when the effect was created or deleted. **Trigger a visibility pass on create and delete** by updating `canvas.perception` with `refreshVision: true` (`module/engine/token-vision.mjs:68-77`), which ends in `canvas.visibility.refresh()`. It named `refreshVisibility` too, a flag Foundry v14 does not have: `update` threw on it, so no pass ran and every conceal and reveal logged an error (#185).
 
 **Hidden Poison damages disclosed repeatedly.** The hidden damage tally on a victim (`system.hiddenDamage`) was cleared by assigning an empty object, but Foundry's ObjectField merges rather than replaces, so the assignment was a no-op. Concealment ended, damage was disclosed, concealment was activated again, damage disclosed *again*, the tally still there. **Use key-by-key deletion** with the `-=` syntax to actually clear the tally (`module/engine/concealment.mjs:174-177`).
+
+**A Notebook is private on screen, not in the browser.** Foundry delivers every world document and every chat
+message to every client; ownership gates display and writes. Another Faction's Notebook journal, its state flag and
+every whisper sit in each player's `game.journal` and `game.messages`, readable from a console, as every enemy
+actor's sheet already is. The window, the journal sidebar and the sockets refuse; nothing more is possible without a
+server of our own (found live, ST.private).
 
 ## Open questions
 
