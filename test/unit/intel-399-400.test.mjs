@@ -9,6 +9,8 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { playAttack } from "../helpers/process.mjs";
+import { readFileSync } from "node:fs";
+import { functionBody } from "../helpers/source.mjs";
 
 beforeAll(prepareSubjects, 120_000);
 vi.setConfig({ testTimeout: 60_000 });
@@ -80,6 +82,22 @@ describe("who witnesses, and what it pays (EA.*)", () => {
       const actor = { ...b.units.find((u) => u.id === HE), effects: ["presenceConcealment"] };
       expect(witnessesOf({ actor, board: b, kind: "attack", involvedIds: [AR] }).size).toBe(0);
     }, WAR);
+  });
+
+  it("a field its owner sees all of makes her a Witness at any range; an ally earns as any Faction (EA.see.mist, EA.ally)", async () => {
+    const { witnessesOf } = await import("../../module/rules/intel.mjs");
+    // The field's shape as `rules/identity.mjs#seesThroughOwnField` reads it.
+    const board = {
+      fields: [{ id: "mist", ownerId: "jack", isolation: { ownerSeesInside: true } }],
+      alliances: { A: ["A", "B"], B: ["B", "A"] },
+      units: [
+        { id: "jack", kind: "servant", faction: "A", panel: { i: 1, j: 1 } },
+        { id: "t", kind: "servant", faction: "B", panel: { i: 30, j: 30 }, fields: ["mist"] },
+      ],
+    };
+    expect(Object.fromEntries(witnessesOf({ actor: board.units[1], board, kind: "move" }))).toEqual({ A: 1 });
+    const outside = { ...board, units: [board.units[0], { ...board.units[1], fields: [] }] };
+    expect(witnessesOf({ actor: outside.units[1], board: outside, kind: "move" }).size).toBe(0);
   });
 
   it("a Summon earns nobody anything (EA.kind.summon)", async () => {
@@ -248,11 +266,29 @@ describe("buying (BU.*, PR.*, SE.*)", () => {
         expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: true, price: 32 });
       }
       expect([...notebookState("A").dossiers[HE].sections.nps.known].sort()).toEqual([...nps].sort());
+      // Each draw keeps its Public Tag, so a row names it after its bearer loses it (SE.change.lose).
+      for (const cid of nps) expect(notebookState("A").dossiers[HE].abilities[cid].tag).toMatch(/^[A-Z]+-[A-Z0-9]{5}$/);
       const before = notebookState("A").dossiers[HE].intel;
       expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: true, complete: true, price: 0 });
       expect(notebookState("A").dossiers[HE].intel).toBe(before);
       expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: false, reason: "complete" });
     }, WAR);
+  });
+
+  it("an ability gained after a Section went Complete reopens it, with no line said (SE.change.gain, SE.change.reopen)", async () => {
+    // Live: the mark was stored once and read for ever, so a Form's or a Stolen
+    // Skill's ability could never be drawn.
+    const { isSectionComplete } = await import("../../module/rules/intel.mjs");
+    const mark = { known: ["a", "b"], complete: true };
+    expect(isSectionComplete(mark, ["a", "b"])).toBe(true);
+    expect(isSectionComplete(mark, ["a", "b", "c"])).toBe(false);
+    // An ability it lost keeps its Entry, and the Section stays Complete (SE.change.lose).
+    expect(isSectionComplete(mark, ["a"])).toBe(true);
+    expect(isSectionComplete({ known: ["a"], complete: false }, ["a"])).toBe(false);
+    // The window and the buy both ask it.
+    const engine = readFileSync("module/engine/intel.mjs", "utf8");
+    expect(functionBody(engine, "export async function buy(")).toMatch(/isSectionComplete\(dossier\.sections\?\.\[section\], pool\)/);
+    expect(readFileSync("module/apps/intel-window.mjs", "utf8")).toMatch(/const complete = off \|\| isSectionComplete\(mark,/);
   });
 
   it("a buy posts a card whispered to the Faction and the GM (BU.card)", async () => {
@@ -372,6 +408,29 @@ describe("cloaked lines (CL.*)", () => {
       expect(cloakRoll(r, game.users.get("u1"))).toBe(r);
       const { changeNotebook, emptyDossier } = await import("../../module/engine/intel-store.mjs");
       await changeNotebook("A", (s) => { s.dossiers[HE] = { ...emptyDossier(), open: { agi: true } }; });
+      expect(cloakRoll(r, p1)).toBe(r);
+    }, WAR);
+  });
+
+  it("an ability's chance die names its Item, and opens once the Faction learned that ability (CL.name)", async () => {
+    // Live: only Instinct's record named its ability; every rider's die read
+    // "■■■" to a Faction that had learned the ability, for `rollLog.record` dropped it.
+    const { pendingRolls } = await import("../../module/engine/scheduler.mjs");
+    const unit = { id: "u", eventHandlers: [{ abilityId: "item1", events: ["damageDealt"], actions: [{ key: "ResourceDelta", resource: "x", delta: 1, chance: 15 }] }] };
+    expect(pendingRolls(unit, "damageDealt")[0].abilityId).toBe("item1");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(functionBody(src, "function chanceRecords(")).toMatch(/abilityRef: spec\.abilityId/);
+    await withSubjects(scene, async () => {
+      const { cloakRoll } = await import("../../module/engine/intel.mjs");
+      const rollLog = await import("../../module/rules/roll-log.mjs");
+      const item = [...game.actors.get(HE).items].find((i) => i.type === "ability");
+      const cid = item.system?.contentId ?? item.id;
+      const r = rollLog.record({ id: "x", entryId: "rider-", formula: "1d100", raw: 9, total: 9, actorId: HE, abilityRef: item.id, purpose: "full" });
+      expect(r.abilityRef).toBe(item.id);
+      const p1 = game.users.get("p1");
+      expect(cloakRoll(r, p1).cloaked).toBe(true);
+      const { changeNotebook, emptyDossier } = await import("../../module/engine/intel-store.mjs");
+      await changeNotebook("A", (s) => { s.dossiers[HE] = { ...emptyDossier(), sections: { active: { known: [cid] } } }; });
       expect(cloakRoll(r, p1)).toBe(r);
     }, WAR);
   });

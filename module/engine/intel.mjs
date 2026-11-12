@@ -20,6 +20,23 @@ import { shownName } from "./public-identity.mjs";
 import { changeNotebook, emptyDossier, factionOfUser, intelOn, notebookOf, playersOf, stateOf } from "./intel-store.mjs";
 
 /**
+ * What a Faction keeps of an ability it learned: its Public Tag, and its name
+ * once it learned the full text. Kept so a row still names it after its bearer
+ * loses it (SE.change.lose): the Item, and the tag drawn from it, are gone then.
+ *
+ * @param {object} item
+ * @param {object|undefined} before what the Faction already kept
+ * @param {boolean} full
+ * @returns {{tag: string, full?: boolean, name?: string}}
+ */
+function keptOf(item, before, full) {
+  const kept = { ...(before ?? {}), tag: abilityTag(item) };
+  // fgt-name-ok: kept only where its Faction learned the full text
+  if (full || kept.full) Object.assign(kept, { full: true, name: item.name });
+  return kept;
+}
+
+/**
  * A Unit's name as one Faction knows it: its True Name once the Faction knows
  * its identity (its Notebook's Dossier, or the public flag), its public name else.
  *
@@ -272,7 +289,7 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
   const actor = unitActor(unitId);
   if (!actor || !factionId) return { ok: false, reason: "unknown" };
   if (hasFallen(actor)) return { ok: false, reason: "fallen" };
-  const { ENTRY_PRICES, entriesOf, sectionPrice, sectionOf, drawFrom } = await import("../rules/intel.mjs");
+  const { ENTRY_PRICES, entriesOf, sectionPrice, sectionOf, drawFrom, isSectionComplete } = await import("../rules/intel.mjs");
   const { isSpellAbility } = await import("../rules/costs.mjs");
   const hidden = hiddenFrom(actor);
 
@@ -300,7 +317,7 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
     const dossier = state.dossiers[unitId];
     if (!dossier) return { ok: false, reason: "noDossier" };
     if (entry && dossier.open?.[entry]) return { ok: false, reason: "open" };
-    if (section && dossier.sections?.[section]?.complete) return { ok: false, reason: "complete" };
+    if (section && isSectionComplete(dossier.sections?.[section], pool)) return { ok: false, reason: "complete" };
     const known = dossier.sections?.[section]?.known ?? [];
     const drawn = section ? drawFrom(pool, known, () => face) : null;
     // A draw that finds nothing left costs nothing, and the Section is Complete.
@@ -311,7 +328,11 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
     if ((dossier.intel ?? 0) < price) return { ok: false, reason: "short", need: price, held: dossier.intel ?? 0 };
     dossier.intel -= price;
     if (entry) dossier.open = { ...dossier.open, [entry]: true };
-    else dossier.sections = { ...dossier.sections, [section]: { known: [...known, drawn], complete: false } };
+    else {
+      dossier.sections = { ...dossier.sections, [section]: { known: [...known, drawn], complete: false } };
+      const item = [...(actor.items ?? [])].find((i) => (i.system?.contentId ?? i.id) === drawn);
+      if (item) dossier.abilities = { ...dossier.abilities, [drawn]: keptOf(item, dossier.abilities?.[drawn], false) };
+    }
     return { ok: true, drawn, price };
   }, war) ?? { ok: false, reason: "noDossier" };
 
@@ -361,9 +382,13 @@ export async function keepKnowledgeOf(factionId, actor) {
     dossier.open = { ...dossier.open, ...Object.fromEntries(entriesOf(actor).map((k) => [k, true])) };
     const sections = {};
     for (const { key } of SECTIONS) {
-      const known = items.filter((i) => sectionOf(i, isSpellAbility) === key).map((i) => i.system?.contentId ?? i.id);
+      const held = items.filter((i) => sectionOf(i, isSpellAbility) === key);
+      const known = held.map((i) => i.system?.contentId ?? i.id);
       sections[key] = { known, complete: true };
-      for (const id of known) dossier.abilities = { ...dossier.abilities, [id]: { full: true } };
+      for (const i of held) {
+        const id = i.system?.contentId ?? i.id;
+        dossier.abilities = { ...dossier.abilities, [id]: keptOf(i, dossier.abilities?.[id], true) };
+      }
     }
     dossier.sections = sections;
     state.dossiers[actor.id] = dossier;
@@ -582,7 +607,7 @@ export async function teachAbility(factionId, owner, item) {
   const section = sectionOf(item, isSpellAbility);
   await changeNotebook(factionId, (state) => {
     const dossier = state.dossiers[owner.id] ?? emptyDossier();
-    dossier.abilities = { ...dossier.abilities, [cid]: { full: true } };
+    dossier.abilities = { ...dossier.abilities, [cid]: keptOf(item, dossier.abilities?.[cid], true) };
     if (section) {
       const mark = dossier.sections?.[section] ?? { known: [], complete: false };
       if (!(mark.known ?? []).includes(cid)) mark.known = [...(mark.known ?? []), cid];

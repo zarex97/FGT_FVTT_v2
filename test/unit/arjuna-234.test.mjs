@@ -272,7 +272,8 @@ describe("a Turn's end says what a heal gave (AH.2.when; found live)", () => {
     const intents = [{ t: "heal", unitId: "a", amount: 187, source: "Regen" }, { t: "heal", unitId: "b", amount: 50, source: "Regen" }];
     const health = healthBefore(intents, (id) => ({ a: { value: 1089, max: 1250 }, b: { value: 750, max: 750 } })[id]);
     const card = turnEndCard(intents, (id) => ({ a: "Archer", b: "Rider" })[id], t, undefined, null, health);
-    expect(card).toContain('"who":"Archer","amount":161,"source":"Regen"');
+    // The figure is a cloak mark each client opens for what its Faction holds (CL.pool, #404).
+    expect(card).toContain('"who":"Archer","amount":"⟦c|a|end|161⟧","source":"Regen"');
     expect(card).not.toContain("Rider");
     expect(turnEndCard([intents[1]], () => "Rider", t, undefined, null, health)).toBeNull();
   });

@@ -2268,6 +2268,7 @@
   "FGT.Intel.Short": "Needs {need} Intel; {held} held",
   "FGT.Intel.Hidden": "Hidden by this Unit's information",
   "FGT.Intel.NoLongerHeld": "No longer held",
+  "FGT.Intel.GoneAbility": "An ability",
   "FGT.Intel.Nothing": "Nothing is known of this Unit.",
   "FGT.Intel.OffNote": "The Information System is off in this War: every page is open.",
   "FGT.Intel.TheFaction": "Your Faction",

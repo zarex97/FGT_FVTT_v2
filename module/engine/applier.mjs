@@ -238,7 +238,8 @@ async function healLines(written, healths) {
     h.value += gave;
     if (gave === 0) return [];
     const name = game.i18n.format("FGT.TurnReport.Gains", {
-      who: shownName(unitActor(i.unitId)), amount: gave, source: EffectRegistry.nameOf(i.source) ?? game.i18n.localize("FGT.Revival.UnknownSource"),
+      // What it gave, against the maximum: a Health figure, cloaked without END (CL.pool, #404).
+      who: shownName(unitActor(i.unitId)), amount: cloakMark(i.unitId, "end", gave), source: EffectRegistry.nameOf(i.source) ?? game.i18n.localize("FGT.Revival.UnknownSource"),
     });
     return [{ unitId: i.unitId, summary: { id: "heal", name, outcome: "applied", reason: null, chance: null } }];
   });

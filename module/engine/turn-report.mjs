@@ -13,6 +13,7 @@ import { unitActor } from "./board.mjs";
 import { isWarGM } from "./war.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { resourceLabel } from "../domain/resources.mjs";
+import { cloakMark } from "./intel.mjs";
 
 /**
  * The states a boundary's clock ends that say what their end takes: an effect
@@ -220,12 +221,13 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
   const lines = [
     ...changes.map((i) => t(i.delta < 0 ? "FGT.TurnReport.Loses" : "FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId),
-      amount: Math.abs(i.delta),
+      // A Health figure, cloaked for a Faction that has not bought END (CL.pool, #404).
+      amount: cloakMark(i.unitId, "end", Math.abs(i.delta)),
       source: i.source ?? t("FGT.Revival.UnknownSource"),
     })),
     ...(fell ?? []).map((id) => t("FGT.TurnReport.Defeated", { who: nameOfUnit(id) })),
     ...heals.map((i) => t("FGT.TurnReport.Gains", {
-      who: nameOfUnit(i.unitId), amount: i.gave, source: i.source ?? t("FGT.Revival.UnknownSource"),
+      who: nameOfUnit(i.unitId), amount: cloakMark(i.unitId, "end", i.gave), source: i.source ?? t("FGT.Revival.UnknownSource"),
     })),
     ...ended.map((i) => t("FGT.TurnReport.ModeEnded", {
       ability: nameOfAbility(i.unitId, i.abilityId), who: nameOfUnit(i.unitId), source: i.source,

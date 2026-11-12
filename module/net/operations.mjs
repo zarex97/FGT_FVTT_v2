@@ -281,7 +281,8 @@ export const OPERATIONS = Object.freeze({
       const actor = unitActor(payload.unitId);
       if (!user || !actor) return { allowed: false, reason: "Unknown unit." };
       if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
-      return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+      // Never the actor's name: the refusal reaches a player who may not know who it is.
+      return { allowed: false, reason: `${user.name} does not control that Unit.` };
     },
     execute: async (payload) => {
       const { noteAct } = await import("../engine/intel.mjs");

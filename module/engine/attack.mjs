@@ -3721,6 +3721,8 @@ function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom,
       // as the card names the effect, "Soaked" (#258).
       purpose: `${shownName(attacker)}: ${(spec.source && EffectRegistry.get(spec.source)?.name) || spec.source || spec.label || "rider"} on ${shownName(defender)}`,
       actorId: state.attackerId,
+      // The ability whose die it is: a Faction that learned it reads the line (CL.name, #404).
+      abilityRef: spec.abilityId ?? null,
     });
   });
 }

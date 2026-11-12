@@ -15,7 +15,7 @@
         <li class="fgt-intel__unit {{#if selected}}is-selected{{/if}}" data-action="pick" data-unit="{{id}}">
           <img src="{{img}}" alt="">
           <span class="fgt-intel__unit-name">{{name}}</span>
-          <span class="fgt-intel__unit-intel">{{intel}}</span>
+          {{#unless ../off}}<span class="fgt-intel__unit-intel">{{intel}}</span>{{/unless}}
         </li>
       {{/each}}
     </ul>
@@ -38,7 +38,7 @@
         <div>
           <h2 class="fgt-intel__name">{{page.name}}</h2>
           <p class="fgt-intel__sub">{{page.kind}} · {{page.publicName}}</p>
-          {{#unless page.fallen}}<p class="fgt-intel__held">{{page.intelLabel}}</p>{{/unless}}
+          {{#if page.intelLabel}}<p class="fgt-intel__held">{{page.intelLabel}}</p>{{/if}}
           {{#if page.fallen}}<p class="fgt-intel__note">{{localize "FGT.Intel.FallenNote"}}</p>{{/if}}
         </div>
       </header>

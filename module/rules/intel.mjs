@@ -264,6 +264,21 @@ export function falseEntryValue(key, parameters, { baseAttackFor, maxHealthOf })
  * @param {(n: number) => number} pick
  * @returns {string|null}
  */
+/**
+ * Is a Section Complete for a Faction? Its mark says so and every ability the
+ * Unit holds in it now is known: an ability it gains later (a form, an Obtained
+ * or Stolen Skill) joins the draw and the mark drops, with no line said
+ * (SE.change.gain, SE.change.reopen). The one reader for the window and the buy.
+ *
+ * @param {{known?: string[], complete?: boolean}|null|undefined} mark
+ * @param {string[]} pool the content ids the Unit holds in that Section
+ * @returns {boolean}
+ */
+export function isSectionComplete(mark, pool) {
+  const known = mark?.known ?? [];
+  return Boolean(mark?.complete) && pool.every((id) => known.includes(id));
+}
+
 export function drawFrom(pool, known, pick) {
   const left = pool.filter((id) => !known.includes(id));
   if (left.length === 0) return null;

@@ -14,7 +14,7 @@ import { currentBoard, unitActor, factions } from "../engine/board.mjs";
 import { currentWar } from "../engine/war.mjs";
 import { intelOn, factionOfUser, notebookOf, stateOf } from "../engine/intel-store.mjs";
 import { buy, falseViewOf, hasFallen, hiddenFrom, knownNameOf } from "../engine/intel.mjs";
-import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, falseEntryValue, sectionOf, abilitySummary, DOSSIER_KINDS } from "../rules/intel.mjs";
+import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, falseEntryValue, sectionOf, abilitySummary, DOSSIER_KINDS, isSectionComplete } from "../rules/intel.mjs";
 import { baseAttackFor } from "../domain/base-attack.mjs";
 import { maxHealthFor } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -106,7 +106,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       const known = await this.#identity(actor, factionId, state, off, board);
       rows.push({
         id, name: known.name, img: known.img,
-        intel: state.dossiers[id]?.intel ?? 0,
+        // Off, no Intel is shown (WR.off.open).
+        intel: off ? null : (state.dossiers[id]?.intel ?? 0),
         fallen: hasFallen(actor),
         selected: id === this.unitId,
       });
@@ -182,7 +183,11 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       const shown = off ? inSection.map((i) => i.system?.contentId ?? i.id) : [...(mark.known ?? [])];
       const abilities = shown.map((cid) => {
         const item = items.find((i) => (i.system?.contentId ?? i.id) === cid) ?? null;
-        if (!item) return { tag: cid, noLongerHeld: true, lines: [] };
+        // Gone from its bearer: named as its Faction kept it, never by its id (SE.change.lose).
+        if (!item) {
+          const kept = dossier.abilities?.[cid] ?? {};
+          return { tag: kept.tag ?? t("FGT.Intel.GoneAbility"), name: kept.full ? (kept.name ?? null) : null, noLongerHeld: true, lines: [] };
+        }
         const full = off || Boolean(dossier.abilities?.[cid]?.full);
         const sum = abilitySummary(item, { effectName, isSpell: isSpellAbility });
         return {
@@ -198,7 +203,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         };
       });
       const isHidden = !off && hidden.sections.includes(key);
-      const complete = off || Boolean(mark.complete);
+      // Complete only while nothing it holds is left to draw (SE.change.reopen).
+      const complete = off || isSectionComplete(mark, inSection.map((i) => i.system?.contentId ?? i.id));
       return {
         key, price, abilities, complete,
         label: t(`FGT.Intel.Section.${key}`),
@@ -223,7 +229,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         ? [...(actor.system?.servantClasses ?? [])].map((c) => game.i18n.localize(`FGT.Class.${c}`)).join(" / ") || publicIdentityOf(actor, board).name
         : (falseView?.className ?? publicIdentityOf(actor, board).name),
       intel,
-      intelLabel: t("FGT.Intel.Held", { intel }),
+      // Off, no Intel is held to show (WR.off.open); fallen, none is held (FA.frozen).
+      intelLabel: off || fallen ? null : t("FGT.Intel.Held", { intel }),
       fallen,
       entries,
       sections,
