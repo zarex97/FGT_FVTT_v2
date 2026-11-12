@@ -1,9 +1,10 @@
 ---
 id: 2026-11-12-fallen-dossier-showed-banked-intel
 found: live press
-kind: producer-without-consumer
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A fallen Unit's Dossier is read-only with nothing to spend (FA.frozen).
 **Actual:** It printed the Intel banked on it.

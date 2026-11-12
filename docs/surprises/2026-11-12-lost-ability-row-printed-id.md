@@ -3,7 +3,8 @@ id: 2026-11-12-lost-ability-row-printed-id
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** An ability its bearer lost keeps its Entry, marked "no longer held" (SE.change.lose).
 **Actual:** The row read "achilles-heel No longer held": its content id.

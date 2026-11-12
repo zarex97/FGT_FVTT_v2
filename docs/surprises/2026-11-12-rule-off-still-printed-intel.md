@@ -1,9 +1,10 @@
 ---
 id: 2026-11-12-rule-off-still-printed-intel
 found: live press
-kind: producer-without-consumer
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** With the War Rule off every page is open, "with no Intel shown" (WR.off.open).
 **Actual:** The list and the page still printed each Unit's Intel ("Achilles 22").

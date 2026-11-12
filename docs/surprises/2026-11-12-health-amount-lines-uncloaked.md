@@ -3,7 +3,8 @@ id: 2026-11-12-health-amount-lines-uncloaked
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Every Health figure is cloaked to a Faction that has not bought END (CL.pool).
 **Actual:** "Ruler regains 40 Health" and "Rider loses 30 Health" read open to Player1; only `statChangeLine` was cloaked.

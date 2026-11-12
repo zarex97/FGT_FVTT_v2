@@ -3,7 +3,8 @@ id: 2026-11-12-window-brought-forward-before-render
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** `IntelWindow.open` renders and brings the window forward.
 **Actual:** It threw: `bringToFront` ran before the element existed.

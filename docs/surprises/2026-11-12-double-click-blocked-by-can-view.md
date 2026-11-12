@@ -3,7 +3,8 @@ id: 2026-11-12-double-click-blocked-by-can-view
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A double-click on an enemy token reaches `_onClickLeft2`, which opens its Dossier (DC.enemy).
 **Actual:** Nothing happened: Foundry's `_canView` asks LIMITED and stopped the click before `_onClickLeft2`.

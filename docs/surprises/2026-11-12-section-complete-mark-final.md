@@ -1,9 +1,10 @@
 ---
 id: 2026-11-12-section-complete-mark-final
 found: live press
-kind: write-before-store
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** An ability a Unit gains joins its Section's draw and drops a Complete mark (SE.change.reopen).
 **Actual:** Achilles's Active Skills, Complete, stayed Complete after he gained Golden Rule: no buy offered.

@@ -3,7 +3,8 @@ id: 2026-11-12-full-text-leaked-links-and-true-name
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A learned ability's full text reads as its sheet, with no identity the Faction lacks.
 **Actual:** Player1 read raw `@UUID[...]{label}` links and "Cannot be used if Achilles…" for an unknown bearer.

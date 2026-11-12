@@ -70,6 +70,7 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 | 29 | A Move crosses panels. Who witnesses it: who sees its start, its end, or any panel it passes? | Who sees its start **or** its end panel. | EA.see.moment |
 | 30 | Is earning said? A Faction does not otherwise know its Intel grew. | A card whispered to the Faction once per Turn, at the Turn's end, naming each Unit and its gain; nothing to any other Faction. | EA.card, EA.silent.other |
 | 31 | The War Rule switched mid-War, and a player with no Faction at migration | The Notebooks stay through a switch; a Faction-less player's Notebook is skipped and named to the GM. | WR.switch, ST.mig.none |
+| 32 | Found pressing: a Master has Health, Agility and Luck but no Parameters, so "the Stats it has" sold none of the three. | Each is sold at 4 by its own Entry, the pool shown with no Rank (ruled 2026-11-12, after the press). | PR.master |
 
 ## Built (2026-11-12)
 
@@ -230,7 +231,7 @@ Where the build departs from a word above, the Clause says so:
 - [x] **PR.cs** · A Master's Command Spells left, 4
 - [x] **PR.free** · Class, Faction and Unit kind are free and shown from the first sighting
 - [x] **PR.never** · The True Name, Sustainability and NP charges are never offered
-- [ ] **PR.master** · A Master's Dossier offers the Stats it has, and no Stat it lacks
+- [x] **PR.master** · A Master's Dossier offers the Stats it has, and no Stat it lacks; his Health, Agility and Luck, which have no Rank, are each sold at 4 by their own Entry (ruled 2026-11-12)
 
 ## Sections (Q13, Q21–Q24)
 
@@ -343,9 +344,9 @@ Where the build departs from a word above, the Clause says so:
 
 ## Live evidence
 
-Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 48–50), as Player1 (Faction 1) unless it says the GM, in Nocturne and in Classic. *Pressed* is a button or an engine call on the live board; *Observed* is read off a client; *Test* or *Read* names a Clause the board could not stage, with the test that pins it. Four stay open, unticked: MO.lancelot and FB.mib (no content in the repo), ST.private (a platform limit) and PR.master (a reading for the user).
+Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 48–50), as Player1 (Faction 1) unless it says the GM, in Nocturne and in Classic. *Pressed* is a button or an engine call on the live board; *Observed* is read off a client; *Test* or *Read* names a Clause the board could not stage, with the test that pins it. Three stay open, unticked: MO.lancelot and FB.mib (no content in the repo) and ST.private (a platform limit). PR.master was a reading, ruled after the press and pressed again.
 
-### Defects the press found, all fixed but the last two
+### Defects the press found, all fixed but the platform limit
 
 - The Intel tool missing from Token Controls until a reset; a double-click on an enemy stopped by Foundry's `_canView`; the window brought forward before it existed.
 - A learned ability's full text printing raw links and its unknown bearer's True Name; the Class line still false after the identity was known; a fallen Dossier showing its Intel.
@@ -354,7 +355,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - A Section's Complete mark read as final, so a gained ability could never be drawn (SE.change.reopen); a lost ability's row printing its content id (SE.change.lose).
 - The Turn report's and the heal line's Health amounts printed to every viewer (CL.pool).
 - **Open, platform**: Foundry delivers every document and every whisper to every client, so another Faction's Notebook is readable from a console (ST.private), as every enemy actor already is.
-- **Open, reading**: a Master has no Parameters, so his Health, Agility and Luck are never sold and his bars stay closed all War (PR.master).
+- **Reading, ruled 2026-11-12**: a Master has no Parameters, so his Health, Agility and Luck were never sold and his bars stayed closed all War (PR.master). Ruled (b): each is sold at 4 by its own Entry, the pool shown with no Rank.
 
 ### By Clause
 
@@ -463,7 +464,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - **PR.cs**: Pressed as Player1 (Faction 2's Master's Dossier, from the list: his token is outside Player1's Foundry vision): "Command Spells left · Buy (4)", bought: "Command Spells left 2", Intel 5 -> 1
 - **PR.free**: Pressed (nocturne): Achilles's Class ("Rider") and kind ("Servant") show with nothing bought
 - **PR.never**: Pressed (nocturne): no Entry offers his True Name, Sustainability or NP charges
-- **PR.master**: Observed: a Master's page offers MOV, Range, Attributes and Command Spells left, no STR/END/AGI/MAG/LUC Entry (he has no Parameters), no Region or Alignment. **Reading for the user**: a Master's Health, Agility and Luck pools are then never sold, so his bars and pool lines stay closed to enemies all War
+- **PR.master**: Pressed as Player1 after the ruling: Faction 2's Master's page offers END, AGI, LUC, MOV, Range (4), Attributes (1) and Command Spells left (4), no STR, MAG, Region or Alignment; END bought for 4 (5 -> 1) reads "Health 357/442" and his END opens for the bars and lines; test intel-399-400 PR.master. Before the ruling it offered no END/AGI/LUC
 - **SE.five**: Pressed (nocturne): the Dossier offers Spells, Active Skills, Passive Skills, Class Skills and Noble Phantasms
 - **SE.items**: Pressed (nocturne): and Items, "Learn one (4)" (reading 28)
 - **SE.spell**: Observed (live Items): Cú Chulainn's Rune Magic (active, `isSpell`) sits in Spells; `sectionOf` asks `isSpell` before `passive`, so a passive Spell does too (no passive Spell in this world)

@@ -3,7 +3,8 @@ id: 2026-11-12-roll-record-dropped-ability-ref
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A Faction that learned an ability reads its dice by name (CL.name).
 **Actual:** An ability's chance die read "Rider's ■■■" for good: only Instinct's wrapper carried `abilityRef`.

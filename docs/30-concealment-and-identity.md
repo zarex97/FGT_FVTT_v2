@@ -205,7 +205,7 @@ reaction and counter rungs, `fireAbilityUsed`, Command Spells); the GM writes, a
 (`intelAct`). The Turn's gains are whispered to the Faction at its end.
 
 **Buying.** Each Stat is an **Entry** (STR, END, AGI, MAG, LUC, MOV, Range: 4; Region, Attributes, Alignment: 1; a
-Master's Command Spells left: 4); END, AGI and LUC show their pools live. Abilities are bought by **Section** (Spells,
+Master's Command Spells left: 4); END, AGI and LUC show their pools live, and a Master, who has no Parameters, is sold each pool by its own Entry, with no Rank. Abilities are bought by **Section** (Spells,
 Active, Passive 8; Class Skills 6; NPs 32; Items 4): a draw opens one at random among those left, as its Public Tag
 and its shape, never its name; a draw that finds none marks the Section Complete, free. A Section is Complete only
 while its mark says so and every ability the Unit holds in it is known (`isSectionComplete`), so a gained ability

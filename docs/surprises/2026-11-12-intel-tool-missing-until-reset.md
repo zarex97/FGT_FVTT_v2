@@ -3,7 +3,8 @@ id: 2026-11-12-intel-tool-missing-until-reset
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** The Intel tool registered on `getSceneControlButtons` appears in Token Controls on load.
 **Actual:** Player1's Token Controls held no Intel tool until the controls were reset.

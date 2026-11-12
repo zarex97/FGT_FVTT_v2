@@ -1,9 +1,10 @@
 ---
 id: 2026-11-12-foundry-sends-every-document
 found: live press
-kind: claim-without-reading-the-path
+kind: assumed-shape
 status: wontfix
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A player of another Faction cannot open, read or receive a Notebook, "by window, journal or socket" (ST.private).
 **Actual:** Faction 2's Notebook journal (permission NONE) and its `intelState` flag sit in Player1's `game.journal`, as do 190 whispers not for him.
