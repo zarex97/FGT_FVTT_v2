@@ -21,6 +21,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { isSpellAbility } from "../rules/costs.mjs";
 import { abilityTag } from "../engine/public-ability.mjs";
+import { scrubbedText } from "../rules/public-ability.mjs";
 import { publicIdentityOf } from "../engine/public-identity.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 
@@ -134,9 +135,9 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async #identity(actor, factionId, state, off, board) {
     const knows = off || Boolean(state.dossiers[actor.id]?.identity) || Boolean(actor.system?.identityRevealed);
-    if (knows) return { name: actor.system?.trueName || actor.name, img: actor.img }; // fgt-name-ok: a Faction that knows the identity
+    if (knows) return { name: actor.system?.trueName || actor.name, img: actor.img, knowsIdentity: true }; // fgt-name-ok: a Faction that knows the identity
     const pub = publicIdentityOf(actor, board);
-    return { name: await knownNameOf(actor, factionId, board) || pub.name, img: pub.img };
+    return { name: await knownNameOf(actor, factionId, board) || pub.name, img: pub.img, knowsIdentity: false };
   }
 
   /**
@@ -187,7 +188,7 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
           tag: abilityTag(item),
           // fgt-name-ok: the name only where its Faction learned the full text
           name: full ? item.name : null,
-          text: full ? String(item.system?.description ?? "") : null,
+          text: full ? this.#fullText(item, actor, known.knowsIdentity) : null,
           activity: t(sum.passive ? "FGT.Intel.Summary.Passive" : "FGT.Intel.Summary.Active"),
           cooldown: sum.cooldown ? t("FGT.Intel.Summary.Cooldown", { cooldown: sum.cooldown }) : null,
           target: sum.target ? t("FGT.Intel.Summary.Target", { target: sum.target }) : null,
@@ -222,6 +223,21 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       entries,
       sections,
     };
+  }
+
+  /**
+   * An ability's full text as a Faction learned it (TN.full, AA.entry,
+   * FB.coerce.open): its links read as their labels, and its bearer's own names
+   * scrubbed out unless the Faction knows who it is, since *"Cannot be used if
+   * Achilles is affected…"* would tell it (found pressing, #405).
+   *
+   * @returns {string}
+   */
+  #fullText(item, actor, knowsIdentity) {
+    const raw = String(item.system?.description ?? "").replace(/@\w+\[[^\]]*\]\{([^}]*)\}/g, "$1");
+    if (knowsIdentity) return raw;
+    // fgt-name-ok: the bearer's names, read to be scrubbed out
+    return scrubbedText(raw, { names: [actor.system?.trueName, actor.name].filter(Boolean), rank: item.system?.rank ?? null });
   }
 
   /**
