@@ -603,8 +603,7 @@ export async function teachAbility(factionId, owner, item) {
  */
 export async function revealSkill(caster, target) {
   const factionId = caster?.system?.factionId ?? null;
-  // fgt-offer-ok: a Skill to describe, not to use; Coercion asks of every one the DU holds
-  const skills = [...(target?.items ?? [])].filter((i) => i.type === "ability" && i.system?.kind !== "classSkill");
+  const skills = [...(target?.items ?? [])].filter((i) => i.type === "ability" && i.system?.kind !== "classSkill"); // fgt-offer-ok: a Skill to describe, never to use
   if (!factionId || skills.length === 0) return [];
   const { chooseFor } = await import("./ask.mjs");
   const picked = await chooseFor(target, {
