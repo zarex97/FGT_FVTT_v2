@@ -603,6 +603,7 @@ export async function teachAbility(factionId, owner, item) {
  */
 export async function revealSkill(caster, target) {
   const factionId = caster?.system?.factionId ?? null;
+  // fgt-offer-ok: a Skill to describe, not to use; Coercion asks of every one the DU holds
   const skills = [...(target?.items ?? [])].filter((i) => i.type === "ability" && i.system?.kind !== "classSkill");
   if (!factionId || skills.length === 0) return [];
   const { chooseFor } = await import("./ask.mjs");
@@ -785,7 +786,9 @@ export async function askCamouflage(war = currentWar()) {
       parameters[key] = rank ?? actor.system?.parameters?.[key] ?? "E";
     }
     const className = game.i18n.localize(`FGT.Class.${cls}`);
-    await actor.update({ "system.falseInformation": { className, parameters }, "system.concealedIdentity": className });
+    const { applyWorldIntents } = await import("./applier.mjs");
+    const I = await import("./intents.mjs");
+    await applyWorldIntents([I.setCamouflage(actor.id, { className, parameters })], "camouflage");
     done.push(actor.id);
   }
   return done;

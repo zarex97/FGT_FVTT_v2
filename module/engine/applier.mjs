@@ -1312,6 +1312,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "markGlassGameSpent":
       await io.markGlassGameSpent(unitId);
       break;
+    case "setCamouflage":
+      await io.setCamouflage(unitId, intents[0].view);
+      break;
     case "suppressRule":
       await io.suppressRules(unitId, intents.map((i) => i.scope));
       break;

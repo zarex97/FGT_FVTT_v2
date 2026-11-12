@@ -22,7 +22,7 @@
 /** Every legal intent type. Anything else is a bug, not an extension point. */
 export const INTENT_TYPES = Object.freeze([
   "damage", "heal", "statDelta", "applyEffect", "removeEffect", "move",
-  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "markRoundState", "prompt", "log",
+  "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "setCamouflage", "resource", "cooldown", "spendCS", "markTurn", "markRoundState", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // An Attack Skill's count of uses that did not Crit (Yata Strike, #353).
@@ -162,6 +162,7 @@ const ORDER = Object.freeze({
   // After the rewind it records, so a failure part-way leaves the clause
   // unspent rather than spent-and-not-applied.
   markGlassGameSpent: 9,
+  setCamouflage: 9,
   dismissSummon: 9,
   // After the defeat it follows, the last thing done to a Unit on the board.
   clearBody: 9,
@@ -425,6 +426,17 @@ export const rewind = (unitId, state, { clearsDefeat = false } = {}) =>
  */
 export const markGlassGameSpent = (unitId) =>
   ({ t: "markGlassGameSpent", unitId });
+
+/**
+ * Camouflage's picks (#405, HE.setup): the false Class and Parameters her
+ * player chose at War setup, and the false Class as her public name.
+ *
+ * @param {string} unitId
+ * @param {{className: string, parameters: Record<string, string>}} view
+ * @returns {object}
+ */
+export const setCamouflage = (unitId, view) =>
+  ({ t: "setCamouflage", unitId, view });
 
 export const resource = (unitId, key, delta) =>
   ({ t: "resource", unitId, key, delta });
