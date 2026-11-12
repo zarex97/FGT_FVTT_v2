@@ -30,7 +30,7 @@ live evidence; a unit test is a guard, not evidence.
 
 ## Readings
 
-1–27 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whose rulings are the user's own. 28–31 are open.
+All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whose rulings are the user's own.
 
 | # | Question | Ruling | Clauses |
 |---|---|---|---|
@@ -62,9 +62,9 @@ live evidence; a unit test is a guard, not evidence.
 | 26 | A fallen Unit's Dossier | A final defeat clears the body a tick later (`io.clearBody`). The Dossier stays read-only in a **Fallen** list; no earning, no buying; its banked Intel is lost. | FA.* |
 | 27 | Delivery | This spec, ADR-0008, `CONTEXT.md`'s terms, then a map issue with one ticket per slice, built test-first and pressed as Player1 in both skins. | — |
 
-### Open readings (found writing the Clauses, put to the user 2026-11-12)
+### Readings found writing the Clauses (ruled 2026-11-12, as recommended)
 
-| # | Question | Recommended | Clauses |
+| # | Question | Ruling | Clauses |
 |---|---|---|---|
 | 28 | Items: Q7 priced them at 4 each, before Q13 made abilities Sections. Locked slots per Item would show how many a Unit holds. | A sixth Section, **Items**, 4 a draw. | SE.items |
 | 29 | A Move crosses panels. Who witnesses it: who sees its start, its end, or any panel it passes? | Who sees its start **or** its end panel. | EA.see.moment |
@@ -217,7 +217,7 @@ live evidence; a unit test is a guard, not evidence.
 ## Sections (Q13, Q21–Q24)
 
 - [ ] **SE.five** · A Servant's abilities sit in five Sections: Spells, Active Skills, Passive Skills, Class Skills, NPs
-- [ ] **SE.items** · …and its Items in a sixth, Items (reading 28, open)
+- [ ] **SE.items** · …and its Items in a sixth, Items (reading 28)
 - [ ] **SE.spell** · A Section of Spells is the `isSpell` family, active or passive
 - [ ] **SE.attackskill** · An Attack Skill is an Active Skill
 - [ ] **SE.price** · A draw costs 8 for Spells, Active Skills and Passive Skills, 6 for Class Skills, 32 for NPs, 4 for Items
