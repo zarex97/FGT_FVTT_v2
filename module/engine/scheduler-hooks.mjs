@@ -217,6 +217,11 @@ async function onTurnChange(combat, prior, current) {
   // ...and say what it did to anybody's Health (#190), heals included (#234),
   // and what its handlers landed (#202).
   await postTurnEndReport(turnIntents, clocks, healthTurn, undefined, landedTurn);
+  // What each Faction learned this Turn, told to it alone (#400, reading 30).
+  {
+    const { sayIntelGains } = await import("./intel.mjs");
+    await sayIntelGains(tick).catch((err) => console.error("FGT | Intel gains not said:", err));
+  }
 
   // The Ends pressed during this Turn by an owner whose Turn it was not
   // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*

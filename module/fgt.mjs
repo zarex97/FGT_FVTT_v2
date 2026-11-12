@@ -280,6 +280,16 @@ Hooks.once("ready", async () => {
   // token footprint, vision and rotation, faction ownership, derived fields,
   // Bloodmark sight, invalidation, forced modes and Presence Concealment's end.
   attachEngineListeners();
+  // The per-player Notebooks from before the Information System fold into
+  // their Faction's (#399, reading 19), once a War is on screen.
+  if (game.user.isGM) {
+    const fold = async () => {
+      const { foldPlayerNotebooks } = await import("./engine/intel-store.mjs");
+      await foldPlayerNotebooks().catch((err) => console.error("FGT | Notebook fold:", err));
+    };
+    void fold();
+    Hooks.on("canvasReady", () => void fold());
+  }
 
   // The listeners that only draw, bound after the engine's.
   // A client viewing a Level that is deleted goes where its selected token

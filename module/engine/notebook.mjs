@@ -1,15 +1,29 @@
 /**
- * @file A player's Notebook: what that player alone has learned.
- * @see docs/30-concealment-and-identity.md, docs/model/identity.md
+ * @file A player's Notebook: what that player's Faction has learned, page by page.
+ * @see docs/30-concealment-and-identity.md, docs/model/identity.md, module/engine/intel-store.mjs
  *
  * Layer 3. *"The information of that NP is copied to your Notebook"* (Gilles
- * (Caster) and Mozart's Appreciation of the Arts, #297). One Journal Entry per
- * player, owned by that player and by nobody else, one page per thing learned.
- * Identity today is one public `identityRevealed` flag per Unit; this is the
- * first knowledge one player holds and another does not.
+ * (Caster) and Mozart's Appreciation of the Arts, #297). Since the Information
+ * System (ADR-0008) what one player learns is their Faction's: a player's
+ * Notebook is their Faction's Notebook, one page per thing learned. A player
+ * in no Faction keeps a Journal Entry of their own, owned by them alone.
  */
 
+import { factionOfUser, ensureNotebook, notebookOf as factionNotebookOf } from "./intel-store.mjs";
+
 const FLAG = "notebook";
+
+/**
+ * The Notebook of the Faction a user plays, if it exists already: read, never
+ * made. A Notebook that does not exist holds nothing.
+ *
+ * @param {object} user
+ * @returns {object|null}
+ */
+function factionBookOf(user) {
+  const factionId = factionOfUser(user);
+  return factionId ? factionNotebookOf(factionId) : null;
+}
 
 /**
  * The player's Notebook, made the first time it is needed.
@@ -18,6 +32,14 @@ const FLAG = "notebook";
  * @returns {Promise<object>} the Journal Entry
  */
 export async function notebookOf(user) {
+  // The player's Faction's Notebook (ADR-0008, reading 1): what one player
+  // learns, the Faction knows. A player in no Faction keeps a Notebook of
+  // their own, as before.
+  const factionId = factionOfUser(user);
+  if (factionId) {
+    const book = await ensureNotebook(factionId);
+    if (book) return book;
+  }
   const held = (game.journal ?? []).find((j) => j.getFlag?.("fgt", FLAG) === user.id);
   if (held) return held;
   const OWNER = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
@@ -38,7 +60,7 @@ export async function notebookOf(user) {
  * @returns {boolean}
  */
 export function notebookHolds(user, key) {
-  const book = (game.journal ?? []).find((j) => j.getFlag?.("fgt", FLAG) === user?.id);
+  const book = factionBookOf(user) ?? (game.journal ?? []).find((j) => j.getFlag?.("fgt", FLAG) === user?.id);
   return [...(book?.pages ?? [])].some((p) => p.getFlag?.("fgt", "key") === key);
 }
 

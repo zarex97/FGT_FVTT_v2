@@ -189,6 +189,14 @@ export const WAR_RULES = Object.freeze([
     name: "FGT.Settings.ClosedInfo", hint: "FGT.Settings.ClosedInfoHint",
   },
   {
+    // The Information System (ADR-0008): every Unit's page starts hidden from
+    // every other Faction, which earns Intel by witnessing it act and spends it
+    // on its Dossier. Off is the tabletop's open page (reading 11). Not locked:
+    // a War switched off and on keeps its Notebooks (reading 31).
+    key: "informationSystem", type: "boolean", initial: true,
+    name: "FGT.Settings.InformationSystem", hint: "FGT.Settings.InformationSystemHint",
+  },
+  {
     // Ch. 21. Rule 1 -- the unit a Counter was aimed at never answers it -- is
     // not configurable. This governs only a bystander an AREA Counter caught.
     // `strict`: no Counter begins as the product of a Counter, so an exchange

@@ -269,6 +269,27 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * An act witnessed, for the Information System (#400). Written on the War's
+   * GM, who reads the board and pays each Faction that saw it. Authorized by the
+   * acting Unit's owner: a player reports what their own Unit did, and only
+   * Factions other than theirs are paid for it (`rules/intel.mjs#witnessesOf`).
+   */
+  intelAct: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = unitActor(payload.unitId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown unit." };
+      if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
+      return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+    },
+    execute: async (payload) => {
+      const { noteAct } = await import("../engine/intel.mjs");
+      const paid = await noteAct(payload);
+      return Object.fromEntries(paid);
+    },
+  },
+
+  /**
    * Place a Bloodmark (Medusa's Mark Action).
    *
    * Proxied because a Bloodmark is an Actor and a Token, which no player may

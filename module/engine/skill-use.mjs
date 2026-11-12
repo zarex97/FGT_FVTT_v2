@@ -276,7 +276,7 @@ export async function useSkill({
   if (combat?.started && !free) await budget.spend({ combat, unit: self, action: budgetAction });
   // What the use's own handlers did is a line on this card (#202): Magecraft's
   // extension of Suppression on a Spell was on no card (#243, live).
-  applied.push(...await fireAbilityUsed(actor, ability));
+  applied.push(...await fireAbilityUsed(actor, ability, { involvedIds: targets.units.map((t) => t.unitId) }));
   const broke = await rollConcealmentBreak(actor, ability, self);
   noteFact(record, "concealmentBroken", Boolean(broke.rolled && !broke.kept));
   if (failure) {
@@ -2812,8 +2812,16 @@ async function chooseSummonType(actor, spec) {
  * @param {object} ability
  * @returns {Promise<object[]>} the card lines its handlers left
  */
-export async function fireAbilityUsed(actor, ability) {
+export async function fireAbilityUsed(actor, ability, { involvedIds = [] } = {}) {
   const sink = [];
+  // Intel (#400): an active Skill or Spell pays 2, an NP 8; every Unit it
+  // targets or catches is involved (reading 5). A passive firing by itself
+  // never reaches here as a use.
+  if (ability && !ability.system?.passive) {
+    const isNP = ability.type === "noblePhantasm" || Boolean(ability.system?.isNP) || Boolean(ability.system?.categorizedAsNP);
+    const { noteActSafely } = await import("./intel.mjs");
+    await noteActSafely({ unitId: actor?.id, kind: isNP ? "np" : "skill", involvedIds });
+  }
   const board = currentBoard();
   const unit = unitOf(actor, board);
   const intents = fireEvent("abilityUsed", [unit], {

@@ -251,7 +251,9 @@ describe("Appreciation of the Arts (AA*, readings 14, 15)", () => {
       w.dice.every(16);
       await sterrennacht(w);
       expect(whispers(w).some((c) => c.includes("FGT.TrueName.Missed"))).toBe(true);
-      expect(w.journal.size).toBe(0);
+      // Nothing learned: no Notebook holds a page (a Faction's Notebook may
+      // exist for the Intel the NP paid, #400).
+      expect([...w.journal.values()].flatMap((j) => [...j.pages.values()])).toEqual([]);
     }, WAR);
   });
 

@@ -424,6 +424,14 @@ async function onMove(document, movement, operation) {
   const payer = actor.type === "platform" ? (partners.find((p) => p.kind !== "platform") ?? null) : unit;
   const payerMoved = actor.type === "platform" ? Boolean(payer?.turnState?.moved) : Boolean(state.moved);
   if (payer && !payerMoved) await budget.spend({ combat, unit: payer, action: "move" });
+  // Intel (#400): the Move is witnessed by whoever sees its start or its end
+  // (reading 29), and it is the payer's: a driven mount's Move is its rider's.
+  if (payer && canvas?.grid && movement?.origin && movement?.destination) {
+    const from = canvas.grid.getOffset(movement.origin);
+    const to = canvas.grid.getOffset(movement.destination);
+    const { noteActSafely } = await import("./intel.mjs");
+    void noteActSafely({ unitId: payer.id, kind: "move", panels: [{ i: from.i, j: from.j }, { i: to.i, j: to.j }] });
+  }
 
   Hooks.callAll("fgtUnitMoved", actor, { panels: spent, forced: false });
 
