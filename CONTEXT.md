@@ -328,7 +328,37 @@ The events counted during one activation of a Mode; a Mode may end when its Tall
 The moment at which an Ability may be used — the vocabulary that decides whether a reaction is
 legal now.
 
+## Knowledge
+
+**Notebook**:
+What one Faction knows of every Unit it does not own: its Dossiers. Owned by the Faction's players and the GM. On
+the tabletop, a player's private text; a sheet's *"Notebook page"* is a Unit's full page.
+_Avoid_: journal, player notebook
+
+**Dossier**:
+One Unit's page as one Faction knows it: the Intel banked on it, and its Entries, open or locked.
+_Avoid_: intel sheet, profile, notebook page
+
+**Entry**:
+One piece of a Dossier a Faction opens: a Stat, Region, Attributes, Alignment, Command Spells left, or one ability
+or Item drawn from a Section.
+_Avoid_: unlock, slot
+
+**Section**:
+A kind of ability (Spells, Active Skills, Passive Skills, Class Skills, NPs) a Faction buys from one at a time,
+drawn at random, never told how many remain until none do.
+_Avoid_: category, slot list
+
+**Intel**:
+What a Faction earns on one Unit by witnessing it act, and spends on that Unit's Entries. Never moves between Units.
+_Avoid_: info points, knowledge points
+
+**Witness**:
+A Faction one of whose Units sees an act or is involved in it. Earns on the act once, at the best of its Units.
+_Avoid_: observer, WU
+
 ## Combat
+
 
 **Combat Phase**:
 The whole exchange provoked by one declared attack, from declaration through to applied damage.
