@@ -280,6 +280,16 @@ Hooks.once("ready", async () => {
   // token footprint, vision and rotation, faction ownership, derived fields,
   // Bloodmark sight, invalidation, forced modes and Presence Concealment's end.
   attachEngineListeners();
+  // The per-player Notebooks from before the Information System fold into
+  // their Faction's (#399, reading 19), once a War is on screen.
+  if (game.user.isGM) {
+    const fold = async () => {
+      const { foldPlayerNotebooks } = await import("./engine/intel-store.mjs");
+      await foldPlayerNotebooks().catch((err) => console.error("FGT | Notebook fold:", err));
+    };
+    void fold();
+    Hooks.on("canvasReady", () => void fold());
+  }
 
   // The listeners that only draw, bound after the engine's.
   // A client viewing a Level that is deleted goes where its selected token
@@ -319,6 +329,12 @@ Hooks.once("ready", async () => {
   // Ch. 34: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
+  // The Intel window's tool in the Token Controls (#401).
+  {
+    const { attachIntelControls } = await import("./apps/intel-window.mjs");
+    attachIntelControls();
+    ui.controls?.render?.({ reset: true });
+  }
   // Ch. 23: one place that answers "what is the game waiting for me to do?" An
   // AoE already fans out to one ladder per defender, so a player with four
   // units can hold three prompts at once in a scrolling log.

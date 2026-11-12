@@ -109,6 +109,12 @@ export function registerSettings() {
     }), default: 0,
   });
 
+  // The GM's double-click on a token: the full sheet, or the Dossier of the
+  // Faction the Intel window reads (DC.gm, #401). Per client.
+  game.settings.register("fgt", "intelDoubleClickGM", {
+    scope: "client", config: true, name: "FGT.Settings.IntelDoubleClickGM",
+    hint: "FGT.Settings.IntelDoubleClickGMHint", type: Boolean, default: false,
+  });
   game.settings.register("fgt", "showDamagePreview", {
     scope: "client", config: true, name: "FGT.Settings.ShowDamagePreview", type: Boolean, default: true,
   });

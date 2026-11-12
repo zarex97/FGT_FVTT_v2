@@ -21,6 +21,7 @@
  * `deleteActiveEffect`, `updateItem`).
  */
 
+import { attachIntel } from "./intel.mjs";
 import { Scheduler } from "./scheduler-hooks.mjs";
 import { markEngineReady } from "./engine-ready.mjs";
 import { Hgob } from "./hgob.mjs";
@@ -117,6 +118,9 @@ export const ENGINE_LISTENERS = Object.freeze([
   // An aura that grants an effect keeps it on the Units it reaches: Karl's
   // Ceremonial Reformation (#351).
   { id: "auraGrants", attach: () => AuraGrants.attach() },
+  // The Information System: the knowledge a Faction keeps of a Unit that left
+  // it, and a viewer's names and faces asked again when its Notebook changes (#403).
+  { id: "intel", attach: attachIntel },
 ]);
 
 /**

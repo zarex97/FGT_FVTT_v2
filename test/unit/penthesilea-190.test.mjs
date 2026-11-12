@@ -154,7 +154,10 @@ describe("the Turn end says what it did to Health (#190)", () => {
         { t: "statDelta", unitId: "x", stat: "agility.value", delta: -1 }],
       (id) => (id === "m" ? "Her Master" : id), t,
     );
-    expect(card).toContain("FGT.TurnReport.Loses|Her Master|30|Mad Enhancement");
+    // The figure is a cloak mark the viewer's client opens (CL.pool, #404); open, the line reads as before.
+    const { openMarks } = await import("../../module/engine/intel.mjs");
+    expect(card).toContain("FGT.TurnReport.Loses|Her Master|⟦c|m|end|30⟧|Mad Enhancement");
+    expect(openMarks(card)).toContain("FGT.TurnReport.Loses|Her Master|30|Mad Enhancement");
     expect(card).not.toContain("agility");
     expect(turnEndCard([], (id) => id, t)).toBeNull();
   });

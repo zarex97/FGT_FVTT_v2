@@ -84,6 +84,7 @@ export function empty() {
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [], lethalCancels: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], barsRestore: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
+    hidesInformation: [], falseInformation: [], erasesInformation: [], trueNameShrouds: [],
     defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [], naturalTicks: [],
     attackAllowances: [], bansAlliedServantAttacks: [], attackNullifiers: [], attackRiders: [],
   };
@@ -2541,6 +2542,45 @@ export const EXECUTORS = Object.freeze({
       tags: [...(el.tags ?? [])],
       source,
     });
+  },
+
+  /**
+   * The Information System (#405, ADR-0008). Secret of Pedigree: *"all of her
+   * Notebook information excluding Parameters and Class Skills are hidden to all
+   * other Players"*, and her Health, Agility and Luck *"only exist in her
+   * Notebook Page"*. `buyable` names the Entries and Sections a Faction may still
+   * buy; `ranksOnly` the Stats it learns the Rank of and never the values.
+   */
+  HidesInformation(el, { source, out }) {
+    out.hidesInformation.push({
+      buyable: [...(el.buyable ?? [])],
+      ranksOnly: [...(el.ranksOnly ?? [])],
+      source,
+    });
+  },
+
+  /** Camouflage: her Class and Parameters show the false ones her player chose (HE.*). */
+  FalseInformation(_el, { source, out }) {
+    out.falseInformation.push({ source });
+  },
+
+  /** Information Erasure: leaving an enemy Unit's Detect erases its Faction's record of this Unit (JA.*). */
+  ErasesInformation(_el, { source, out }) {
+    out.erasesInformation.push({ source });
+  },
+
+  /**
+   * What True Name Discernment does against this Unit (Hassan of the
+   * Fathomless Rift's Shadow Lantern, Metatron Jeanne's 72 True Names). Its
+   * passive is `negated`; its active `negated`, or a `coin` whose Heads opens
+   * the seven Stats, which this Unit's Luck Check closes again.
+   */
+  TrueNameShroud(el, { source, out }) {
+    const passive = el.passive ?? "negated";
+    const active = el.active ?? "negated";
+    if (passive !== "negated") throw new RangeError(`TrueNameShroud: unknown passive "${passive}".`);
+    if (!["negated", "coin"].includes(active)) throw new RangeError(`TrueNameShroud: unknown active "${active}".`);
+    out.trueNameShrouds.push({ passive, active, source });
   },
 
   TerrainPenaltyImmunity(el, { out }) {

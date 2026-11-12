@@ -1977,7 +1977,7 @@ async function declareProcesses({
   // `abilitiesUsed` came to be recorded by half the game.
   if (ability && declaresUse) {
     const { fireAbilityUsed } = await import("./skill-use.mjs");
-    await fireAbilityUsed(attacker, ability);
+    await fireAbilityUsed(attacker, ability, { involvedIds: targetIds });
   }
   // An Attack resets a form's grown Range (#323 reading 19).
   if (declaresUse && attacker?.system?.formTaken) {
@@ -2304,6 +2304,9 @@ async function answerRung({ event, abilityId = null, placement = null }, message
 
       state = process.advance(state, "evade");
       state = process.advance(state, auto.success ? "success" : "fail", auto.outcome);
+      // Intel (#400): an automatic Evade that succeeds is an Evade seen; a
+      // failed automatic roll is no act of the defender's.
+      if (auto.success) await noteAutomaticEvade(state);
       if (auto.success) await fireEvadeSucceeded(state);
       // A failed Trofa was her Evade, and she may still Block (#193 reading 9):
       // the escape rung offers Block beside accepting, after Lucky Evasion.
@@ -2395,6 +2398,11 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       return state;
     }
     state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
+    // Intel (#400): a Counter is an act of the defender's; the attacker it answers is involved.
+    {
+      const { noteActSafely } = await import("./intel.mjs");
+      await noteActSafely({ unitId: state.defenderId, kind: "counter", involvedIds: [state.attackerId].filter(Boolean) });
+    }
   } else {
     // A Master cannot Evade an attack only its own check avoids, so its Evade
     // has failed the moment it answers: its Servants' shove comes now, before
@@ -2411,6 +2419,9 @@ async function answerRung({ event, abilityId = null, placement = null }, message
   }
   if (reacting && state.state !== "react") {
     await applyBatch([I.markTurn(reacting, { acted: true })], "reaction:acted");
+    // Intel (#400): an Evade or a Block, tried, is an act; its attacker is involved.
+    const { noteActSafely } = await import("./intel.mjs");
+    await noteActSafely({ unitId: reacting, kind: event, involvedIds: [state.attackerId].filter(Boolean) });
   }
 
   return closeRung(state, message);
@@ -3373,6 +3384,12 @@ async function fireAttackDeclared(state) {
   const board = currentBoard();
   const attacker = unitOf(unitActor(state.attackerId), board);
   const defender = state.defenderId ? unitOf(unitActor(state.defenderId), board) : null;
+  // Intel (#400): an Attack is an act, once a Turn, its defender involved. A
+  // Counter's own Process is the Counter's, paid at its rung, never an Attack.
+  if (attacker && !state.isCounter) {
+    const { noteActSafely } = await import("./intel.mjs");
+    await noteActSafely({ unitId: attacker.id, kind: "attack", involvedIds: defender ? [defender.id] : [] });
+  }
   if (!attacker || !defender) return;
 
   const intents = fireEvent("attackDeclared", [attacker], {
@@ -3704,6 +3721,8 @@ function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom,
       // as the card names the effect, "Soaked" (#258).
       purpose: `${shownName(attacker)}: ${(spec.source && EffectRegistry.get(spec.source)?.name) || spec.source || spec.label || "rider"} on ${shownName(defender)}`,
       actorId: state.attackerId,
+      // The ability whose die it is: a Faction that learned it reads the line (CL.name, #404).
+      abilityRef: spec.abilityId ?? null,
     });
   });
 }
@@ -9804,6 +9823,8 @@ async function instinctOf(state, defender) {
       actorId: defender.id,
     }),
     check: "instinct", target: chance, outcome: success ? "success" : "fail",
+    // Its ability, for the cloak (CL.name, #404).
+    abilityRef: auto.defId ?? null,
   };
   if (!success) return { ...state, rolls: rollLog.append(state.rolls ?? [], rollRecord) };
 
@@ -9812,8 +9833,21 @@ async function instinctOf(state, defender) {
     success: true, automatic: true, roll, total: roll, table: null, chance,
     modifiers: [{ source: auto.source ?? "Instinct", value: 0 }], rollRecord,
   });
+  await noteAutomaticEvade(out);
   await fireEvadeSucceeded(out);
   return out;
+}
+
+/**
+ * Intel (#400) for an Evade no player chose: Instinct, Trofa, a Dodge. Paid when
+ * it succeeds, the attacker involved; a chosen Evade is paid at its rung.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function noteAutomaticEvade(state) {
+  const { noteActSafely } = await import("./intel.mjs");
+  await noteActSafely({ unitId: state.defenderId, kind: "evade", involvedIds: [state.attackerId].filter(Boolean) });
 }
 
 /**

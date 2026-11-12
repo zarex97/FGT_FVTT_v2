@@ -10,6 +10,7 @@
 
 import { validate as validateIntents } from "../engine/intents.mjs";
 import { unitActor } from "../engine/board.mjs";
+import { factionOfUser } from "../engine/intel-store.mjs";
 
 /**
  * Which intents a user may ask the GM to apply.
@@ -265,6 +266,46 @@ export const OPERATIONS = Object.freeze({
     execute: async (payload) => {
       const { gather } = await import("../engine/gather.mjs");
       return gather({ actorId: payload.actorId, ownerId: payload.ownerId ?? null });
+    },
+  },
+
+  /**
+   * An act witnessed, for the Information System (#400). Written on the War's
+   * GM, who reads the board and pays each Faction that saw it. Authorized by the
+   * acting Unit's owner: a player reports what their own Unit did, and only
+   * Factions other than theirs are paid for it (`rules/intel.mjs#witnessesOf`).
+   */
+  intelAct: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = unitActor(payload.unitId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown unit." };
+      if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
+      // Never the actor's name: the refusal reaches a player who may not know who it is.
+      return { allowed: false, reason: `${user.name} does not control that Unit.` };
+    },
+    execute: async (payload) => {
+      const { noteAct } = await import("../engine/intel.mjs");
+      const paid = await noteAct(payload);
+      return Object.fromEntries(paid);
+    },
+  },
+
+  /**
+   * A buy from a Dossier (#402), for a player of the buying Faction. The GM
+   * spends that Faction's Intel; a player may spend only their own Faction's.
+   */
+  intelBuy: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (factionOfUser(user) !== payload.factionId) return { allowed: false, reason: `${user.name} does not play that Faction.` };
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload, userId) => {
+      const { buy } = await import("../engine/intel.mjs");
+      return buy({ ...payload, userId });
     },
   },
 

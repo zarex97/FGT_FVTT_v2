@@ -9,6 +9,7 @@
  * and a Unit's OWNER, never a teammate (rulings 53, 63, 64).
  */
 
+import { viewerKnowsIdentity } from "./intel.mjs";
 import { PUBLIC_TAG, publicTagOf, scrubbedText } from "../rules/public-ability.mjs";
 import { isIdentityRevealed } from "../rules/identity.mjs";
 import { currentWar, warRule } from "./war.mjs";
@@ -71,7 +72,10 @@ export function shownAbilityRank(item) {
 export function readsTruthOf(actor, user = game.user) {
   if (!actor) return false;
   if (user?.isGM || !warRule("closedInfo")) return true;
-  return Boolean(actor.testUserPermission?.(user, "OWNER"));
+  if (actor.testUserPermission?.(user, "OWNER")) return true;
+  // A Faction that witnessed its NP, or learned it otherwise, reads it too
+  // (ID.card, #403): the one reader is the Faction's Notebook.
+  return viewerKnowsIdentity(actor, user);
 }
 
 /**

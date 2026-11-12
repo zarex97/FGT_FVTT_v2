@@ -2058,6 +2058,8 @@ export function pendingRolls(unit, event) {
           // Whose die it is, for the card: the Divine Core's 5% read "Castor:
           // rider" (#209, live).
           source: handler.source ?? null,
+          // ...and its Item, for the cloak (CL.name, #404).
+          abilityId: handler.abilityId ?? null,
         });
       }
     }

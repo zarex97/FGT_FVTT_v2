@@ -1261,8 +1261,24 @@ export async function withWorld(own, fn) {
       const id = `journal${String(world.journal.size + 1).padStart(9, "0")}`;
       const pages = new DocumentCollection();
       const entry = {
-        id, name: data.name, ownership: { ...(data.ownership ?? {}) }, flags: data.flags ?? {}, pages,
+        id, name: data.name, ownership: { ...(data.ownership ?? {}) }, flags: structuredClone(data.flags ?? {}), pages,
         getFlag: (scope, key) => entry.flags?.[scope]?.[key],
+        // What a Faction's Notebook writes (`engine/intel-store.mjs`): flags by
+        // dotted path, its ownership whole.
+        async update(changes) {
+          for (const [path, value] of Object.entries(changes ?? {})) {
+            if (path === "ownership") { entry.ownership = { ...value }; continue; }
+            const keys = path.split(".");
+            let node = entry;
+            for (const k of keys.slice(0, -1)) node = (node[k] ??= {});
+            node[keys.at(-1)] = structuredClone(value);
+          }
+          return entry;
+        },
+        async delete() {
+          world.journal.delete(id);
+          return entry;
+        },
         async createEmbeddedDocuments(type, list) {
           if (type !== "JournalEntryPage") throw new Error(`A Journal Entry here creates pages only, not ${type}.`);
           return list.map((d) => {

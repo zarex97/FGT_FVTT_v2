@@ -1,0 +1,13 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: Hassan of the Fathomless Rift's Shadow Lantern, its Passive 3. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-lantern
+name: "Test Intel: Lantern"
+kind: skill
+passive: true
+rank: "B"
+slug: testIntelLantern
+description: "TEST SKILL (Passive). The Passive effects of True Name Discernment are negated against this Unit. Its Active effect flips a coin: Heads, the user sees this Unit's Stats & Parameters, unless this Unit succeeds a Luck Check."
+passiveRules:
+  - { key: TrueNameShroud, passive: negated, active: coin }

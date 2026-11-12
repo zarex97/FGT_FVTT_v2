@@ -1,18 +1,16 @@
 # Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 48-50.
 # Discussed: docs/45-case-studies.md
 #
-# The PASSIVE is deliberately not modelled, and this is the one place in Jack's
-# kit where that is the honest answer rather than a gap:
+# The PASSIVE was once left unmodelled, since what it erased was a player's
+# notes. The Information System (#405, ADR-0008) gave it a Notebook to clear:
 #
 #   "(Passive) Whenever Jack leaves the Detect area of an enemy Unit, erase all
 #    information recorded by that Player about Jack, if any had been recorded
 #    in the Player's Notebook (let the GM do this)."
 #
-# The clause's own text hands it to the GM, and what it erases lives outside
-# the game state entirely -- a human player's notes. There is no system value
-# to write. Ch. 45 files it under closed-information play; when that
-# arrives it will have a Notebook to clear, and this file will grow a rule.
-# Recorded here rather than left to look implemented.
+# `ErasesInformation`: leaving an enemy Unit's Detect takes that Unit's
+# Faction's whole record of Jack, its Intel and his identity with it (reading
+# 17, `engine/intel.mjs#eraseOnLeaving`).
 schema: 1
 id: jack-information-erasure
 name: "Information Erasure"
@@ -21,6 +19,8 @@ kind: skill
 slug: informationErasure
 cooldown: "4◈"
 timing: { window: ownTurn }
+passiveRules:
+  - key: ErasesInformation
 description: |
   (Passive) Whenever Jack leaves the Detect area of an enemy Unit, erase all information
   recorded by that Player about Jack, if any had been recorded in the Player's Notebook (let the

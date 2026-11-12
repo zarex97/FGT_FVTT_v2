@@ -25,12 +25,15 @@
 export function record({
   id, globalTurn = 0, entryId, formula, raw, total,
   modifiers = [], purpose = "", actorId = null,
-  visibility = "public", rerolledFrom = null, reason = null,
+  visibility = "public", rerolledFrom = null, reason = null, abilityRef = null,
 }) {
   return Object.freeze({
     id, globalTurn, entryId, formula, raw, total,
     modifiers: Object.freeze([...modifiers]),
     purpose, actorId, visibility, rerolledFrom, reason,
+    // The ability whose die it is, so a Faction that learned it reads the line
+    // (CL.name, #404). Null for a die no Item owns.
+    abilityRef,
   });
 }
 

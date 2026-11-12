@@ -1276,6 +1276,12 @@ export function worldIO() {
      * Spend The Queen's Glass Game's once-per-game rewind.
      * @param {string} unitId
      */
+    async setCamouflage(unitId, view) {
+      const actor = resolve(unitId);
+      if (!actor || !view?.parameters) return;
+      await actor.update({ "system.falseInformation": view, "system.concealedIdentity": view.className ?? "" });
+    },
+
     async markGlassGameSpent(unitId) {
       const actor = resolve(unitId);
       if (!actor) return;

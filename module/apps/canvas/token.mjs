@@ -31,6 +31,7 @@ import { seesThroughOwnField } from "../../rules/identity.mjs";
 import { markSeenBy } from "../../rules/bloodmarks.mjs";
 import { disguiseOf, seesTruth } from "../../rules/disguise.mjs";
 import { publicIdentityOf } from "../../engine/public-identity.mjs";
+import { viewerKnowsIdentity, viewerOpens } from "../../engine/intel.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -168,6 +169,45 @@ let followingDisguises = false;
 
 export class FGTToken extends Token {
   /**
+   * Whether a click may open what this token shows.
+   *
+   * @param {object} user
+   * @param {PIXI.FederatedEvent} event
+   * @returns {boolean}
+   * @override
+   */
+  _canView(user, event) {
+    // A Servant or Master the viewer cannot read still answers a double-click:
+    // it opens the Dossier, never the sheet (DC.enemy, #401). Foundry's own
+    // test asks LIMITED and stopped the click before `_onClickLeft2`.
+    if (super._canView(user, event)) return true;
+    const actor = this.actor;
+    return Boolean(actor && ["servant", "master"].includes(actor.type) && this.layer?.active
+      && !this.layer?._draggedToken && !canvas.controls?.ruler?.active);
+  }
+
+  /**
+   * Double-click: a Unit the viewer does not own opens its Dossier in the Intel
+   * window, never the sheet it may not read (DC.enemy, #401). The GM may have it
+   * do the same (DC.gm). Everything else is Foundry's.
+   *
+   * @param {PIXI.FederatedEvent} event
+   * @override
+   */
+  _onClickLeft2(event) {
+    const actor = this.actor;
+    const gmWants = game.user?.isGM && game.settings.get("fgt", "intelDoubleClickGM");
+    if (actor && (!actor.isOwner || gmWants) && ["servant", "master"].includes(actor.type)) {
+      event?.stopPropagation?.();
+      import("../intel-window.mjs").then(({ openDossierOnDoubleClick }) => {
+        if (!openDossierOnDoubleClick(this)) super._onClickLeft2(event);
+      });
+      return;
+    }
+    return super._onClickLeft2(event);
+  }
+
+  /**
    * Only the level being viewed accepts clicks.
    *
    * Overriding `isInteractable` rather than assigning `eventMode` from a hook
@@ -279,8 +319,12 @@ export class FGTToken extends Token {
     // The document is untouched, so every other client keeps its own answer
     // (#253 reading 12).
     const look = shownLook(this.actor);
-    if (look?.img && this.mesh && !this.mesh.destroyed) {
-      const texture = await foundry.canvas.loadTexture(look.img, { fallback: CONST.DEFAULT_TOKEN });
+    // ...or the true portrait, to a viewer whose Faction knows who it is
+    // (ID.token, #403): the document keeps its public face for everyone else.
+    const knownImg = !look && this.#knownPortrait();
+    const img = look?.img || knownImg;
+    if (img && this.mesh && !this.mesh.destroyed) {
+      const texture = await foundry.canvas.loadTexture(img, { fallback: CONST.DEFAULT_TOKEN });
       if (texture && this.mesh && !this.mesh.destroyed) {
         this.texture = texture;
         this.mesh.texture = texture;
@@ -307,8 +351,23 @@ export class FGTToken extends Token {
     // every other viewer reads the name the cards print (asked live
     // 2026-10-25: "when you hover on a non-owned token you see the public name").
     if (this.actor && !game.user?.isGM && !this.actor.isOwner) {
-      this.nameplate.text = publicIdentityOf(this.actor, currentBoard()).name || this.document.name;
+      // fgt-name-ok: the True Name only to a viewer whose Faction knows it (ID.tooltip, #403)
+      this.nameplate.text = (viewerKnowsIdentity(this.actor) ? (this.actor.system?.trueName || this.actor.name) : null)
+        || publicIdentityOf(this.actor, currentBoard()).name || this.document.name;
     }
+  }
+
+  /**
+   * The true portrait, for a viewer who knows this Unit but whose token shows
+   * its public face; null when the token already shows it, or the viewer does not know.
+   *
+   * @returns {string|null}
+   */
+  #knownPortrait() {
+    const actor = this.actor;
+    if (!actor || actor.type !== "servant" || game.user?.isGM || actor.isOwner) return null;
+    if (!actor.img || actor.img === this.document.texture?.src) return null;
+    return viewerKnowsIdentity(actor) ? actor.img : null;
   }
 
   /**
@@ -322,6 +381,13 @@ export class FGTToken extends Token {
    */
   _refreshState() {
     super._refreshState();
+    // An enemy's bars are hidden from a viewer whose Faction has not bought its
+    // END, and shown as Foundry says once it has (TB.hide, TB.show, #404).
+    const actor = this.actor;
+    if (this.bars && actor && !game.user?.isGM && !actor.isOwner && ["servant", "master"].includes(actor.type)
+      && !viewerOpens(actor.id, "end")) {
+      this.bars.visible = false;
+    }
     if (!this.nameplate || this.document.displayName !== CONST.TOKEN_DISPLAY_MODES.NONE) return;
     this.nameplate.visible = !this.document.isSecret
       && (this.hover || this.controlled || Boolean(this.layer?.highlightObjects));

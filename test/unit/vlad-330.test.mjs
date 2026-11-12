@@ -519,7 +519,9 @@ describe("Legend of Dracula (LD*; rulings 12-20)", () => {
       const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
       const d = currentBoard().units.find((u) => u.id === DR);
       const ctx = { tick: 18, board: currentBoard(), turnsPerRound: 3, options: new Set(["target:type:servant"]), rolls: {} };
-      const healRows = (lines) => lines.filter((l) => l.summary.id === "heal").map((l) => l.summary.name);
+      // Read open: the figure is a cloak mark the viewer's client opens (CL.pool, #404).
+      const { openMarks } = await import("../../module/engine/intel.mjs");
+      const healRows = (lines) => lines.filter((l) => l.summary.id === "heal").map((l) => openMarks(l.summary.name));
       // The test world's i18n returns the key; the line's words are its data.
       vi.spyOn(game.i18n, "format").mockImplementation((k, d = {}) =>
         (k === "FGT.TurnReport.Gains" ? `${d.who} regains ${d.amount} Health (${d.source}).` : k));

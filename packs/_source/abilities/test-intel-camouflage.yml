@@ -1,0 +1,13 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: Hephaestion Mnēmosynē's Camouflage. Staged so the Clause is pressed through the real
+# compile and projection before the Servant it stands for is audited.
+schema: 1
+id: test-intel-camouflage
+name: "Test Intel: Camouflage"
+kind: skill
+passive: true
+rank: "B"
+slug: testIntelCamouflage
+description: "TEST SKILL (Passive). Class and Parameters show the false ones chosen at War setup."
+passiveRules:
+  - key: FalseInformation

@@ -252,6 +252,11 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   ];
 
   const { lines = [] } = (await applyWorldIntents(intents, `commandSpell:${command.id}`, { lines: true })) ?? {};
+  // Intel (#400): a Command Spell is its Master's act (reading 5).
+  {
+    const { noteActSafely } = await import("./intel.mjs");
+    await noteActSafely({ unitId: masterId, kind: "commandSpell" });
+  }
   // A command's own phases, on the Servant it serves, once it is paid (Ch. 33:
   // validate, then pay, then apply): Summer Habetrot's Shisarot Form, its
   // Pretender picked and the Form landed, on a card of its own (#359).

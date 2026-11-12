@@ -383,13 +383,15 @@ describe("Legend of Dracula A+ (LD*)", () => {
       ];
       const pools = poolsBefore(batch);
       await applyWorldIntents(batch, "test");
-      expect(poolLinesAfter(pools).map((l) => [l.unitId, l.summary.name])).toEqual([[VB, "Agility 10 → 11"]]);
+      // As the GM reads it: a pool's figures are cloak marks for the rest (#404).
+      const { openMarks } = await import("../../module/engine/intel.mjs");
+      expect(poolLinesAfter(pools).map((l) => [l.unitId, openMarks(l.summary.name)])).toEqual([[VB, "Agility 10 → 11"]]);
       // A pool already at its maximum is not said.
       const full = poolsBefore([{ t: "statDelta", unitId: VB, stat: "agility.value", delta: 9 }]);
       await applyWorldIntents([{ t: "statDelta", unitId: VB, stat: "agility.value", delta: 9 }], "test");
       const after = poolsBefore([{ t: "statDelta", unitId: VB, stat: "agility.value", delta: 1 }]);
       await applyWorldIntents([{ t: "statDelta", unitId: VB, stat: "agility.value", delta: 1 }], "test");
-      expect(poolLinesAfter(full).map((l) => l.summary.name)).toEqual(["Agility 11 → 16"]);
+      expect(poolLinesAfter(full).map((l) => openMarks(l.summary.name))).toEqual(["Agility 11 → 16"]);
       expect(poolLinesAfter(after)).toEqual([]);
     }, war(6));
   });

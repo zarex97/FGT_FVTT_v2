@@ -105,7 +105,15 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { frame: false, positioned: false },
     // The turn panel's three controls sit beside the bar's own, because the
     // panel is now this bar's right-hand segment rather than a second window.
-    actions: { useSlot: ActionBar.onUseSlot, ...TURN_ACTIONS },
+    actions: {
+      useSlot: ActionBar.onUseSlot,
+      ...TURN_ACTIONS,
+      // The Intel window, from the bar (WI.open.bar, #401).
+      openIntel: async () => {
+        const { IntelWindow } = await import("../intel-window.mjs");
+        IntelWindow.open();
+      },
+    },
   };
 
   static PARTS = {

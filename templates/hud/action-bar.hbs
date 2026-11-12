@@ -13,6 +13,10 @@
     </div>
     <div class="fgt-actionbar__identity">
       <span class="fgt-actionbar__name">{{portrait.name}}</span>
+      <button type="button" class="fgt-actionbar__intel" data-action="openIntel"
+              data-tooltip="{{localize 'FGT.Intel.OpenHint'}}" aria-label="{{localize 'FGT.Intel.OpenHint'}}">
+        <i class="fa-solid fa-book-open"></i>
+      </button>
       {{#if portrait.subtitle}}<span class="fgt-actionbar__subtitle">{{portrait.subtitle}}</span>{{/if}}
       {{#if effects.length}}
         {{!-- What is on the Unit now, each with its picture; the corner
