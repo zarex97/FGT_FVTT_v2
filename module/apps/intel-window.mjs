@@ -216,7 +216,11 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       name: known.name,
       img: known.img,
       kind: t(`FGT.Intel.Kind.${actor.type}`),
-      publicName: falseView?.className ?? publicIdentityOf(actor, board).name,
+      // Its Class as the Faction knows it: the true one once it knows who the
+      // Unit is (HE.np), the false one Camouflage shows, else the public name.
+      publicName: known.knowsIdentity && actor.type === "servant"
+        ? [...(actor.system?.servantClasses ?? [])].map((c) => game.i18n.localize(`FGT.Class.${c}`)).join(" / ") || publicIdentityOf(actor, board).name
+        : (falseView?.className ?? publicIdentityOf(actor, board).name),
       intel,
       intelLabel: t("FGT.Intel.Held", { intel }),
       fallen,
