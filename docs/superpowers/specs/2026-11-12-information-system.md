@@ -26,7 +26,7 @@ watching a Unit act. ADR-0008 records the decision.
 **(UI)** is pressed in **both skins**, nocturne and classic, its evidence naming both. A Clause is ticked only on
 live evidence; a unit test is a guard, not evidence.
 
-**185 Clauses.** Slices of the build are on the map issue (#MAP).
+**185 Clauses.** Slices of the build are on the map issue (#398, slices #399–#405).
 
 ## Readings
 
