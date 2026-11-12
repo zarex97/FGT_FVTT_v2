@@ -168,6 +168,27 @@ let followingDisguises = false;
 
 export class FGTToken extends Token {
   /**
+   * Double-click: a Unit the viewer does not own opens its Dossier in the Intel
+   * window, never the sheet it may not read (DC.enemy, #401). The GM may have it
+   * do the same (DC.gm). Everything else is Foundry's.
+   *
+   * @param {PIXI.FederatedEvent} event
+   * @override
+   */
+  _onClickLeft2(event) {
+    const actor = this.actor;
+    const gmWants = game.user?.isGM && game.settings.get("fgt", "intelDoubleClickGM");
+    if (actor && (!actor.isOwner || gmWants) && ["servant", "master"].includes(actor.type)) {
+      event?.stopPropagation?.();
+      import("../intel-window.mjs").then(({ openDossierOnDoubleClick }) => {
+        if (!openDossierOnDoubleClick(this)) super._onClickLeft2(event);
+      });
+      return;
+    }
+    return super._onClickLeft2(event);
+  }
+
+  /**
    * Only the level being viewed accepts clicks.
    *
    * Overriding `isInteractable` rather than assigning `eventMode` from a hook

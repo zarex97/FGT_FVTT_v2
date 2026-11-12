@@ -196,3 +196,97 @@ describe("acts played through the engine (EA.attack, EA.evade)", () => {
     }, WAR);
   });
 });
+
+describe("buying (BU.*, PR.*, SE.*)", () => {
+  /** Faction A holds `intel` on Heracles. */
+  const bank = async (intel) => {
+    const { changeNotebook, emptyDossier } = await import("../../module/engine/intel-store.mjs");
+    await changeNotebook("A", (s) => { s.dossiers[HE] = { ...emptyDossier(), intel }; });
+  };
+
+  it("an Entry costs its price and opens; a second buy is refused (BU.pay, BU.again, PR.end)", async () => {
+    await withSubjects(scene, async () => {
+      await bank(5);
+      const { buy, notebookState } = await import("../../module/engine/intel.mjs");
+      expect(await buy({ factionId: "A", unitId: HE, entry: "end", userId: "p1" })).toMatchObject({ ok: true, price: 4 });
+      expect(notebookState("A").dossiers[HE]).toMatchObject({ intel: 1, open: { end: true } });
+      expect(await buy({ factionId: "A", unitId: HE, entry: "end" })).toMatchObject({ ok: false, reason: "open" });
+    }, WAR);
+  });
+
+  it("short of Intel: refused, nothing spent (BU.short)", async () => {
+    await withSubjects(scene, async () => {
+      await bank(3);
+      const { buy, notebookState } = await import("../../module/engine/intel.mjs");
+      expect(await buy({ factionId: "A", unitId: HE, entry: "str" })).toEqual({ ok: false, reason: "short", need: 4, held: 3 });
+      expect(notebookState("A").dossiers[HE].intel).toBe(3);
+    }, WAR);
+  });
+
+  it("two buys at once spend once each and never below 0 (BU.race)", async () => {
+    await withSubjects(scene, async () => {
+      await bank(6);
+      const { buy, notebookState } = await import("../../module/engine/intel.mjs");
+      const [a, b] = await Promise.all([
+        buy({ factionId: "A", unitId: HE, entry: "str" }),
+        buy({ factionId: "A", unitId: HE, entry: "mag" }),
+      ]);
+      expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
+      expect(notebookState("A").dossiers[HE].intel).toBe(2);
+    }, WAR);
+  });
+
+  it("a Section draw opens one ability, at random among those left; with none left it is Complete, free (SE.draw, SE.complete)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      await bank(100);
+      const { buy, notebookState } = await import("../../module/engine/intel.mjs");
+      const { sectionOf } = await import("../../module/rules/intel.mjs");
+      const { isSpellAbility } = await import("../../module/rules/costs.mjs");
+      const nps = [...w.actor(HE).items].filter((i) => sectionOf(i, isSpellAbility) === "nps").map((i) => i.system.contentId);
+      expect(nps.length).toBeGreaterThan(0);
+      for (let n = 0; n < nps.length; n++) {
+        expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: true, price: 32 });
+      }
+      expect([...notebookState("A").dossiers[HE].sections.nps.known].sort()).toEqual([...nps].sort());
+      const before = notebookState("A").dossiers[HE].intel;
+      expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: true, complete: true, price: 0 });
+      expect(notebookState("A").dossiers[HE].intel).toBe(before);
+      expect(await buy({ factionId: "A", unitId: HE, section: "nps" })).toMatchObject({ ok: false, reason: "complete" });
+    }, WAR);
+  });
+
+  it("a buy posts a card whispered to the Faction and the GM (BU.card)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      await bank(4);
+      const { buy } = await import("../../module/engine/intel.mjs");
+      await buy({ factionId: "A", unitId: HE, entry: "agi", userId: "p1" });
+      const card = [...w.messages.values()].find((m) => (m.flags ?? m.doc?.flags)?.fgt?.intelBuy === "A");
+      expect(card).toBeTruthy();
+      expect([...(card.whisper ?? card.doc?.whisper)].sort()).toEqual(["p1", "u1"]);
+    }, WAR);
+  });
+
+  it("what each Stat Entry shows (PR.str … PR.luc)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { entryValue, entriesOf } = await import("../../module/rules/intel.mjs");
+      const he = w.actor(HE);
+      expect(entriesOf(he)).toEqual(["str", "end", "agi", "mag", "luc", "mov", "range", "region", "attributes", "alignment"]);
+      expect(entryValue("end", he)).toMatchObject({ rank: he.system.parameters.end, value: he.system.health.value, max: he.system.health.max });
+      expect(entryValue("str", he)).toMatchObject({ rank: he.system.parameters.str, base: he.system.baseAttack.str });
+      expect(entryValue("end", he, { ranksOnly: true })).toEqual({ rank: he.system.parameters.end });
+    }, WAR);
+  });
+
+  it("an ability's summary names no name, Rank or text (SE.show.not)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { abilitySummary } = await import("../../module/rules/intel.mjs");
+      const { isSpellAbility } = await import("../../module/rules/costs.mjs");
+      for (const item of w.actor(HE).items) {
+        const sum = abilitySummary(item, { effectName: (id) => id, isSpell: isSpellAbility });
+        const text = JSON.stringify(sum);
+        expect(text).not.toContain(item.name);
+        if (item.system?.description) expect(text).not.toContain(String(item.system.description).slice(0, 30));
+      }
+    }, WAR);
+  });
+});

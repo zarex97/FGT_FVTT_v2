@@ -1,0 +1,88 @@
+<div class="fgt-intel">
+  <aside class="fgt-intel__list">
+    {{#if gm}}
+      <label class="fgt-intel__faction">
+        <span>{{localize "FGT.Intel.Faction"}}</span>
+        <select data-faction-pick>
+          {{#each factions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}
+        </select>
+      </label>
+    {{/if}}
+    {{#if off}}<p class="fgt-intel__note">{{localize "FGT.Intel.OffNote"}}</p>{{/if}}
+    {{#if none}}<p class="fgt-intel__note">{{localize "FGT.Intel.NoUnits"}}</p>{{/if}}
+    <ul class="fgt-intel__units">
+      {{#each living}}
+        <li class="fgt-intel__unit {{#if selected}}is-selected{{/if}}" data-action="pick" data-unit="{{id}}">
+          <img src="{{img}}" alt="">
+          <span class="fgt-intel__unit-name">{{name}}</span>
+          <span class="fgt-intel__unit-intel">{{intel}}</span>
+        </li>
+      {{/each}}
+    </ul>
+    {{#if fallen.length}}
+      <h3 class="fgt-intel__fallen-head">{{localize "FGT.Intel.Fallen"}}</h3>
+      <ul class="fgt-intel__units fgt-intel__units--fallen">
+        {{#each fallen}}
+          <li class="fgt-intel__unit is-fallen {{#if selected}}is-selected{{/if}}" data-action="pick" data-unit="{{id}}">
+            <img src="{{img}}" alt="">
+            <span class="fgt-intel__unit-name">{{name}}</span>
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+  </aside>
+  <section class="fgt-intel__page">
+    {{#if page}}
+      <header class="fgt-intel__head">
+        <img class="fgt-intel__portrait" src="{{page.img}}" alt="">
+        <div>
+          <h2 class="fgt-intel__name">{{page.name}}</h2>
+          <p class="fgt-intel__sub">{{page.kind}} · {{page.publicName}}</p>
+          <p class="fgt-intel__held">{{page.intelLabel}}</p>
+          {{#if page.fallen}}<p class="fgt-intel__note">{{localize "FGT.Intel.FallenNote"}}</p>{{/if}}
+        </div>
+      </header>
+      <div class="fgt-intel__entries">
+        {{#each page.entries}}
+          <div class="fgt-intel__entry {{#if open}}is-open{{else}}is-locked{{/if}}" data-entry-row="{{key}}">
+            <span class="fgt-intel__entry-label">{{label}}</span>
+            <span class="fgt-intel__entry-value">{{#unless open}}<i class="fa-solid fa-lock"></i> {{/unless}}{{text}}</span>
+            {{#unless open}}
+              {{#if hiddenReason}}
+                <button type="button" disabled data-tooltip="{{hiddenReason}}">{{buyLabel}}</button>
+              {{else}}
+                <button type="button" data-action="buyEntry" data-entry="{{key}}" {{#unless canBuy}}disabled{{/unless}} {{#if reason}}data-tooltip="{{reason}}"{{/if}}>{{buyLabel}}</button>
+              {{/if}}
+            {{/unless}}
+          </div>
+        {{/each}}
+      </div>
+      <div class="fgt-intel__sections">
+        {{#each page.sections}}
+          <div class="fgt-intel__section" data-section-row="{{key}}">
+            <header class="fgt-intel__section-head">
+              <span class="fgt-intel__section-label">{{label}}</span>
+              <span class="fgt-intel__section-known">{{knownLabel}}</span>
+              {{#if canBuy}}
+                <button type="button" data-action="buySection" data-section="{{key}}" {{#unless affordable}}disabled{{/unless}} {{#if reason}}data-tooltip="{{reason}}"{{/if}}>{{buyLabel}}</button>
+              {{else if hiddenReason}}
+                <button type="button" data-action="buySection" data-section="{{key}}" class="is-hidden" data-tooltip="{{hiddenReason}}">{{buyLabel}}</button>
+              {{/if}}
+            </header>
+            {{#each abilities}}
+              <article class="fgt-intel__ability {{#if noLongerHeld}}is-gone{{/if}}">
+                <h4><span class="fgt-intel__tag">{{tag}}</span>{{#if name}} {{name}}{{/if}}</h4>
+                {{#if noLongerHeld}}<p>{{localize "FGT.Intel.NoLongerHeld"}}</p>{{/if}}
+                {{#if text}}<p class="fgt-intel__full">{{text}}</p>{{/if}}
+                <p class="fgt-intel__meta">{{activity}}{{#if cooldown}} · {{cooldown}}{{/if}}{{#if target}} · {{target}}{{/if}}</p>
+                <ul>{{#each lines}}<li>{{this}}</li>{{/each}}</ul>
+              </article>
+            {{/each}}
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="fgt-intel__note">{{localize "FGT.Intel.Pick"}}</p>
+    {{/if}}
+  </section>
+</div>

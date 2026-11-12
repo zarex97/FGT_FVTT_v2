@@ -1930,3 +1930,118 @@
   0%, 100% { box-shadow: 0 0 4px var(--fgt-gold, #c9a227); }
   50% { box-shadow: 0 0 14px 3px var(--fgt-gold, #c9a227); }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  The Intel window (`apps/intel-window.mjs`, #401): Grail War Nocturne       */
+/* -------------------------------------------------------------------------- */
+
+.fgt-intel-window {
+  .window-content { padding: 0; }
+
+  .fgt-intel {
+    display: grid;
+    grid-template-columns: minmax(12rem, 15rem) 1fr;
+    height: 100%;
+    min-height: 0;
+    font-family: var(--fgt-font-body);
+    color: var(--fgt-ink);
+  }
+
+  .fgt-intel__list {
+    border-right: 1px solid var(--fgt-gold-line, var(--fgt-line));
+    background: var(--fgt-bg-sunken);
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .fgt-intel__faction { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; color: var(--fgt-ink-dim); }
+  .fgt-intel__note { margin: 0.25rem 0; font-style: italic; color: var(--fgt-ink-dim); font-size: 0.85rem; }
+  .fgt-intel__fallen-head { margin: 0.5rem 0 0; font-family: var(--fgt-font-display); font-size: 0.85rem; color: var(--fgt-ink-faint); letter-spacing: 0.08em; text-transform: uppercase; border: 0; }
+
+  .fgt-intel__units { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+  .fgt-intel__unit {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: var(--fgt-radius, 4px);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background var(--fgt-dur-state, 120ms) var(--fgt-ease-out, ease-out);
+
+    img { width: 2rem; height: 2rem; object-fit: cover; border-radius: 50%; border: 1px solid var(--fgt-gold-line, var(--fgt-line)); background: var(--fgt-portrait-bg, #000); }
+    &:hover { background: var(--fgt-bg-raised); }
+    &.is-selected { border-color: var(--fgt-gold); background: var(--fgt-bg-raised); }
+    &.is-fallen { opacity: 0.6; }
+  }
+  .fgt-intel__unit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fgt-intel__unit-intel { font-family: var(--fgt-font-num, inherit); color: var(--fgt-gold); font-size: 0.85rem; }
+
+  .fgt-intel__page { overflow-y: auto; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
+
+  .fgt-intel__head { display: flex; gap: 0.75rem; align-items: center; }
+  .fgt-intel__portrait { width: 4.5rem; height: 4.5rem; object-fit: cover; border-radius: 50%; border: 2px solid var(--fgt-gold); background: var(--fgt-portrait-bg, #000); flex: none; }
+  .fgt-intel__name { margin: 0; font-family: var(--fgt-font-display); color: var(--fgt-gold-hi, var(--fgt-gold)); border: 0; }
+  .fgt-intel__sub { margin: 0; color: var(--fgt-ink-dim); font-size: 0.85rem; }
+  .fgt-intel__held { margin: 0.15rem 0 0; color: var(--fgt-gold); font-family: var(--fgt-font-num, inherit); }
+
+  .fgt-intel__entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.35rem; }
+  .fgt-intel__entry {
+    display: grid;
+    grid-template-columns: 6rem 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--fgt-radius, 4px);
+    background: var(--fgt-bg-raised);
+    border: 1px solid var(--fgt-line);
+    min-height: 2.1rem;
+
+    &.is-locked .fgt-intel__entry-value { color: var(--fgt-ink-faint); }
+    &.is-open { border-color: var(--fgt-gold-line, var(--fgt-line)); }
+  }
+  .fgt-intel__entry-label { font-family: var(--fgt-font-display); color: var(--fgt-ink-dim); font-size: 0.85rem; }
+  .fgt-intel__entry-value { font-size: 0.85rem; overflow-wrap: anywhere; }
+
+  .fgt-intel__sections { display: flex; flex-direction: column; gap: 0.5rem; }
+  .fgt-intel__section { border: 1px solid var(--fgt-line); border-radius: var(--fgt-radius, 4px); padding: 0.4rem 0.6rem; background: var(--fgt-bg); }
+  .fgt-intel__section-head { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.5rem; }
+  .fgt-intel__section-label { font-family: var(--fgt-font-display); color: var(--fgt-gold); }
+  .fgt-intel__section-known { color: var(--fgt-ink-dim); font-size: 0.8rem; }
+
+  .fgt-intel__ability {
+    margin-top: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    border-left: 2px solid var(--fgt-gold-line, var(--fgt-line));
+    background: var(--fgt-bg-raised);
+    h4 { margin: 0 0 0.15rem; font-size: 0.9rem; border: 0; }
+    p, ul { margin: 0.1rem 0; font-size: 0.82rem; }
+    ul { padding-left: 1.1rem; }
+    &.is-gone { opacity: 0.55; }
+  }
+  .fgt-intel__tag { font-family: var(--fgt-font-num, monospace); color: var(--fgt-gold); letter-spacing: 0.05em; }
+  .fgt-intel__meta { color: var(--fgt-ink-dim); }
+  .fgt-intel__full { white-space: pre-line; }
+
+  button {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    padding: 0.1rem 0.5rem;
+    white-space: nowrap;
+    &[disabled], &.is-hidden { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+.fgt-actionbar__intel {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1;
+  padding: 0;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+}

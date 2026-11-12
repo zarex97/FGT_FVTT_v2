@@ -329,6 +329,12 @@ Hooks.once("ready", async () => {
   // Ch. 34: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
+  // The Intel window's tool in the Token Controls (#401).
+  {
+    const { attachIntelControls } = await import("./apps/intel-window.mjs");
+    attachIntelControls();
+    ui.controls?.render?.();
+  }
   // Ch. 23: one place that answers "what is the game waiting for me to do?" An
   // AoE already fans out to one ladder per defender, so a player with four
   // units can hold three prompts at once in a scrolling log.

@@ -10,6 +10,7 @@
 
 import { validate as validateIntents } from "../engine/intents.mjs";
 import { unitActor } from "../engine/board.mjs";
+import { factionOfUser } from "../engine/intel-store.mjs";
 
 /**
  * Which intents a user may ask the GM to apply.
@@ -286,6 +287,24 @@ export const OPERATIONS = Object.freeze({
       const { noteAct } = await import("../engine/intel.mjs");
       const paid = await noteAct(payload);
       return Object.fromEntries(paid);
+    },
+  },
+
+  /**
+   * A buy from a Dossier (#402), for a player of the buying Faction. The GM
+   * spends that Faction's Intel; a player may spend only their own Faction's.
+   */
+  intelBuy: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (factionOfUser(user) !== payload.factionId) return { allowed: false, reason: `${user.name} does not play that Faction.` };
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload, userId) => {
+      const { buy } = await import("../engine/intel.mjs");
+      return buy({ ...payload, userId });
     },
   },
 

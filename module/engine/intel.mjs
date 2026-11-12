@@ -17,7 +17,7 @@ import { changeNotebook, emptyDossier, intelOn, notebookOf, playersOf, stateOf }
 
 /**
  * A Unit's name as one Faction knows it: its True Name once the Faction knows
- * its identity (`identityKnownBy`, or the public flag), its public name else.
+ * its identity (its Notebook's Dossier, or the public flag), its public name else.
  *
  * @param {object|null} actor
  * @param {string} factionId
@@ -27,8 +27,10 @@ import { changeNotebook, emptyDossier, intelOn, notebookOf, playersOf, stateOf }
 export async function knownNameOf(actor, factionId, board = currentBoard()) {
   if (!actor) return "";
   const { publicIdentityOf } = await import("./public-identity.mjs");
+  // What the Faction knows is in its own Notebook (ID.store): a list on the
+  // actor would tell every client which Factions know.
   const known = Boolean(actor.system?.identityRevealed)
-    || [...(actor.system?.identityKnownBy ?? [])].includes(factionId);
+    || Boolean(stateOf(notebookOf(factionId)).dossiers[actor.id]?.identity);
   // fgt-name-ok: the True Name goes only to a Faction that knows it
   return known ? (actor.system?.trueName || actor.name) : publicIdentityOf(actor, board).name;
 }
@@ -130,4 +132,119 @@ export async function sayIntelGains(tick, war = currentWar()) {
 /** For a test or the window: a Faction's Notebook state, read. */
 export function notebookState(factionId, war = currentWar()) {
   return stateOf(notebookOf(factionId, war));
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Buying (#402)                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Has this Unit's body left the board? A final defeat clears it a tick later
+ * (`io.clearBody`), and its Dossier is then read-only (reading 26).
+ *
+ * @param {object|null} actor
+ * @returns {boolean}
+ */
+export function hasFallen(actor) {
+  if (!actor?.system?.defeated) return false;
+  const scene = canvas?.scene ?? null;
+  return !(scene?.tokens?.contents ?? []).some((t) => t.actorId === actor.id);
+}
+
+/**
+ * What a Faction may not buy of a Unit, and why: filled by the sheets that hide
+ * a page (Mordred's Secret of Pedigree, #405). Section and Entry keys.
+ *
+ * @param {object} _actor
+ * @returns {{entries: string[], sections: string[], ranksOnly: string[]}}
+ */
+export function hiddenFrom(_actor) {
+  return { entries: [], sections: [], ranksOnly: [] };
+}
+
+/**
+ * Buy one Entry or one draw of a Section of a Unit's Dossier, for a Faction,
+ * from the Intel banked on that Unit (`BU.*`). Runs on the War's GM; a player's
+ * press arrives by socket (`OPERATIONS.intelBuy`).
+ *
+ * @param {object} args
+ * @param {string} args.factionId
+ * @param {string} args.unitId
+ * @param {string|null} [args.entry] a key of `ENTRY_PRICES`
+ * @param {string|null} [args.section] a key of `SECTIONS`
+ * @param {string|null} [args.userId] who pressed it, for the card
+ * @returns {Promise<{ok: boolean, reason?: string, need?: number, held?: number, drawn?: string|null, complete?: boolean, price?: number}>}
+ */
+export async function buy({ factionId, unitId, entry = null, section = null, userId = null }) {
+  const war = currentWar();
+  if (!war || !intelOn(war)) return { ok: false, reason: "off" };
+  if (!isWarGM(war)) {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    return FGTSocket.request("intelBuy", { factionId, unitId, entry, section });
+  }
+  const actor = unitActor(unitId);
+  if (!actor || !factionId) return { ok: false, reason: "unknown" };
+  if (hasFallen(actor)) return { ok: false, reason: "fallen" };
+  const { ENTRY_PRICES, entriesOf, sectionPrice, sectionOf, drawFrom } = await import("../rules/intel.mjs");
+  const { isSpellAbility } = await import("../rules/costs.mjs");
+  const hidden = hiddenFrom(actor);
+
+  let price;
+  let pool = [];
+  if (entry) {
+    if (!entriesOf(actor).includes(entry)) return { ok: false, reason: "unknown" };
+    if (hidden.entries.includes(entry)) return { ok: false, reason: "hidden" };
+    price = ENTRY_PRICES[entry];
+  } else if (section) {
+    price = sectionPrice(section);
+    if (price === null) return { ok: false, reason: "unknown" };
+    if (hidden.sections.includes(section)) return { ok: false, reason: "hidden" };
+    pool = [...(actor.items ?? [])].filter((i) => sectionOf(i, isSpellAbility) === section)
+      .map((i) => i.system?.contentId ?? i.id);
+  } else return { ok: false, reason: "unknown" };
+
+  // The draw's die, cast before the queue: what is left is read again inside.
+  const before = stateOf(notebookOf(factionId, war)).dossiers[unitId];
+  const knownBefore = before?.sections?.[section]?.known ?? [];
+  const leftBefore = pool.filter((id) => !knownBefore.includes(id)).length;
+  const face = section && leftBefore > 0 ? (await new Roll(`1d${leftBefore}`).evaluate()).total - 1 : 0;
+
+  const result = await changeNotebook(factionId, (state) => {
+    const dossier = state.dossiers[unitId];
+    if (!dossier) return { ok: false, reason: "noDossier" };
+    if (entry && dossier.open?.[entry]) return { ok: false, reason: "open" };
+    if (section && dossier.sections?.[section]?.complete) return { ok: false, reason: "complete" };
+    const known = dossier.sections?.[section]?.known ?? [];
+    const drawn = section ? drawFrom(pool, known, () => face) : null;
+    // A draw that finds nothing left costs nothing, and the Section is Complete.
+    if (section && !drawn) {
+      dossier.sections = { ...dossier.sections, [section]: { known, complete: true } };
+      return { ok: true, complete: true, drawn: null, price: 0 };
+    }
+    if ((dossier.intel ?? 0) < price) return { ok: false, reason: "short", need: price, held: dossier.intel ?? 0 };
+    dossier.intel -= price;
+    if (entry) dossier.open = { ...dossier.open, [entry]: true };
+    else dossier.sections = { ...dossier.sections, [section]: { known: [...known, drawn], complete: false } };
+    return { ok: true, drawn, price };
+  }, war) ?? { ok: false, reason: "noDossier" };
+
+  if (result.ok) await sayPurchase({ factionId, actor, entry, section, result, userId, war });
+  return result;
+}
+
+/**
+ * The buy's card, whispered to the Faction and the GM (`BU.card`).
+ *
+ * @returns {Promise<void>}
+ */
+async function sayPurchase({ factionId, actor, entry, section, result, userId, war }) {
+  const escape = foundry.utils.escapeHTML;
+  const name = escape(await knownNameOf(actor, factionId));
+  const buyer = escape(game.users.get(userId)?.name ?? game.i18n.localize("FGT.Intel.TheFaction"));
+  const what = game.i18n.localize(entry ? `FGT.Intel.Entry.${entry}` : `FGT.Intel.Section.${section}`);
+  const line = result.complete
+    ? game.i18n.format("FGT.Intel.SectionComplete", { name, section: what })
+    : game.i18n.format("FGT.Intel.Bought", { buyer, what, name, price: result.price });
+  const whisper = [...playersOf(factionId, war), ...game.users.filter((u) => u.isGM).map((u) => u.id)];
+  await ChatMessage.create({ content: `<div class="fgt-card fgt-card--intel"><p>${line}</p></div>`, whisper, flags: { fgt: { intelBuy: factionId } } });
 }
