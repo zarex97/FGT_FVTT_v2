@@ -59,8 +59,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   static open(unitId = null) {
     const app = foundry.applications.instances.get("fgt-intel") ?? new IntelWindow();
     if (unitId) app.unitId = unitId;
-    app.render({ force: true });
-    app.bringToFront?.();
+    // Brought forward once drawn: before its first render it has no element.
+    void app.render({ force: true }).then(() => { if (app.element) app.bringToFront?.(); });
     return app;
   }
 

@@ -169,6 +169,24 @@ let followingDisguises = false;
 
 export class FGTToken extends Token {
   /**
+   * Whether a click may open what this token shows.
+   *
+   * @param {object} user
+   * @param {PIXI.FederatedEvent} event
+   * @returns {boolean}
+   * @override
+   */
+  _canView(user, event) {
+    // A Servant or Master the viewer cannot read still answers a double-click:
+    // it opens the Dossier, never the sheet (DC.enemy, #401). Foundry's own
+    // test asks LIMITED and stopped the click before `_onClickLeft2`.
+    if (super._canView(user, event)) return true;
+    const actor = this.actor;
+    return Boolean(actor && ["servant", "master"].includes(actor.type) && this.layer?.active
+      && !this.layer?._draggedToken && !canvas.controls?.ruler?.active);
+  }
+
+  /**
    * Double-click: a Unit the viewer does not own opens its Dossier in the Intel
    * window, never the sheet it may not read (DC.enemy, #401). The GM may have it
    * do the same (DC.gm). Everything else is Foundry's.

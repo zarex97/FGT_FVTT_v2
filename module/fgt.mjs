@@ -333,7 +333,7 @@ Hooks.once("ready", async () => {
   {
     const { attachIntelControls } = await import("./apps/intel-window.mjs");
     attachIntelControls();
-    ui.controls?.render?.();
+    ui.controls?.render?.({ reset: true });
   }
   // Ch. 23: one place that answers "what is the game waiting for me to do?" An
   // AoE already fans out to one ladder per defender, so a player with four
