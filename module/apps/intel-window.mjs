@@ -153,7 +153,8 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     const hidden = hiddenFrom(actor);
     // Camouflage: the false Class and Ranks, to a Faction that does not know her (HE.*).
     const falseView = falseViewOf(actor, factionId);
-    const intel = dossier.intel ?? 0;
+    // A fallen Unit's banked Intel is lost (FA.lost).
+    const intel = fallen ? 0 : (dossier.intel ?? 0);
     const t = (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k));
     const canSpend = (price) => !off && !fallen && intel >= price;
     const reasonFor = (price) => (fallen ? t("FGT.Intel.FallenNote") : (intel < price ? t("FGT.Intel.Short", { need: price, held: intel }) : null));

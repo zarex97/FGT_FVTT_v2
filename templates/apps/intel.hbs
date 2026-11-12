@@ -38,7 +38,7 @@
         <div>
           <h2 class="fgt-intel__name">{{page.name}}</h2>
           <p class="fgt-intel__sub">{{page.kind}} · {{page.publicName}}</p>
-          <p class="fgt-intel__held">{{page.intelLabel}}</p>
+          {{#unless page.fallen}}<p class="fgt-intel__held">{{page.intelLabel}}</p>{{/unless}}
           {{#if page.fallen}}<p class="fgt-intel__note">{{localize "FGT.Intel.FallenNote"}}</p>{{/if}}
         </div>
       </header>
