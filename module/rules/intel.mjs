@@ -181,8 +181,8 @@ export function sectionOf(item, isSpell) {
 
 /**
  * The single Entries a Unit's Dossier offers: the Stats it has, Region,
- * Attributes and Alignment for a Servant, Command Spells for a Master
- * (`PR.*`, `PR.master`). Class, Faction and kind are free (`PR.free`); the True
+ * Attributes and Alignment for a Servant, Command Spells for a Master, and a
+ * Master's Health, Agility and Luck pools, which have no Rank (`PR.*`, `PR.master`). Class, Faction and kind are free (`PR.free`); the True
  * Name, Sustainability and NP charges are never offered (`PR.never`).
  *
  * @param {object} actor
@@ -192,7 +192,12 @@ export function entriesOf(actor) {
   const sys = actor?.system ?? {};
   const params = sys.parameters ?? {};
   const out = [];
-  for (const key of ["str", "end", "agi", "mag", "luc"]) if (params[key]) out.push(key);
+  // A Master has no Parameters but has Health, Agility and Luck: each sold by its
+  // own Entry, its pool shown with no Rank (PR.master, ruled 2026-11-12).
+  const pools = { end: sys.health, agi: sys.agility, luc: sys.luck };
+  for (const key of ["str", "end", "agi", "mag", "luc"]) {
+    if (params[key] || (actor?.type === "master" && pools[key] && typeof pools[key].max === "number")) out.push(key);
+  }
   if (typeof sys.mov === "number") out.push("mov");
   if (sys.range) out.push("range");
   if (actor?.type === "servant") out.push("region", "attributes", "alignment");

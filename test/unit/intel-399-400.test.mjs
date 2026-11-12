@@ -302,6 +302,17 @@ describe("buying (BU.*, PR.*, SE.*)", () => {
     }, WAR);
   });
 
+  it("a Master sells his Health, Agility and Luck by their own Entries, with no Rank (PR.master, ruled 2026-11-12)", async () => {
+    // Live: with no Parameters, his pools were never sold and his bars stayed closed all War.
+    await withSubjects([{ from: "master-advanced", id: "mas", panel: { i: 5, j: 4 }, state: { factionId: "B" } }], async ({ world: w }) => {
+      const { entryValue, entriesOf } = await import("../../module/rules/intel.mjs");
+      const m = w.actor("mas");
+      expect(entriesOf(m)).toEqual(["end", "agi", "luc", "mov", "range", "attributes", "commandSpells"]);
+      expect(entryValue("end", m)).toMatchObject({ rank: null, value: m.system.health.value, max: m.system.health.max });
+      expect(entryValue("luc", m)).toMatchObject({ rank: null, value: m.system.luck.value, max: m.system.luck.max });
+    }, WAR);
+  });
+
   it("what each Stat Entry shows (PR.str … PR.luc)", async () => {
     await withSubjects(scene, async ({ world: w }) => {
       const { entryValue, entriesOf } = await import("../../module/rules/intel.mjs");
