@@ -13,7 +13,7 @@
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { currentWar, isWarGM } from "./war.mjs";
 import { witnessesOf, payAct } from "../rules/intel.mjs";
-import { changeNotebook, emptyDossier, intelOn, notebookOf, playersOf, stateOf } from "./intel-store.mjs";
+import { changeNotebook, emptyDossier, factionOfUser, intelOn, notebookOf, playersOf, stateOf } from "./intel-store.mjs";
 
 /**
  * A Unit's name as one Faction knows it: its True Name once the Faction knows
@@ -62,17 +62,72 @@ export async function noteAct({ unitId, kind, involvedIds = [], panels = null })
   const tick = currentMoment().tick ?? war.system?.globalTurn ?? 0;
   const earned = witnessesOf({ actor, board, kind, involvedIds, panels });
   for (const [factionId, value] of earned) {
+    let revealed = false;
     const got = await changeNotebook(factionId, (state) => {
       const { ledger, paid: due } = payAct(state.ledger, { tick, unitId, kind, value });
       state.ledger = ledger;
       const dossier = state.dossiers[unitId] ?? emptyDossier();
       dossier.intel = (dossier.intel ?? 0) + due;
+      // An NP witnessed reveals its user to this Faction: its True Name, and
+      // its seven Stats, Region and Attributes, free (reading 6).
+      if (kind === "np") {
+        revealed = !dossier.identity;
+        dossier.identity = true;
+        dossier.open = { ...dossier.open, ...Object.fromEntries(NP_REVEALS.map((k) => [k, true])) };
+      }
       state.dossiers[unitId] = dossier;
       return due;
     }, war);
     if (got) paid.set(factionId, got);
+    if (revealed) await sayReveal(factionId, unitId, war);
   }
   return paid;
+}
+
+/** What an NP witnessed opens for free (reading 6). */
+const NP_REVEALS = Object.freeze(["str", "end", "agi", "mag", "luc", "mov", "range", "region", "attributes"]);
+
+/**
+ * The reveal, said to the Faction that witnessed it alone (`NP.card`).
+ *
+ * @param {string} factionId
+ * @param {string} unitId
+ * @param {object} war
+ * @returns {Promise<void>}
+ */
+async function sayReveal(factionId, unitId, war) {
+  const actor = unitActor(unitId);
+  if (!actor) return;
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const escape = foundry.utils.escapeHTML;
+  const line = game.i18n.format("FGT.Intel.Revealed", {
+    name: escape(publicIdentityOf(actor, currentBoard()).name),
+    // fgt-name-ok: whispered to the Faction that witnessed the NP, which now knows it
+    trueName: escape(actor.system?.trueName || actor.name),
+  });
+  const whisper = [...playersOf(factionId, war), ...game.users.filter((u) => u.isGM).map((u) => u.id)];
+  await ChatMessage.create({ content: `<div class="fgt-card fgt-card--intel"><p>${line}</p></div>`, whisper, flags: { fgt: { intelReveal: factionId } } });
+}
+
+/**
+ * Does this viewer know this Unit's identity? Its owner and the GM do; with the
+ * Information System off, the public flag decides (WR.off.id); else the
+ * viewer's Faction's Notebook does (ID.store). The one reader for cards, tokens
+ * and the window.
+ *
+ * @param {object|null} actor
+ * @param {object} [user]
+ * @returns {boolean}
+ */
+export function viewerKnowsIdentity(actor, user = game.user) {
+  if (!actor) return false;
+  if (user?.isGM || actor.testUserPermission?.(user, "OWNER")) return true;
+  if (actor.system?.identityRevealed) return true;
+  const war = currentWar();
+  if (!war || !intelOn(war)) return false;
+  const factionId = factionOfUser(user, war);
+  if (!factionId) return false;
+  return Boolean(stateOf(notebookOf(factionId, war)).dossiers[actor.id]?.identity);
 }
 
 /**
@@ -247,4 +302,71 @@ async function sayPurchase({ factionId, actor, entry, section, result, userId, w
     : game.i18n.format("FGT.Intel.Bought", { buyer, what, name, price: result.price });
   const whisper = [...playersOf(factionId, war), ...game.users.filter((u) => u.isGM).map((u) => u.id)];
   await ChatMessage.create({ content: `<div class="fgt-card fgt-card--intel"><p>${line}</p></div>`, whisper, flags: { fgt: { intelBuy: factionId } } });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Listeners (#403)                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** A Unit's Faction before an update moved it, by actor id, on the GM. */
+const leaving = new Map();
+
+/**
+ * The Faction a Unit leaves keeps full knowledge of it (FC.left): every Entry
+ * open, every Section Complete with all it holds, and its identity.
+ *
+ * @param {string} factionId the Faction it left
+ * @param {object} actor
+ * @returns {Promise<void>}
+ */
+export async function keepKnowledgeOf(factionId, actor) {
+  const { entriesOf, sectionOf, SECTIONS } = await import("../rules/intel.mjs");
+  const { isSpellAbility } = await import("../rules/costs.mjs");
+  const items = [...(actor.items ?? [])];
+  await changeNotebook(factionId, (state) => {
+    const dossier = state.dossiers[actor.id] ?? emptyDossier();
+    dossier.identity = true;
+    dossier.open = { ...dossier.open, ...Object.fromEntries(entriesOf(actor).map((k) => [k, true])) };
+    const sections = {};
+    for (const { key } of SECTIONS) {
+      const known = items.filter((i) => sectionOf(i, isSpellAbility) === key).map((i) => i.system?.contentId ?? i.id);
+      sections[key] = { known, complete: true };
+      for (const id of known) dossier.abilities = { ...dossier.abilities, [id]: { full: true } };
+    }
+    dossier.sections = sections;
+    state.dossiers[actor.id] = dossier;
+  });
+}
+
+/**
+ * Bind the Information System's listeners.
+ *
+ * @returns {void}
+ */
+export function attachIntel() {
+  // FC.left: the GM notes the Faction a Unit leaves, then keeps its knowledge.
+  Hooks.on("preUpdateActor", (actor, changes) => {
+    if (!game.user?.isGM || changes?.system?.factionId === undefined) return;
+    const was = actor.system?.factionId ?? null;
+    if (was && was !== changes.system.factionId) leaving.set(actor.id, was);
+  });
+  Hooks.on("updateActor", (actor) => {
+    const was = leaving.get(actor.id);
+    if (!was) return;
+    leaving.delete(actor.id);
+    if (!["servant", "master"].includes(actor.type) || !isWarGM()) return;
+    keepKnowledgeOf(was, actor).catch((err) => console.error("FGT | Knowledge not kept:", err));
+  });
+  // A Notebook changed: what this client's viewer knows may have changed with
+  // it, so names, tags and faces are asked again (ID.card, ID.token).
+  const refresh = async (journal) => {
+    if (!journal?.getFlag?.("fgt", "intelNotebook")) return;
+    const { forgetAbilityTruths } = await import("./public-ability.mjs");
+    forgetAbilityTruths();
+    for (const token of globalThis.canvas?.tokens?.placeables ?? []) {
+      if (token.actor?.type === "servant") token.renderFlags?.set?.({ redraw: true });
+    }
+  };
+  Hooks.on("updateJournalEntry", (j) => void refresh(j));
+  Hooks.on("createJournalEntry", (j) => void refresh(j));
 }

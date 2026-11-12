@@ -290,3 +290,53 @@ describe("buying (BU.*, PR.*, SE.*)", () => {
     }, WAR);
   });
 });
+
+describe("identity per Faction and the NP reveal (ID.*, NP.*, FC.*)", () => {
+  it("a witnessed NP reveals its user to that Faction: identity, seven Stats, Region, Attributes, and a whisper (NP.who, NP.stats, NP.card)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { noteAct, notebookState, viewerKnowsIdentity } = await import("../../module/engine/intel.mjs");
+      const p1 = game.users.get("p1");
+      expect(viewerKnowsIdentity(w.actor(HE), p1)).toBe(false);
+      await noteAct({ unitId: HE, kind: "np", involvedIds: [AR] });
+      const d = notebookState("A").dossiers[HE];
+      expect(d.identity).toBe(true);
+      expect(d.intel).toBe(16);
+      expect(Object.keys(d.open).sort()).toEqual(["agi", "attributes", "end", "luc", "mag", "mov", "range", "region", "str"]);
+      expect(d.sections).toEqual({});
+      expect(viewerKnowsIdentity(w.actor(HE), p1)).toBe(true);
+      const card = [...w.messages.values()].find((m) => (m.flags ?? m.doc?.flags)?.fgt?.intelReveal === "A");
+      expect([...(card.whisper ?? card.doc?.whisper)].sort()).toEqual(["p1", "u1"]);
+    }, WAR);
+  });
+
+  it("an NP nobody witnessed reveals nothing (NP.unseen)", async () => {
+    const far = [scene[0], { from: "arturia", id: FAR, owner: "p1", panel: { i: 12, j: 12 }, state: { factionId: "A" } }];
+    await withSubjects(far, async () => {
+      const { noteAct, notebookState } = await import("../../module/engine/intel.mjs");
+      await noteAct({ unitId: HE, kind: "np" });
+      expect(notebookState("A").dossiers[HE]).toBeUndefined();
+    }, WAR);
+  });
+
+  it("a card reads the truth for a viewer whose Faction knows (ID.card)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { noteAct } = await import("../../module/engine/intel.mjs");
+      const { readsTruthOf } = await import("../../module/engine/public-ability.mjs");
+      const p1 = game.users.get("p1");
+      expect(readsTruthOf(w.actor(HE), p1)).toBe(false);
+      await noteAct({ unitId: HE, kind: "np", involvedIds: [AR] });
+      expect(readsTruthOf(w.actor(HE), p1)).toBe(true);
+    }, WAR);
+  });
+
+  it("the Faction a Unit leaves keeps full knowledge of it (FC.left)", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { keepKnowledgeOf, notebookState } = await import("../../module/engine/intel.mjs");
+      await keepKnowledgeOf("B", w.actor(AR));
+      const d = notebookState("B").dossiers[AR];
+      expect(d.identity).toBe(true);
+      expect(d.open.end).toBe(true);
+      expect(Object.values(d.sections).every((s) => s.complete)).toBe(true);
+    }, WAR);
+  });
+});

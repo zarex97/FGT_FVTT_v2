@@ -2300,6 +2300,7 @@
   "FGT.Intel.Summary.Passive": "Passive",
   "FGT.Intel.Summary.Cooldown": "Cooldown {cooldown}",
   "FGT.Intel.Summary.Target": "Targets {target}",
+  "FGT.Intel.Revealed": "{name} used a Noble Phantasm before your Faction: it is {trueName}. Its Stats, Region and Attributes are known.",
   "FGT.Intel.NotebookTitle": "Notebook: {faction}",
   "FGT.Intel.MigrationSkipped": "Notebooks not moved to a Faction (their players are in none): {names}.",
   "FGT.Intel.GainTitle": "Intel gathered this Turn",

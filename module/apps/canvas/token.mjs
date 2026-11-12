@@ -31,6 +31,7 @@ import { seesThroughOwnField } from "../../rules/identity.mjs";
 import { markSeenBy } from "../../rules/bloodmarks.mjs";
 import { disguiseOf, seesTruth } from "../../rules/disguise.mjs";
 import { publicIdentityOf } from "../../engine/public-identity.mjs";
+import { viewerKnowsIdentity } from "../../engine/intel.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -300,8 +301,12 @@ export class FGTToken extends Token {
     // The document is untouched, so every other client keeps its own answer
     // (#253 reading 12).
     const look = shownLook(this.actor);
-    if (look?.img && this.mesh && !this.mesh.destroyed) {
-      const texture = await foundry.canvas.loadTexture(look.img, { fallback: CONST.DEFAULT_TOKEN });
+    // ...or the true portrait, to a viewer whose Faction knows who it is
+    // (ID.token, #403): the document keeps its public face for everyone else.
+    const knownImg = !look && this.#knownPortrait();
+    const img = look?.img || knownImg;
+    if (img && this.mesh && !this.mesh.destroyed) {
+      const texture = await foundry.canvas.loadTexture(img, { fallback: CONST.DEFAULT_TOKEN });
       if (texture && this.mesh && !this.mesh.destroyed) {
         this.texture = texture;
         this.mesh.texture = texture;
@@ -328,8 +333,23 @@ export class FGTToken extends Token {
     // every other viewer reads the name the cards print (asked live
     // 2026-10-25: "when you hover on a non-owned token you see the public name").
     if (this.actor && !game.user?.isGM && !this.actor.isOwner) {
-      this.nameplate.text = publicIdentityOf(this.actor, currentBoard()).name || this.document.name;
+      // fgt-name-ok: the True Name only to a viewer whose Faction knows it (ID.tooltip, #403)
+      this.nameplate.text = (viewerKnowsIdentity(this.actor) ? (this.actor.system?.trueName || this.actor.name) : null)
+        || publicIdentityOf(this.actor, currentBoard()).name || this.document.name;
     }
+  }
+
+  /**
+   * The true portrait, for a viewer who knows this Unit but whose token shows
+   * its public face; null when the token already shows it, or the viewer does not know.
+   *
+   * @returns {string|null}
+   */
+  #knownPortrait() {
+    const actor = this.actor;
+    if (!actor || actor.type !== "servant" || game.user?.isGM || actor.isOwner) return null;
+    if (!actor.img || actor.img === this.document.texture?.src) return null;
+    return viewerKnowsIdentity(actor) ? actor.img : null;
   }
 
   /**
