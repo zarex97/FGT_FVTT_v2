@@ -3,7 +3,8 @@ id: 2026-11-13-class-skills-folder-said-complete
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Grilling the Class Skills gap (Q10), I framed the guard as *"now that the `class-skills` folder is the list of Class Skills"*, and its option (a) failed any file marked `classSkill` outside the folder. The user ruled (a).
 **Actual:** Fifteen ability files outside the folder already carry `kind: classSkill`, rightly: per-Servant variants such as `abilities/medea-item-construction.yml` and `abilities/normal-riding.yml`. Option (a) as worded would have failed legitimate content.

@@ -3,7 +3,8 @@ id: 2026-11-13-attack-path-dropped-ability-used-lines
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** What an NP's `abilityUsed` handlers do is said on a card, as the Skill path says it.
 **Actual:** Arondight expending For Someone's Glory wrote a `cardLine` to the War log and no card printed it.

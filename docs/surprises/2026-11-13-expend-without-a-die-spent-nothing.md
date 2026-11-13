@@ -3,7 +3,8 @@ id: 2026-11-13-expend-without-a-die-spent-nothing
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** `Expend` spends the abilities it names, as its key says.
 **Actual:** Authored with no `roll` (Lancelot's Arondight ends his page outright) it returned `[]`: nothing spent, nothing said.

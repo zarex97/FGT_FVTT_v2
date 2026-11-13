@@ -3,7 +3,8 @@ id: 2026-11-13-expend-line-named-np-by-label
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A line names an ability by its public name: a Public Tag while its bearer is concealed.
 **Actual:** The card read *"Test Intel: Glory: can no longer be used for the rest of the game."* on the GM's public card for an unrevealed Lancelot.

@@ -3,7 +3,8 @@ id: 2026-11-13-kind-pinned-as-proof-of-active
 found: test
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** Serenity's test *"is an ACTIVE skill with a duration, not a mode"* checks activity.
 **Actual:** It asserted `kind: "skill"`, which says nothing of activity; it failed when Presence Concealment became a Class Skill.

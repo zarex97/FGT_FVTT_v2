@@ -3,7 +3,8 @@ id: 2026-11-13-expended-mode-switched-back-on
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** An expended ability is spent for the rest of the game: Lancelot's page *"does not reactivate"* after Arondight (MO.lancelot).
 **Actual:** `canToggleMode` answered nothing about `expended`, so the bar's mode switch could turn a spent page back on; only the use gate (`rules/costs.mjs`) refused it.
