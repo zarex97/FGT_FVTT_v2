@@ -21,7 +21,8 @@ source: class
 # `self:skillActive:` option, `discoverChance`, `concealmentSkill` -- names it in
 # camelCase.
 slug: presenceConcealment
-kind: skill
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 copyable: { allowed: false, reason: classSkill }
 parameterized: [rank]
 rank: "@rank"

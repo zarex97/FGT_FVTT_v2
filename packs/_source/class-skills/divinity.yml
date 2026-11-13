@@ -3,6 +3,8 @@
 schema: 1
 id: divinity
 name: "Divinity"
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 source: passive
 parameterized: [rank]
 rank: "@rank"

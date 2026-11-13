@@ -83,7 +83,9 @@ describe("Presence Concealment A+, as her sheet prints it", () => {
 
   it("is an ACTIVE skill with a duration, not a mode", () => {
     const pc = classSkill("presence-concealment");
-    expect(pc.kind).toBe("skill");
+    // A Class Skill (ruled 2026-11-13); active and not a mode is what the other keys say.
+    expect(pc.kind).toBe("classSkill");
+    expect(pc.isMode).toBeFalsy();
     expect(pc.passive).toBeUndefined();
     expect(pc.phases[0]).toMatchObject({ kind: "applyEffects", target: "self" });
     expect(effect("presence-concealment").defaultDuration).toBe("2◈");

@@ -5,6 +5,8 @@
 schema: 1
 id: class-battle-continuation
 name: "Battle Continuation"
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 source: class
 # The slug is stated rather than derived. The default strips `class-` and leaves
 # the KEBAB-CASE id (`mad-enhancement`), while every predicate, requirement and

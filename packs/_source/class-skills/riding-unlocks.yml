@@ -12,6 +12,8 @@
 schema: 1
 id: class-riding-unlocks
 name: "Riding"
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 copyable: { allowed: false, reason: classSkill }
 source: class
 slug: riding

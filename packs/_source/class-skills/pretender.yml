@@ -17,6 +17,8 @@
 schema: 1
 id: class-pretender
 name: "Pretender: The One who Wears a Role"
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 source: class
 slug: pretender
 copyable: { allowed: false, reason: classSkill }
