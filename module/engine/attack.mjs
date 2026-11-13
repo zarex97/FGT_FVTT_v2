@@ -1976,8 +1976,12 @@ async function declareProcesses({
   // by his own sheet's note -- and firing it in only one place is exactly how
   // `abilitiesUsed` came to be recorded by half the game.
   if (ability && declaresUse) {
-    const { fireAbilityUsed } = await import("./skill-use.mjs");
-    await fireAbilityUsed(attacker, ability, { involvedIds: targetIds });
+    const { fireAbilityUsed, postCard: postUsedCard } = await import("./skill-use.mjs");
+    // ...and what its handlers did is said, as the Skill path says it: Arondight
+    // spending For Someone's Glory for the rest of the game was a log entry no
+    // card printed (MO.lancelot, found live 2026-11-13).
+    const used = await fireAbilityUsed(attacker, ability, { involvedIds: targetIds });
+    if ((used ?? []).length > 0) await postUsedCard(attacker, ability, [], used);
   }
   // An Attack resets a form's grown Range (#323 reading 19).
   if (declaresUse && attacker?.system?.formTaken) {

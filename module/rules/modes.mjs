@@ -66,6 +66,11 @@ export function canToggleMode(
   item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null, ownTurn, inCombatProcess = false } = {},
 ) {
   const sys = item?.system ?? {};
+  // SPENT for the rest of the game, either way: Lancelot's For Someone's Glory
+  // *"does not reactivate"* after Arondight (MO.lancelot, 2026-11-13). The use
+  // gate refused an expended ability and this switch did not, so a bar could
+  // turn a spent page back on.
+  if (sys.expended) return { ok: false, reason: "expended" };
   // `deactivation.window: anyTime` switches off at once, on any Turn, where
   // `any` waits for the Turn's end (#65 ruling 19). Doppelganger *"can be
   // deactivated at any time"*, ruled as whenever he could act, but never inside

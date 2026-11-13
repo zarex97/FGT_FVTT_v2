@@ -289,7 +289,7 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
   const actor = unitActor(unitId);
   if (!actor || !factionId) return { ok: false, reason: "unknown" };
   if (hasFallen(actor)) return { ok: false, reason: "fallen" };
-  const { ENTRY_PRICES, entriesOf, sectionPrice, sectionOf, drawFrom, isSectionComplete } = await import("../rules/intel.mjs");
+  const { ENTRY_PRICES, entriesOf, sectionPrice, sectionOf, drawFrom, isSectionComplete, knownAbilities } = await import("../rules/intel.mjs");
   const { isSpellAbility } = await import("../rules/costs.mjs");
   const hidden = hiddenFrom(actor);
 
@@ -309,7 +309,7 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
 
   // The draw's die, cast before the queue: what is left is read again inside.
   const before = stateOf(notebookOf(factionId, war)).dossiers[unitId];
-  const knownBefore = before?.sections?.[section]?.known ?? [];
+  const knownBefore = knownAbilities(before);
   const leftBefore = pool.filter((id) => !knownBefore.includes(id)).length;
   const face = section && leftBefore > 0 ? (await new Roll(`1d${leftBefore}`).evaluate()).total - 1 : 0;
 
@@ -317,9 +317,11 @@ export async function buy({ factionId, unitId, entry = null, section = null, use
     const dossier = state.dossiers[unitId];
     if (!dossier) return { ok: false, reason: "noDossier" };
     if (entry && dossier.open?.[entry]) return { ok: false, reason: "open" };
-    if (section && isSectionComplete(dossier.sections?.[section], pool)) return { ok: false, reason: "complete" };
+    // Known in any Section's mark: an ability that moved Section is still known (SE.change.*).
+    const knownAll = knownAbilities(dossier);
+    if (section && isSectionComplete(dossier.sections?.[section], pool, knownAll)) return { ok: false, reason: "complete" };
     const known = dossier.sections?.[section]?.known ?? [];
-    const drawn = section ? drawFrom(pool, known, () => face) : null;
+    const drawn = section ? drawFrom(pool, knownAll, () => face) : null;
     // A draw that finds nothing left costs nothing, and the Section is Complete.
     if (section && !drawn) {
       dossier.sections = { ...dossier.sections, [section]: { known, complete: true } };
@@ -627,7 +629,10 @@ export async function teachAbility(factionId, owner, item) {
  * @returns {Promise<object[]>} card rows
  */
 export async function revealSkill(caster, target) {
-  const factionId = caster?.system?.factionId ?? null;
+  // A Summon's learning is its summoner's: a Man in Black's *"received information
+  // on that Skill is given to 1st FBI Director"* (FB.mib, ruled 2026-11-13).
+  const summoner = caster?.system?.summonerId ? unitActor(caster.system.summonerId) : null;
+  const factionId = summoner?.system?.factionId ?? caster?.system?.factionId ?? null;
   const skills = [...(target?.items ?? [])].filter((i) => i.type === "ability" && i.system?.kind !== "classSkill"); // fgt-offer-ok: a Skill to describe, never to use
   if (!factionId || skills.length === 0) return [];
   const { chooseFor } = await import("./ask.mjs");

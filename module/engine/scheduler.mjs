@@ -1763,6 +1763,19 @@ const ACTIONS = Object.freeze({
    * the bow.
    */
   Expend: (a, u, h, c) => {
+    const spent = () => (u.abilities ?? []).filter((x) => (a.abilities ?? []).includes(x.contentId));
+    // No die: the clause spends at once. Lancelot (Berserker)'s For Someone's
+    // Glory is *"Disabled when Lancelot uses Arondight and does not reactivate"*
+    // (MO.lancelot, ruled 2026-11-13). A missing `roll` used to spend nothing.
+    if (!a.roll) {
+      const gone = spent();
+      if (gone.length === 0) return [];
+      return [
+        // Named by the abilities themselves, each by its public name where the card is built.
+        I.log({ kind: "cardLine", unitId: u.id, source: h.source, line: { key: "FGT.Expend.Spent", data: { label: a.label ?? h.source ?? "", abilityIds: gone.map((x) => x.id) } } }),
+        ...gone.map((x) => I.expend(u.id, x.id)),
+      ];
+    }
     const rolled = c.rolls?.[a.roll?.key];
     if (typeof rolled !== "number") return [];
     const breaks = (a.on ?? []).includes(rolled);
@@ -1771,8 +1784,7 @@ const ACTIONS = Object.freeze({
       data: { label: a.label ?? h.source ?? "", die: a.roll.formula ?? "", roll: rolled, on: (a.on ?? []).join(", ") },
     } });
     if (!breaks) return [line];
-    const spent = (u.abilities ?? []).filter((x) => (a.abilities ?? []).includes(x.contentId));
-    return [line, ...spent.map((x) => I.expend(u.id, x.id))];
+    return [line, ...spent().map((x) => I.expend(u.id, x.id))];
   },
 
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],

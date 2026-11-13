@@ -44,7 +44,7 @@ describe("declareProcesses declares a use only when it is told to", () => {
   });
 
   it("gates `abilityUsed` on it", () => {
-    expect(declare).toMatch(/if \(ability && declaresUse\) \{\s*const \{ fireAbilityUsed \}/);
+    expect(declare).toMatch(/if \(ability && declaresUse\) \{\s*const \{ fireAbilityUsed\b/);
   });
 
   it("still runs the fan-out, the cards and the declaration events for every resolution", () => {

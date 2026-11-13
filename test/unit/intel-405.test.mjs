@@ -9,6 +9,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { castSkill, playAttack } from "../helpers/process.mjs";
+import { readFileSync } from "node:fs";
 
 beforeAll(prepareSubjects, 120_000);
 vi.setConfig({ testTimeout: 60_000 });
@@ -58,6 +59,49 @@ describe("Secret of Pedigree (MO.*)", () => {
       const { hiddenFrom } = await import("../../module/engine/intel.mjs");
       expect(hiddenFrom(w.actor(HIDER))).toEqual({ entries: [], sections: [], ranksOnly: [] });
     }, WAR);
+  });
+});
+
+describe("For Someone's Glory, Lancelot (Berserker) (MO.lancelot, ruled 2026-11-13)", () => {
+  const LANCE = "intelLancelot001";
+  const scene = [
+    { from: "test-intel-lancelot", id: LANCE, panel: { i: 5, j: 5 }, state: { factionId: "B" } },
+    { from: "arturia", id: AR, owner: "p1", panel: { i: 5, j: 7 }, state: { factionId: "A" } },
+  ];
+
+  it("hides as Mordred's does, his own switch-off is refused, and Arondight ends it for the rest of the game", async () => {
+    await withSubjects(scene, async ({ world: w }) => {
+      const { hiddenFrom } = await import("../../module/engine/intel.mjs");
+      const { canToggleMode } = await import("../../module/rules/modes.mjs");
+      const glory = () => w.actor(LANCE).items.find((i) => i.system.contentId === "test-intel-glory");
+      expect(hiddenFrom(w.actor(LANCE)).ranksOnly).toEqual(["end", "agi", "luc"]);
+      // "does not reactivate", and no switch of his own: Mordred's sentence is not on his sheet.
+      expect(canToggleMode(glory(), {}, { active: false, ownTurn: true })).toMatchObject({ ok: false, reason: "cannotDeactivate" });
+      const arondight = w.actor(LANCE).items.find((i) => i.system.contentId === "test-intel-arondight");
+      await playAttack(w, { attacker: LANCE, ability: arondight.id, placement: { panel: { i: 5, j: 7 } }, react: { [AR]: ["nothing", "declined", "declined"], [LANCE]: ["declined", "declined"] } });
+      expect(glory().system.active).toBe(false);
+      expect(glory().system.expended).toBe(true);
+      expect(hiddenFrom(w.actor(LANCE))).toEqual({ entries: [], sections: [], ranksOnly: [] });
+      // Expended: no switch turns it back on, the bar's included (`canToggleMode`).
+      expect(canToggleMode(glory(), {}, { active: true, ownTurn: true })).toMatchObject({ ok: false, reason: "expended" });
+    }, WAR);
+  });
+
+  it("the end is said on a card, by the NP's Public Tag, on the attack path as on the Skill path (found live)", async () => {
+    // War Rule `closedInfo`: on, so a concealed bearer's NP reads as its tag.
+    await withSubjects(scene, async ({ world: w }) => {
+      const { fireAbilityUsed } = await import("../../module/engine/skill-use.mjs");
+      const { abilityTag } = await import("../../module/engine/public-ability.mjs");
+      vi.spyOn(game.i18n, "format").mockImplementation((k, d = {}) => `${k}|${d.label ?? ""}`);
+      const glory = w.actor(LANCE).items.find((i) => i.system.contentId === "test-intel-glory");
+      const arondight = w.actor(LANCE).items.find((i) => i.system.contentId === "test-intel-arondight");
+      const rows = await fireAbilityUsed(w.actor(LANCE), arondight);
+      expect(rows.map((r) => r.summary.name)).toContain(`FGT.Expend.Spent|${abilityTag(glory)}`);
+      expect(rows.map((r) => r.summary.name).join()).not.toContain("Test Intel: Glory");
+      // The attack path posts these rows (it dropped them).
+      const src = readFileSync("module/engine/attack.mjs", "utf8");
+      expect(src).toMatch(/if \(\(used \?\? \[\]\)\.length > 0\) await postUsedCard\(attacker, ability, \[\], used\)/);
+    }, { ...WAR, combat: { ...WAR.combat, system: { ...WAR.combat.system, closedInfo: true } } });
   });
 });
 
@@ -165,6 +209,35 @@ describe("Coercion and Classified (FB.*)", () => {
       const { notebookState } = await import("../../module/engine/intel.mjs");
       expect(notebookState("A").dossiers[HE].abilities[skill.system.contentId]?.full).toBe(true);
     }, { ...WAR, combat: { ...WAR.combat, actingFactionId: "A" } });
+  });
+
+  it("a Man in Black's Coercion fails 60% of the time; landed, his summoner's Faction learns the Skill (FB.mib, ruled 2026-11-13)", async () => {
+    const MIB = "intelManInBlack1";
+    // Its own side is not the summoner's here, so the test tells the two apart.
+    const mib = [...scene, { from: "test-intel-man-in-black", id: MIB, owner: "p1", panel: { i: 5, j: 4 }, state: { factionId: "C", summonerId: COERCER } }];
+    await withSubjects(mib, async ({ world: w }) => {
+      const skill = w.actor(HE).items.find((i) => i.type === "ability" && i.system.kind !== "classSkill");
+      // A failed use asks the DU nothing.
+      const coercion = w.actor(MIB).items.find((i) => i.system.contentId === "test-intel-mib-coercion");
+      const { notebookState } = await import("../../module/engine/intel.mjs");
+      // 60 is inside the failure: nothing learned.
+      w.dice.set("d100", 60);
+      const failed = await castSkill(w, { caster: MIB, ability: coercion.id, placement: { unitId: HE, chosenIds: [HE] } });
+      expect(failed.ok).toBe(true);
+      expect(notebookState("A").dossiers[HE]?.abilities?.[skill.system.contentId]).toBeUndefined();
+      expect(coercion.system.cooldown?.max ?? w.actor(MIB).items.get(coercion.id).system.cooldown?.max).toBe("2◈");
+    }, { ...WAR, combat: { ...WAR.combat, actingFactionId: "C", system: { ...WAR.combat.system, factions: [...ROSTER, { id: "C", name: "C", userIds: [] }] } } });
+    await withSubjects(mib, async ({ world: w }) => {
+      const skill = w.actor(HE).items.find((i) => i.type === "ability" && i.system.kind !== "classSkill");
+      w.answer({ title: "FGT.Intel.CoerceTitle", pick: [skill.id] });
+      const coercion = w.actor(MIB).items.find((i) => i.system.contentId === "test-intel-mib-coercion");
+      w.dice.set("d100", 61);
+      const out = await castSkill(w, { caster: MIB, ability: coercion.id, placement: { unitId: HE, chosenIds: [HE] } });
+      expect(out.ok, out.reason).toBe(true);
+      const { notebookState } = await import("../../module/engine/intel.mjs");
+      expect(notebookState("A").dossiers[HE].abilities[skill.system.contentId]?.full).toBe(true);
+      expect(notebookState("C").dossiers[HE]).toBeUndefined();
+    }, { ...WAR, combat: { ...WAR.combat, actingFactionId: "C", system: { ...WAR.combat.system, factions: [...ROSTER, { id: "C", name: "C", userIds: [] }] } } });
   });
 
   it("Classified: the DU's whole page goes to every Faction with a Unit within 2 of it, never its own (FB.classified, FB.classified.self)", async () => {
