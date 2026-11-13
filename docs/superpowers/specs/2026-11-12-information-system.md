@@ -71,6 +71,10 @@ All 31 ruled by the user 2026-11-12, as recommended but 6, 7, 9, 13 and 26, whos
 | 30 | Is earning said? A Faction does not otherwise know its Intel grew. | A card whispered to the Faction once per Turn, at the Turn's end, naming each Unit and its gain; nothing to any other Faction. | EA.card, EA.silent.other |
 | 31 | The War Rule switched mid-War, and a player with no Faction at migration | The Notebooks stay through a switch; a Faction-less player's Notebook is skipped and named to the GM. | WR.switch, ST.mig.none |
 | 32 | Found pressing: a Master has Health, Agility and Luck but no Parameters, so "the Stats it has" sold none of the three. | Each is sold at 4 by its own Entry, the pool shown with no Rank (ruled 2026-11-12, after the press). | PR.master |
+| 33 | Lancelot (Berserker)'s For Someone's Glory: *"Disabled when Lancelot uses Arondight and does not reactivate even if Mad Enhancement is reactivated"*. Mordred's terms? | It holds from the War's start, whether Mad Enhancement is on or off; Arondight ends it for the rest of the game; he has no switch of his own (ruled 2026-11-13). | MO.lancelot |
+| 34 | A Man in Black's Coercion: *"success rate is reduced by 60% … the received information on that Skill is given to 1st FBI Director"* | 40% (his own Coercion prints no rate); its information goes to the summoner's Faction's Notebook; the Director's Luck gain waits for his audit (ruled 2026-11-13). | FB.mib |
+| 35 | ST.private and Foundry, which sends every document to every client | Worded to what the platform holds: no window, journal, card or socket opens another Faction's Notebook; encrypting it would hide nothing an enemy's actor does not already show (ruled 2026-11-13). | ST.private |
+| 36 | Which abilities are Class Skills (the Dossier's Class Skills Section, Coercion, Copy, Skill Theft, the sheet)? | Every file in `class-skills/`, Divinity, Battle Continuation, Bravery and Pretender included, and every ability its bearer's sheet prints after "Class Skill:", wherever its file lives (ruled 2026-11-13). | SE.*, FB.coerce |
 
 ## Built (2026-11-12)
 
@@ -103,7 +107,7 @@ Where the build departs from a word above, the Clause says so:
 - [x] **ST.faction** · Each Faction has one Notebook, a Journal Entry owned by all its players and the GM, nobody else
 - [x] **ST.page** · It holds one Dossier per Unit the Faction knows of: its Intel, its open Entries, its Sections' marks
 - [x] **ST.shared** · Two players of one Faction read the same Dossier, and a buy by one is open to the other at once
-- [ ] **ST.private** · A player of another Faction cannot open, read or receive any of it, by window, journal or socket
+- [x] **ST.private** · A player of another Faction cannot open or read any of it in a window, a journal, a card or a socket (ruled 2026-11-13: Foundry sends every document to every client, so a console is outside the rule, as it is for every enemy actor)
 - [x] **ST.gm** · The GM reads every Faction's Notebook
 - [x] **ST.write** · Every write to a Notebook runs on the active GM; a player's client never writes one
 - [x] **ST.mig.fold** · On load, each existing per-player Notebook folds into its player's Faction Notebook, page by page
@@ -297,7 +301,7 @@ Where the build departs from a word above, the Clause says so:
 - [x] **MO.end.np** · …and its Witnesses get Q6's reveal, values included
 - [x] **MO.back** · It returns 3◈ after it ended; what any Faction bought meanwhile stays open
 - [x] **MO.off** · Her own switch-off ends it, with the same 3◈ before it returns
-- [ ] **MO.lancelot** · Lancelot's is not restored by Mad Enhancement's return (his sheet)
+- [x] **MO.lancelot** · Lancelot's holds from the War's start, cannot be switched off by him, and Arondight ends it for the rest of the game: it never returns, Mad Enhancement's return included (his sheet; ruled 2026-11-13)
 
 ### Hephaestion Mnēmosynē, Camouflage (Q16)
 
@@ -338,15 +342,15 @@ Where the build departs from a word above, the Clause says so:
 
 - [x] **FB.coerce** · Coercion's DU's player picks one of its Skills other than Class Skills
 - [x] **FB.coerce.open** · …which opens for the FBI's Faction in full text, name included
-- [ ] **FB.mib** · A Man in Black's successful Coercion opens it for his Faction the same way
+- [x] **FB.mib** · A Man in Black's Coercion fails 60% of the time (Cooldown 2◈); landed, it opens the Skill for his summoner's Faction the same way (ruled 2026-11-13; the Director's Luck gain is his audit's)
 - [x] **FB.classified** · Classified, landed, opens the DU's whole Dossier and True Name to every Faction with a Unit within 2 of it
 - [x] **FB.classified.self** · …not to the DU's own Faction, which owns it
 
 ## Live evidence
 
-Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 48–50), as Player1 (Faction 1) unless it says the GM, in Nocturne and in Classic. *Pressed* is a button or an engine call on the live board; *Observed* is read off a client; *Test* or *Read* names a Clause the board could not stage, with the test that pins it. Three stay open, unticked: MO.lancelot and FB.mib (no content in the repo) and ST.private (a platform limit). PR.master was a reading, ruled after the press and pressed again.
+Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 48–50), as Player1 (Faction 1) unless it says the GM, in Nocturne and in Classic. *Pressed* is a button or an engine call on the live board; *Observed* is read off a client; *Test* or *Read* names a Clause the board could not stage, with the test that pins it. All 186 are ticked. PR.master was a reading, ruled after the press and pressed again; MO.lancelot, FB.mib and ST.private were ruled on 2026-11-13 and pressed on staged benches (Lancelot, a Man in Black).
 
-### Defects the press found, all fixed but the platform limit
+### Defects the press found
 
 - The Intel tool missing from Token Controls until a reset; a double-click on an enemy stopped by Foundry's `_canView`; the window brought forward before it existed.
 - A learned ability's full text printing raw links and its unknown bearer's True Name; the Class line still false after the identity was known; a fallen Dossier showing its Intel.
@@ -354,7 +358,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - An ability's chance die never naming its Item (`rollLog.record` dropped `abilityRef`), so a learned ability's dice stayed cloaked (CL.name).
 - A Section's Complete mark read as final, so a gained ability could never be drawn (SE.change.reopen); a lost ability's row printing its content id (SE.change.lose).
 - The Turn report's and the heal line's Health amounts printed to every viewer (CL.pool).
-- **Open, platform**: Foundry delivers every document and every whisper to every client, so another Faction's Notebook is readable from a console (ST.private), as every enemy actor already is.
+- **Platform, ruled 2026-11-13**: Foundry delivers every document and every whisper to every client, so another Faction's Notebook is readable from a console, as every enemy actor already is. ST.private is worded to what the platform holds: no window, journal, card or socket opens it.
 - **Reading, ruled 2026-11-12**: a Master has no Parameters, so his Health, Agility and Luck were never sold and his bars stayed closed all War (PR.master). Ruled (b): each is sold at 4 by its own Entry, the pool shown with no Rank.
 
 ### By Clause
@@ -368,7 +372,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - **ST.faction**: Observed: 'Notebook: Faction 1' ownership {default: 0, Player1: 2, GM: 3}; 'Notebook: Faction 2' {default: 0, Player2: 2, GM: 3}
 - **ST.page**: Observed (GM, Faction 1's Notebook flag): `dossiers` keyed by Unit, each `{intel, open, sections: {key: {known, complete}}, abilities, identity, fallen}`, and the Turn's `ledger`
 - **ST.shared**: Observed: Player1's buys landed in Faction 1's Notebook, the one every Faction 1 player reads (Player1 is its one player in this War)
-- **ST.private**: Pressed as Player1: the window lists only Faction 1's Dossiers; Faction 2's Notebook journal has permission NONE on his client (not in his sidebar); `intelBuy` for faction-2 refused ("Player1 does not play that Faction."), `intelAct` for Drake refused. **Not held, platform**: Foundry delivers every document to every client, so Faction 2's journal and its `intelState` flag are on Player1's client (`game.journal`), as is every whispered card (190 not for him) and every enemy actor; a console reads them
+- **ST.private**: Pressed as Player1: the window lists only Faction 1's Dossiers; Faction 2's Notebook journal has permission NONE on his client (not in his sidebar); `intelBuy` for faction-2 refused ("Player1 does not play that Faction."), `intelAct` for Drake refused. **Outside the ruled wording**: Foundry delivers every document to every client, so Faction 2's journal and its `intelState` flag are on Player1's client (`game.journal`), as is every whispered card (190 not for him) and every enemy actor; a console reads them; ruled 2026-11-13, ticked on this evidence
 - **ST.gm**: Pressed as the GM: the window reads Faction 1's Notebook and, picked, Faction 2's
 - **ST.write**: Observed: Player1's Move and Attack wrote Faction 2's Notebook through the War's GM (Player1 holds it at OBSERVER, Faction 2's not at all)
 - **ST.mig.fold**: Observed live 2026-11-12 (cloud, fgt2026): on load, Faction 1's Notebook holds 8 pages and Faction 2's 5, folded from the per-player Notebooks Gilles's and Karl's learning had written
@@ -516,7 +520,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - **MO.end.np**: Pressed: Clarent witnessed by Faction 1 revealed the Hider: Player1 reads END "B · Health 1250/1350", MOV 5, its bar, nameplate "Hider Bench"; the NP Section buyable
 - **MO.back**: Pressed: the Secret's Cooldown read 9 ticks (3◈ at ◈ 3), counted from its deactivation
 - **MO.off**: Pressed (engine, the Hider's own switch): on, it hides (buyable only Parameters and Class Skills, END/AGI/LUC ranks only); switched off by her, it hides nothing and its Cooldown reads 9 ticks (3◈)
-- **MO.lancelot**: Not pressed: Lancelot's sheet (Mad Enhancement's return not restoring it) has no Secret of Pedigree content built in this repo; deferred
+- **MO.lancelot**: Pressed 2026-11-13 on a bench Lancelot (Faction 2, `test-intel-lancelot`): Player1's Dossier offered only Parameters and Class Skills, the rest greyed *"Hidden by this Unit's information"*, and END bought read "END B" alone; the GM's bar refused his switch-off, *"Test Intel: Glory cannot be deactivated."*; the GM's Arondight from the bar left it off and expended, and Player1's Dossier then read Health 1250/1350, MOV, Range, Region, Alignment buyable. A card says *"NP-6B6GV: can no longer be used for the rest of the game."* (the stored tag; Player1, whose Faction witnessed the NP, reads its name). **Defects found and fixed**: `Expend` needed a die (a missing `roll` spent nothing); `canToggleMode` never asked `expended`, so a bar could switch a spent page back on; the attack path dropped `abilityUsed`'s lines, so the end was said on no card; the line named the NP by its authored label, its real name, on a public card. Test intel-405 MO.lancelot
 - **HE.setup**: Pressed (engine: `askCamouflage`, the War-start handler): six prompts to the Faker's owner (on the GM, Player2 offline): Class "Saber", Ranks E; stored `falseInformation` and `concealedIdentity: "Saber"`
 - **HE.class**: Pressed as Player1: the Faker (truly a Pretender) reads "Saber" on its nameplate and Dossier ("Servant · Saber")
 - **HE.stat**: Pressed as Player1: STR bought reads "E · Base Attack 50", END "E · Health 500/500"; its true Ranks are B
@@ -542,7 +546,7 @@ Pressed 2026-11-12 on the cloud world `fgt2026` (War `Gilgamesh Audit`, rounds 4
 - **AA.section**: Test only (intel-405 AA.section): the learned NP is known in the NP Section and out of its draw
 - **FB.coerce**: Pressed as Player1 (bench Coercer, Faction 1): Coercion from the bar on Achilles; the DU's prompt (Player2 offline, on the GM) offered his Skills but Magic Resistance, his one Class Skill
 - **FB.coerce.open**: Pressed: Runner Comet picked; Faction 1's Dossier on Achilles `abilities: {achilles-runner-comet: {full: true}}`; Player1's window lists "SK-5D3MA Runner Comet" and its text (live fix: links read as labels, and "Cannot be used if Achilles…" reads "this Unit")
-- **FB.mib**: Not built: 1st FBI Director (Men in Black) has no content in the repo; the phase reads the caster's `factionId`, which a summoned Man in Black carries
+- **FB.mib**: Pressed 2026-11-13 as Player1 on a bench Man in Black (`test-intel-man-in-black`, Faction 1, summoned for the Coercer): its Coercion on Achilles rolled 70 against 60% and held; the GM's prompt for him offered Affections of the Goddess, Runner Comet and Achilles' Heel, Runner Comet picked, the card *"Rider: Gives the full text of Runner Comet"*; its Cooldown then read 6 ticks (2◈). The failure (a die of 60, nothing learned) and the summoner's Faction over its own are pinned by test intel-405 FB.mib: the bench's clock was spent before a live failure came up
 - **FB.classified**: Pressed as Player1: Classified on Achilles, Faction 1 (Arturia and the Coercer within 2) learned his whole page: identity, 10 Entries, 6 Sections Complete, 13 abilities in full; whispered *"Classified: Rider's whole page is shared with your Faction."*
 - **FB.classified.self**: Pressed: Faction 2's Notebook gained no Dossier on its own Achilles
 - **CL.name.rider**: **Defect found and fixed**: an ability's chance die (`chanceRecords`) never named its Item, as `rollLog.record` dropped `abilityRef`; it now carries `handler.abilityId` (test: intel-399-400 CL.name). Drake's 15% Galleon die stays closed: its handler is his sheet's own passive, no Item a Section sells
