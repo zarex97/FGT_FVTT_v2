@@ -287,8 +287,27 @@ describe("buying (BU.*, PR.*, SE.*)", () => {
     expect(isSectionComplete({ known: ["a"], complete: false }, ["a"])).toBe(false);
     // The window and the buy both ask it.
     const engine = readFileSync("module/engine/intel.mjs", "utf8");
-    expect(functionBody(engine, "export async function buy(")).toMatch(/isSectionComplete\(dossier\.sections\?\.\[section\], pool\)/);
+    expect(functionBody(engine, "export async function buy(")).toMatch(/isSectionComplete\(dossier\.sections\?\.\[section\], pool, knownAll\)/);
     expect(readFileSync("module/apps/intel-window.mjs", "utf8")).toMatch(/const complete = off \|\| isSectionComplete\(mark,/);
+  });
+
+  it("an ability learned under its old Section is still known after it moves: never drawn again (SE.change, ruled 2026-11-13)", async () => {
+    // Live: Riding, Divinity and the rest became Class Skills, and Faction 1's
+    // Dossier on Achilles held them under Active Skills, so Class Skills reopened.
+    await withSubjects(scene, async ({ world: w }) => {
+      await bank(100);
+      const { buy, notebookState } = await import("../../module/engine/intel.mjs");
+      const { sectionOf } = await import("../../module/rules/intel.mjs");
+      const { isSpellAbility } = await import("../../module/rules/costs.mjs");
+      const { changeNotebook } = await import("../../module/engine/intel-store.mjs");
+      const pool = [...w.actor(HE).items].filter((i) => sectionOf(i, isSpellAbility) === "classSkills").map((i) => i.system.contentId);
+      expect(pool.length).toBeGreaterThan(1);
+      const [left, ...moved] = pool;
+      await changeNotebook("A", (s) => { s.dossiers[HE].sections = { active: { known: moved, complete: true } }; });
+      expect(await buy({ factionId: "A", unitId: HE, section: "classSkills" })).toMatchObject({ ok: true, drawn: left });
+      expect(await buy({ factionId: "A", unitId: HE, section: "classSkills" })).toMatchObject({ ok: true, complete: true, price: 0 });
+      expect(notebookState("A").dossiers[HE].sections.classSkills.known).toEqual([left]);
+    }, WAR);
   });
 
   it("a buy posts a card whispered to the Faction and the GM (BU.card)", async () => {

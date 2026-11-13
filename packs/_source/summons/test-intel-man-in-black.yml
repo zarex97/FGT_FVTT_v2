@@ -1,0 +1,24 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: First Director of FBI's Man in Black, as his sheet prints it
+# (char_orig_sheets/by-class/Assassin/First Director of FBI.md). Staged so FB.mib
+# is pressed before the FBI is audited; the NP that raises them is his audit's.
+schema: 1
+id: test-intel-man-in-black
+name: "Man in Black"
+type: summon
+attributes: [summon, humanoid]
+baseHealth: 150
+agility: 13
+luck: 8
+mov: 6
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 50, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+detect: 3
+# *"Men in Black do not count towards the number of Units that Move and/or Attack
+# during your Turn. The same Man in Black can only Move/Attack once per Turn."*
+countsTowardBudget: false
+actsOncePerTurn: true
+leavesWithSummoner: true
+abilities:
+  - { ref: test-intel-mib-coercion }

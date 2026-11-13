@@ -279,9 +279,22 @@ export function falseEntryValue(key, parameters, { baseAttackFor, maxHealthOf })
  * @param {string[]} pool the content ids the Unit holds in that Section
  * @returns {boolean}
  */
-export function isSectionComplete(mark, pool) {
-  const known = mark?.known ?? [];
+export function isSectionComplete(mark, pool, known = mark?.known ?? []) {
   return Boolean(mark?.complete) && pool.every((id) => known.includes(id));
+}
+
+/**
+ * Every ability a Faction knows of a Unit, whichever Section's mark recorded it.
+ * A mark records the Section an ability sat in when it was learned; the ability
+ * can move since (Riding, Presence Concealment and the rest became Class Skills,
+ * ruled 2026-11-13), and a Section reads its members from the Unit live, so
+ * "known" is one set over every mark, never the mark of the Section asking.
+ *
+ * @param {{sections?: Record<string, {known?: string[]}>}|null|undefined} dossier
+ * @returns {string[]}
+ */
+export function knownAbilities(dossier) {
+  return [...new Set(Object.values(dossier?.sections ?? {}).flatMap((m) => m?.known ?? []))];
 }
 
 export function drawFrom(pool, known, pick) {

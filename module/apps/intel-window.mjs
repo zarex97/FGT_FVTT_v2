@@ -14,7 +14,7 @@ import { currentBoard, unitActor, factions } from "../engine/board.mjs";
 import { currentWar } from "../engine/war.mjs";
 import { intelOn, factionOfUser, notebookOf, stateOf } from "../engine/intel-store.mjs";
 import { buy, falseViewOf, hasFallen, hiddenFrom, knownNameOf } from "../engine/intel.mjs";
-import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, falseEntryValue, sectionOf, abilitySummary, DOSSIER_KINDS, isSectionComplete } from "../rules/intel.mjs";
+import { ENTRY_PRICES, SECTIONS, entriesOf, entryValue, falseEntryValue, sectionOf, abilitySummary, DOSSIER_KINDS, isSectionComplete, knownAbilities } from "../rules/intel.mjs";
 import { baseAttackFor } from "../domain/base-attack.mjs";
 import { maxHealthFor } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -177,10 +177,18 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const items = [...(actor.items ?? [])];
     const effectName = (id) => (EffectRegistry.get(id) ? EffectRegistry.nameOf(id) : id);
+    // Known in any Section's mark; each row sits where its ability sits now, and a
+    // lost one where it was learned (SE.change.*, ruled 2026-11-13).
+    const knownAll = knownAbilities(dossier);
+    const cidOf = (i) => i.system?.contentId ?? i.id;
     const sections = SECTIONS.map(({ key, price }) => {
       const mark = dossier.sections?.[key] ?? { known: [], complete: false };
       const inSection = items.filter((i) => sectionOf(i, isSpellAbility) === key);
-      const shown = off ? inSection.map((i) => i.system?.contentId ?? i.id) : [...(mark.known ?? [])];
+      const held = new Set(items.map(cidOf));
+      const shown = off ? inSection.map(cidOf) : [
+        ...inSection.map(cidOf).filter((cid) => knownAll.includes(cid)),
+        ...(mark.known ?? []).filter((cid) => !held.has(cid)),
+      ];
       const abilities = shown.map((cid) => {
         const item = items.find((i) => (i.system?.contentId ?? i.id) === cid) ?? null;
         // Gone from its bearer: named as its Faction kept it, never by its id (SE.change.lose).
@@ -204,7 +212,7 @@ export class IntelWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       const isHidden = !off && hidden.sections.includes(key);
       // Complete only while nothing it holds is left to draw (SE.change.reopen).
-      const complete = off || isSectionComplete(mark, inSection.map((i) => i.system?.contentId ?? i.id));
+      const complete = off || isSectionComplete(mark, inSection.map(cidOf), knownAll);
       return {
         key, price, abilities, complete,
         label: t(`FGT.Intel.Section.${key}`),

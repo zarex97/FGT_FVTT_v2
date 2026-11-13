@@ -1,0 +1,35 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: Lancelot (Berserker)'s For Someone's Glory, as one Mode. Staged
+# so MO.lancelot is pressed through the real compile and projection before
+# Zerkerlot is audited.
+#
+# His sheet differs from Mordred's in two places (ruled 2026-11-13): it ends for
+# the rest of the game, *"Disabled when Lancelot uses Arondight and does not
+# reactivate even if Mad Enhancement is reactivated"*, and he has no switch of his
+# own. Arondight expends it: an expended ability drops out of the board and the
+# use gate, so nothing switches it back on.
+schema: 1
+id: test-intel-glory
+name: "Test Intel: Glory"
+isNP: true
+rank: "B"
+ignoresNPGate: true
+isMode: true
+active: true
+slug: testIntelGlory
+deactivation: { byOwner: false }
+timing: { window: ownTurn }
+description: "TEST NOBLE PHANTASM (Passive). While Active: Health, Agility and Luck show their Rank only, and only Parameters and Class Skills can be learned. Disabled for the rest of the game when @np[test-intel-arondight] is used."
+activeRules:
+  - key: HidesInformation
+    buyable: [str, end, agi, mag, luc, classSkills]
+    ranksOnly: [end, agi, luc]
+passiveRules:
+  # "Disabled when Lancelot uses Arondight and does not reactivate"
+  - key: OnEvent
+    event: abilityUsed
+    ofContentId: [test-intel-arondight]
+    automatic: true
+    then:
+      - { key: SetMode, ability: testIntelGlory, active: false }
+      - { key: Expend, abilities: [test-intel-glory] }

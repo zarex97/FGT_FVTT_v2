@@ -469,8 +469,26 @@ function noteLines(written) {
     // `note`: a line that says something, not an effect that failed to land.
     // As `noop` the card printed it "...: not applied" -- Pinaka's die that
     // held read "It holds (breaks on 5).: not applied" (#347, live).
-    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "note", reason: null, chance: null },
+    summary: { id: "note", name: game.i18n.format(i.entry.line.key, namedData(i.entry)), outcome: "note", reason: null, chance: null },
   }));
+}
+
+/**
+ * A line's data, with each ability it names by id given its public name: a tag
+ * while its bearer is concealed, which each viewer's client swaps for the truth
+ * where it may (`shownAbility`). A spent For Someone's Glory printed its real
+ * name on a public card (MO.lancelot, found live 2026-11-13).
+ *
+ * @param {{unitId?: string, line: {data?: object}}} entry
+ * @returns {object}
+ */
+function namedData(entry) {
+  const data = { ...(entry.line.data ?? {}) };
+  if (!Array.isArray(data.abilityIds)) return data;
+  const actor = entry.unitId ? unitActor(entry.unitId) : null;
+  const names = data.abilityIds.map((id) => shownAbility(actor?.items?.get?.(id) ?? null)).filter(Boolean);
+  if (names.length > 0) data.label = names.join(", ");
+  return data;
 }
 
 /**

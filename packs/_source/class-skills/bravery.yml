@@ -14,7 +14,8 @@ id: class-bravery
 name: "Bravery"
 source: class
 slug: bravery
-kind: skill
+# A Class Skill: every file in class-skills/ is one (ruled 2026-11-13).
+kind: classSkill
 parameterized: [rank]
 rank: "@rank"
 cooldown: "@cooldown"

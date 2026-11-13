@@ -1,0 +1,29 @@
+# Test content for the Information System's live presses (#405, ADR-0008). NOT A
+# CHARACTER SHEET: a Man in Black's Coercion (First Director of FBI's NP,
+# Government Men). Staged so FB.mib is pressed through the real compile and
+# projection before the FBI is audited.
+#
+# *"they are able to use the 'Coercion' Skill (see above), but the success rate is
+# reduced by 60%, however Cooldown is reduced to 2◈ Turns. When a Man in Black
+# successfully uses Coercion on an enemy Unit, the received information on that
+# Skill is given to 1st FBI Director"*. His own Coercion prints no rate, so it
+# lands at 100% and a Man in Black's at 40%: a 60% failure on itself (ruled
+# 2026-11-13). The Director's Luck gain waits for his audit.
+schema: 1
+id: test-intel-mib-coercion
+name: "Test Intel: Man in Black's Coercion"
+kind: skill
+rank: "A"
+slug: testIntelMibCoercion
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: "TEST SKILL. Range=2. Used on an enemy Unit. Fails 60% of the time. On a success, the DU gives full information of one of its Skills other than Class Skills, to the summoner's Faction."
+passiveRules:
+  - { key: UseFailure, of: [self], chance: 60 }
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: all, count: 1 }
+phases:
+  - kind: revealSkill
+    target: reuse

@@ -220,9 +220,9 @@ its Faction holds when it draws the card (`openCloaks`): pool deltas, the Turn r
 amounts, and roll lines (*"Saber's ■■■, rolled ■■■ against ■■■"*), whose ability opens on its Entry and whose
 target opens on the Stat it reads. An enemy's bars show only once its END is bought.
 
-**The sheets.** Secret of Pedigree (`HidesInformation`), Camouflage (`FalseInformation`), Information Erasure
+**The sheets.** Secret of Pedigree and For Someone's Glory (`HidesInformation`; Lancelot's ends for the rest of the game on Arondight, by `Expend` with no die, and an expended mode refuses every switch), Camouflage (`FalseInformation`), Information Erasure
 (`ErasesInformation`), the Shadow Lantern's 72 True Names (`TrueNameShroud`), True Name Discernment, Appreciation of
-the Arts, Coercion and Classified (phases `revealSkill`, `revealDossier`) all write to the Faction's Notebook.
+the Arts, Coercion and Classified (phases `revealSkill`, `revealDossier`; a Summon's Coercion, a Man in Black's, teaches its summoner's Faction) all write to the Faction's Notebook. A Faction's "known" is one set over every Section's marks (`knownAbilities`), so an ability that changes Section is never drawn again.
 
 ## Invariants & edge cases
 
@@ -256,7 +256,7 @@ the Arts, Coercion and Classified (phases `revealSkill`, `revealDossier`) all wr
 message to every client; ownership gates display and writes. Another Faction's Notebook journal, its state flag and
 every whisper sit in each player's `game.journal` and `game.messages`, readable from a console, as every enemy
 actor's sheet already is. The window, the journal sidebar and the sockets refuse; nothing more is possible without a
-server of our own (found live, ST.private).
+server of our own (found live, ST.private). Ruled 2026-11-13: ST.private is worded to that, no window, journal, card or socket; encrypting a Notebook would hide nothing an enemy's actor does not already show.
 
 ## Open questions
 
