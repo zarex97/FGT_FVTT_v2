@@ -21,13 +21,13 @@ import { KNOWN_BUILD_DROPS } from "./known-drops.mjs";
 const DOCUMENT_OF_KEY = Object.freeze({ actors: "Actor", items: "Item", journal: "JournalEntry" });
 
 /** The document name a compiled `_key` belongs to: `!actors!…` is an Actor. */
-function documentNameOf(compiled) {
+export function documentNameOf(compiled) {
   const collection = /^!([a-z]+)!/.exec(compiled._key ?? "")?.[1];
   return DOCUMENT_OF_KEY[collection] ?? null;
 }
 
 /** A compiled document as Foundry would receive it: without the pack's `_key`s. */
-function withoutKeys(value) {
+export function withoutKeys(value) {
   if (Array.isArray(value)) return value.map(withoutKeys);
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value).filter(([k]) => k !== "_key").map(([k, v]) => [k, withoutKeys(v)]));
@@ -49,7 +49,7 @@ function withoutKeys(value) {
  * Riding carried `cooldown: "@cooldown"` and the build said "0 Silent Drop(s)"
  * (#120). Left in, Foundry refuses it in its own words.
  */
-function withoutTemplateSlots(value) {
+export function withoutTemplateSlots(value) {
   if (Array.isArray(value)) return value.map(withoutTemplateSlots);
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value)

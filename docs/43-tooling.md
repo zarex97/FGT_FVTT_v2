@@ -27,6 +27,7 @@ This chapter covers two halves. The first half is the **build pipeline**: YAML s
 | `tools/check-world.mjs` | Holds the test world to a live one, and proves Foundry's two client-side Silent Drops live (`npm run check:world`) |
 | `tools/lib/eslint-client-traps.mjs` | The `fgt/client-traps` lint rule: `update()` after `updateSource()`, `updateSource()` in a `preUpdate`, a `preCreate` edit to `data` |
 | `tools/smoke-world.mjs` | Load a world in real Foundry, join, and fail if it does not come up; local gate, not CI (`tools/smoke-world.mjs:22-43`) |
+| `tools/export-oracle.mjs`, `tools/oracle/` | Oracle cases for the Godot port: each call of a wrapped pure function a test makes, with its arguments and its return value (below) |
 | `tools/extract-clauses.mjs` | A first draft of a Servant's Clause list from its Character Sheet — never the list itself, which step 1 of the per-Servant procedure builds by hand (`tools/extract-clauses.mjs:1-22`) |
 
 ## How it works
@@ -136,6 +137,10 @@ The parsing lives in `tools/lib/clauses.mjs` and is pure, so it is tested agains
 **World conformance** (`tools/check-world.mjs`, `npm run check:world`) runs the same probes in the test world (`test/helpers/world.mjs`) and in the live one and reports where they disagree. Four probes are the loud prune's documented divergences — Foundry silently clamps, coerces, voids or discards a write that the model throws on — and three are live-only probes of Foundry's **client** layer, which no Node test can run: `update()` after `updateSource()` sends nothing, a `preCreate` edit to `data` never reaches the server, and the same edit through `updateSource()` does. Each creates a throwaway actor, reads back what the *server* holds, and deletes it. They prove the `fgt/client-traps` lint rule still guards real behaviour on the pinned Foundry build (#94, Ch. 08). Local only.
 
 **Smoke test** (`tools/smoke-world.mjs:1-43`) is a local gate that proves the world actually comes up. It opens its own tab (to avoid yanking a world out from under someone reading it), launches the world, joins as a user, and fails if `game.ready` never becomes true or if an uncaught exception fires during the sequence (`tools/smoke-world.mjs:85-305`). The `--strict` flag also fails on `console.error` output from the system (`tools/smoke-world.mjs:64`, `tools/smoke-world.mjs:286-289`). It is *not* part of CI — GitHub's runners have no Foundry to point it at — but must be run locally before tagging.
+
+### The oracle export
+
+The Godot port rewrites the rules in GDScript and holds each function to this engine: a **case** is one call, its arguments, its dice and what it returned, and the Godot replay demands the same answer. `node tools/export-oracle.mjs --out <fixtures> --content-lock <content.lock>` runs a test file under vitest with `tools/oracle/vitest.oracle.config.mjs`, whose setup file wraps the functions a case is cut at and records every call (`tools/oracle/record-setup.mjs`); the expectation is what the function returned, never what an assertion says. Values JSON cannot hold are tagged by `tools/oracle/codec.mjs` (Set, Map, Infinity, NaN, Rank), and a function in a value is an error. The export refuses a `content.lock` exported from another commit, so the cases and the content always agree. It cuts the two golden files today: every `computeDamage` call of `test/golden/damage.test.mjs`, and the authoring descriptors the shipped Akhilleus Kosmos needs.
 
 ## Invariants & edge cases
 
