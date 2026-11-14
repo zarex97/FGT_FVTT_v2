@@ -16,6 +16,7 @@ The packs themselves are build artefacts and are gitignored. LevelDB directories
 | `tools/lib/content.mjs` | Compiler internals: loading, validation, `ref:` resolution, id assignment, cross-references |
 | `tools/lib/load.mjs` | Filesystem walk: loads YAML files and asset paths |
 | `tools/stage-to-yaml.mjs` | Inverse of the loader: JSON export → YAML source |
+| `tools/export-godot.mjs` | The compiled corpus as JSON for the Godot port, `grail-tact-godot` (below) |
 | `module/apps/yaml-export.mjs` | Writing a document back to pack source; exports at authored-fields boundaries |
 | `module/migration/content-sync.mjs` | Reconciling world documents against pack documents; applies the authored-fields split |
 | `module/content/authored-fields.mjs` | Which fields are pack-owned and which are world-owned; consulted by both the compiler and the sync |
@@ -45,6 +46,10 @@ Chiron's `teach` built clean before its executor existed), a Servant that states
 **7. Staging to YAML.** `tools/stage-to-yaml.mjs` converts the staged JSON export to YAML and writes it back to `packs/_source/`, replacing the original. A commit records the change (`tools/stage-to-yaml.mjs:23-64`).
 
 **8. Content sync.** On a world reload, the sync runner walks every world item and actor, calls `reconcileSystem` to merge pack data over world data (taking pack values only where the pack owns the key), and writes the result. `reconcileItems` handles embedded abilities, creating new ones from the pack, updating existing ones by content id, and removing ones no longer in the pack—unless they were granted during play (`module/migration/content-sync.mjs:40-182`).
+
+### The Godot export
+
+`node tools/export-godot.mjs --out ../grail-tact-godot/content` writes the corpus for the standalone Godot port, which loads nothing else (its plan, Ch. 12). It runs this chapter's chain — load, validate, compile, the real-DataModel check — and writes **what the model kept**, defaults filled: each document is constructed through `foundry.documents.Base<Actor|Item|JournalEntry>` and its `_source` exported, less `_key`, `_stats`, `ownership`, `folder` and `sort`, with image paths rewritten from `systems/fgt/assets` to `res://assets` (`tools/export-godot.mjs:76-104`). One JSON file per source directory, `i18n/en.csv` from `lang/en.json`, `vocabulary.json`, and `content.lock` with the source commit, each file's sha256 and the content sha a Godot War pins. It refuses uncommitted changes under `packs/_source`, `module/` or `tools/lib/` (`tools/export-godot.mjs:52-53`), and one commit exports to the same bytes. It shares `documentNameOf`, `withoutKeys` and `withoutTemplateSlots` with the model check, so the two hold the same documents (`tools/lib/model-check.mjs:24-52`).
 
 ### The authored-fields boundary
 
