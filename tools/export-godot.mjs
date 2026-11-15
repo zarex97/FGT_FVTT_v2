@@ -25,6 +25,7 @@ import {
   checkCompiled, partitionKnown, reportModelCheck, documentNameOf, withoutKeys, withoutTemplateSlots,
 } from "./lib/model-check.mjs";
 import { installSystem } from "./lib/foundry.mjs";
+import { godotSchema } from "./lib/godot-schema.mjs";
 import { SERVANT_CLASSES } from "../module/domain/enums.mjs";
 import * as ENUMS from "../module/domain/enums.mjs";
 import { TABLES, HOME_BASE_ESCAPE_MODIFIER } from "../module/domain/tables.mjs";
@@ -79,7 +80,7 @@ if (failing.length || stale.length) {
 }
 
 // 4. What the model kept, defaults filled, Foundry's bookkeeping stripped.
-await installSystem();
+const MODELS = await installSystem();
 
 /** @param {string} path a compiled entry's source file @returns {string} its source directory */
 const dirOf = (path) => path.split(/[\\/]/).at(-2);
@@ -190,6 +191,11 @@ const facetRows = FACETS.map((f) => {
 });
 write("rules_data.json", stable({ facets: facetRows, ref_scopes: REF_SCOPES }));
 counts["rules_data.json"] = FACETS.length;
+
+// Every `system` field path per document type, off the real DataModels, for the loader's schema walk (Ch. 12).
+const schema = godotSchema(MODELS);
+write("schema.json", stable(schema));
+counts["schema.json"] = Object.keys(schema).length;
 
 const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
 const csvCell = (s) => (/[",\n\r]/.test(s) ? `"${s.replaceAll("\"", "\"\"")}"` : s);
