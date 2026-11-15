@@ -269,7 +269,7 @@ function stampInstance(out, before, instanceId) {
 // read at its own panel), written after collection. Soaked's *"At the end of a
 // Day Round, the 'Soaked' effect is removed"* asked it at collection, read
 // "false", and was dropped: nothing ever dried off (#258, live).
-const DEFERRED_PREFIXES = Object.freeze([
+export const DEFERRED_PREFIXES = Object.freeze([
   "target:", "attack:", "self:inHomeBase", "self:inOwnRegion", "self:onPlatform:", "self:inField:", "self:fieldActive:", "self:phase:",
   // `war:` is the War's Region and the Round's phase, board facts too (#314).
   "war:",

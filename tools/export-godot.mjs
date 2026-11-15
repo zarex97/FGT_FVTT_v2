@@ -49,6 +49,26 @@ import { PHASE_IDS } from "../module/rules/authoring/phases.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS, RELATION_IDS } from "../module/rules/targeting/vocabulary.mjs";
 import { ABILITY_WINDOW_IDS } from "../module/rules/windows.mjs";
 import { REQUIREMENT_KINDS } from "../module/rules/items.mjs";
+import * as ELEMENTS_M from "../module/rules/elements.mjs";
+import * as PIPELINE_M from "../module/rules/damage/pipeline.mjs";
+import * as INSTANCES_M from "../module/rules/damage/instances.mjs";
+import * as DERIVED_M from "../module/rules/derived.mjs";
+import * as BUDGET_M from "../module/rules/budget.mjs";
+import * as IDENTITY_M from "../module/rules/identity.mjs";
+import * as NP_GATE_M from "../module/rules/np-gate.mjs";
+import * as WINDOWS_M from "../module/rules/windows.mjs";
+import * as BOUNDED_M from "../module/rules/bounded-fields.mjs";
+import * as AURAS_M from "../module/rules/auras.mjs";
+import * as ITEMS_M from "../module/rules/items.mjs";
+import * as THEFT_M from "../module/rules/skill-theft.mjs";
+import * as MOVEMENT_M from "../module/rules/movement.mjs";
+import * as PLATFORMS_M from "../module/rules/platforms.mjs";
+import * as SNAPSHOT_M from "../module/rules/snapshot.mjs";
+import * as CONCEALMENT_M from "../module/rules/concealment.mjs";
+import * as GUARD_M from "../module/rules/master-guard.mjs";
+import { ELEMENT_DESCRIPTORS } from "../module/rules/authoring/elements.mjs";
+import { REQUIREMENT_DESCRIPTORS } from "../module/rules/authoring/requirements.mjs";
+import { TIMING_DESCRIPTORS } from "../module/rules/authoring/timing.mjs";
 
 const SOURCE = "packs/_source";
 const GUARDED = ["packs/_source", "module", "tools/lib"];
@@ -219,6 +239,30 @@ const RULE_TABLES = {
   },
   count: { COUNT_KINDS: COUNT_M.COUNT_KINDS, BOARD_COUNT_KINDS: COUNT_M.BOARD_COUNT_KINDS, REQUIRED_KEYS: COUNT_M.REQUIRED_KEYS },
   difficulty: { NO_DAMAGE_MODIFIERS: DIFFICULTY_M.NO_DAMAGE_MODIFIERS, NO_LUCK_CHECK: DIFFICULTY_M.NO_LUCK_CHECK },
+  elements: { DEFERRED_PREFIXES: ELEMENTS_M.DEFERRED_PREFIXES, CUT_KINDS: ELEMENTS_M.CUT_KINDS },
+  damage_pipeline: { BLOCK_BASE_PERCENT: PIPELINE_M.BLOCK_BASE_PERCENT, INJURY_THRESHOLD: PIPELINE_M.INJURY_THRESHOLD, STAGE_NAMES: PIPELINE_M.STAGE_NAMES, ATTACKER_BUCKET_KEYS: PIPELINE_M.ATTACKER_BUCKET_KEYS, DEFENDER_BUCKET_KEYS: PIPELINE_M.DEFENDER_BUCKET_KEYS, NEGATIVE_KEYS: PIPELINE_M.NEGATIVE_KEYS, DEFENDER_POSITIVE_KEYS: PIPELINE_M.DEFENDER_POSITIVE_KEYS, FLAT_ATTACK_KEYS: PIPELINE_M.FLAT_ATTACK_KEYS, FLAT_REDUCTION_KEYS: PIPELINE_M.FLAT_REDUCTION_KEYS, FLAT_TAKEN_KEYS: PIPELINE_M.FLAT_TAKEN_KEYS, ELEMENT_ATTACK_KEYS: PIPELINE_M.ELEMENT_ATTACK_KEYS, ELEMENT_DEFENCE_KEYS: PIPELINE_M.ELEMENT_DEFENCE_KEYS, ELEMENT_TOTAL_KEYS: PIPELINE_M.ELEMENT_TOTAL_KEYS, TOTAL_TAKEN_KEYS: PIPELINE_M.TOTAL_TAKEN_KEYS, TOTAL_DEALT_KEYS: PIPELINE_M.TOTAL_DEALT_KEYS, DAMAGE_MULTIPLIER_KEYS: PIPELINE_M.DAMAGE_MULTIPLIER_KEYS, ELEMENT_NEGATIVE_KEYS: PIPELINE_M.ELEMENT_NEGATIVE_KEYS, MODIFIER_KEYS: PIPELINE_M.MODIFIER_KEYS },
+  damage_instances: { DAMAGE_BLOCK_KEYS: INSTANCES_M.DAMAGE_BLOCK_KEYS },
+  derived: { NON_NEGATIVE: DERIVED_M.NON_NEGATIVE, MODIFIABLE_PATHS: DERIVED_M.MODIFIABLE_PATHS },
+  budget: { BUDGET_PARTS: BUDGET_M.BUDGET_PARTS, DEFAULT_MAXIMA: BUDGET_M.DEFAULT_MAXIMA, PREVENT_ALL: BUDGET_M.PREVENT_ALL, PREVENTS: BUDGET_M.PREVENTS, LABELS: BUDGET_M.LABELS, ACTION_KINDS: BUDGET_M.ACTION_KINDS, ATTACK_ACTIONS: BUDGET_M.ATTACK_ACTIONS },
+  identity: { DETECT_BY_CLASS: IDENTITY_M.DETECT_BY_CLASS, DEFAULT_DETECT: IDENTITY_M.DEFAULT_DETECT, MIN_DETECT: IDENTITY_M.MIN_DETECT, DISCOVER_ATTEMPTS_PER_FACTION: IDENTITY_M.DISCOVER_ATTEMPTS_PER_FACTION },
+  np_gate: { NP_GATE: NP_GATE_M.NP_GATE, EARLY_CLASSES: NP_GATE_M.EARLY_CLASSES },
+  windows: { ABILITY_WINDOWS: WINDOWS_M.ABILITY_WINDOWS, ABILITY_WINDOW_IDS: WINDOWS_M.ABILITY_WINDOW_IDS, ATTACKER_WINDOWS: WINDOWS_M.ATTACKER_WINDOWS },
+  bounded_fields: { STAT_INTERIOR: BOUNDED_M.STAT_INTERIOR },
+  auras: { ROUTES: AURAS_M.ROUTES },
+  items: { ITEM_REDIRECT_RANGE: ITEMS_M.ITEM_REDIRECT_RANGE, REQUIREMENT_KINDS: ITEMS_M.REQUIREMENT_KINDS, SELF_REQUIREMENTS: ITEMS_M.SELF_REQUIREMENTS },
+  skill_theft: { RANK_COUNT: THEFT_M.RANK_COUNT },
+  movement: { IGNORES_BLOCKING: MOVEMENT_M.IGNORES_BLOCKING, STOPS_ON_OCCUPIED: MOVEMENT_M.STOPS_ON_OCCUPIED, OBJECT_KINDS: MOVEMENT_M.OBJECT_KINDS, RIDE_SPEC: MOVEMENT_M.RIDE_SPEC, RIDING_DIRECTIONS: MOVEMENT_M.RIDING_DIRECTIONS },
+  platforms: { OPEN_PLATFORM: PLATFORMS_M.OPEN_PLATFORM, JUMPING_KINDS: PLATFORMS_M.JUMPING_KINDS },
+  snapshot: { DIFFICULTIES: SNAPSHOT_M.DIFFICULTIES },
+  concealment: { DEACTIVATION_REASONS: CONCEALMENT_M.DEACTIVATION_REASONS },
+  master_guard: { GUARD_RADIUS: GUARD_M.GUARD_RADIUS },
+  // The authoring descriptors the content needs read by name: each element's and requirement's field keys, and the
+  // timing windows (the oracle's `rules/authoring` cases).
+  authoring: {
+    ELEMENT_FIELDS: Object.fromEntries(Object.entries(ELEMENT_DESCRIPTORS).map(([k, d]) => [k, (d?.fields ?? []).map((f) => f.key).sort()])),
+    REQUIREMENT_FIELDS: Object.fromEntries(Object.entries(REQUIREMENT_DESCRIPTORS).map(([k, d]) => [k, (d?.fields ?? []).map((f) => f.key).sort()])),
+    TIMING_IDS: Object.keys(TIMING_DESCRIPTORS),
+  },
 };
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (x instanceof Set ? [...x] : x)));
 write("rules_data.json", stable({ facets: facetRows, ref_scopes: REF_SCOPES, tables: plain(RULE_TABLES) }));

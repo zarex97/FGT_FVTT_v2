@@ -1541,7 +1541,7 @@ export function unitIdsOfTurn(board, factionId) {
  * snapshot directly. Everything else goes into `modifiers`, where the damage
  * pipeline reads it.
  */
-const STAT_INTERIOR = new Set(["StatDelta", "MovDelta", "RangeDelta"]);
+export const STAT_INTERIOR = new Set(["StatDelta", "MovDelta", "RangeDelta"]);
 
 /**
  * @param {object[]} list

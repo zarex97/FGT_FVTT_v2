@@ -27,7 +27,7 @@
 import { Rank } from "../domain/rank.mjs";
 
 /** Stats that may never go below zero. */
-const NON_NEGATIVE = new Set(["mov", "range.panels", "agility.value", "luck.value", "shield"]);
+export const NON_NEGATIVE = new Set(["mov", "range.panels", "agility.value", "luck.value", "shield"]);
 
 /**
  * @typedef {object} DerivedResult

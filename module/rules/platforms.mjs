@@ -616,7 +616,7 @@ export function platformUnderUnit(unit, board) {
  * Jump off."* So Servants and Summons; a Master leaves by being carried or by
  * being knocked off, and a Civilian does not leave at all.
  */
-const JUMPING_KINDS = Object.freeze(["servant", "summon"]);
+export const JUMPING_KINDS = Object.freeze(["servant", "summon"]);
 
 /**
  * Is this panel on the boundary of the platform's footprint?

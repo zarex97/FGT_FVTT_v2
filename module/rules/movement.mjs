@@ -24,7 +24,7 @@ import { resolveTargets } from "./targeting/resolve.mjs";
 import { shownNameOf } from "./identity.mjs";
 
 /** Effects that let a unit pass occupied panels and Master protection. */
-const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
+export const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
 
 /**
  * Of those, the ones that also let it STOP on an occupied panel. Presence
@@ -32,7 +32,7 @@ const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
  * Master-Servant positions"* lets it walk through Units and past a guarded
  * Master, never end on another Unit (ruled 2026-10-16, #226).
  */
-const STOPS_ON_OCCUPIED = Object.freeze(["hugeScale"]);
+export const STOPS_ON_OCCUPIED = Object.freeze(["hugeScale"]);
 
 /**
  * Unit kinds that are scenery rather than combatants for occupancy.
@@ -42,7 +42,7 @@ const STOPS_ON_OCCUPIED = Object.freeze(["hugeScale"]);
  * panel is a different question — Quetzalcoatl's Piedra Del Sol may share with
  * anything except another object — and `canStopOn` answers it.
  */
-const OBJECT_KINDS = new Set(["platform", "structure"]);
+export const OBJECT_KINDS = new Set(["platform", "structure"]);
 
 /**
  * @typedef {import("../domain/geometry.mjs").GridOffset} GridOffset
@@ -342,7 +342,7 @@ function judgeRide(unit, destination, board, { movedAlready = null, distanceOver
 }
 
 /** What a ride is, to the targeting resolver: every enemy along a path of panels. */
-const RIDE_SPEC = Object.freeze({
+export const RIDE_SPEC = Object.freeze({
   anchor: { kind: "movementPath" },
   shape: { kind: "path" },
   selection: { relations: ["enemy"], chooser: "all" },
@@ -455,7 +455,7 @@ export function ridingDestinations(unit, board, { distanceOverride = null } = {}
 }
 
 /** The eight lines a Riding Attack may run along: the axes and the exact diagonals. */
-const RIDING_DIRECTIONS = Object.freeze([
+export const RIDING_DIRECTIONS = Object.freeze([
   [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1],
 ]);
 

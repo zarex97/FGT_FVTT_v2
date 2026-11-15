@@ -41,10 +41,10 @@ export const DETECT_BY_CLASS = Object.freeze({
 });
 
 /** Anything with no class container listed. */
-const DEFAULT_DETECT = 2;
+export const DEFAULT_DETECT = 2;
 
 /** Detect can be reduced, but a unit always perceives at least its neighbours. */
-const MIN_DETECT = 1;
+export const MIN_DETECT = 1;
 
 /* -------------------------------------------------------------------------- */
 /*  Identity                                                                  */
