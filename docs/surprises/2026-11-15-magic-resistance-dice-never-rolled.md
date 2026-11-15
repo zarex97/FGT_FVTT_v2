@@ -12,6 +12,6 @@ Saber read stage 11 "magicResistance 0 (dice mode (5d20) — never negates)", 14
 **Cause:** `module/rules/damage/pipeline.mjs:1075 @ 3ff252f1` reads `ctx.rolls.magicResistanceDice` and
 `module/engine/attack.mjs` (`applyDamage`'s rolls) never supplied it; only `rules/preview.mjs` and a golden test did.
 The ZON penalty's defect (`test/unit/zon-penalty.test.mjs`), one stage later.
-**Fix:** `module/engine/attack.mjs @ uncommitted` rolls it (`rollMagicResistance`) beside the negation dice, only for a
+**Fix:** `module/engine/attack.mjs @ 1d3389d2` rolls it (`rollMagicResistance`) beside the negation dice, only for a
 dice-mode resistance against an attack drawing on MAG, doubled against a Noble Phantasm when the resistance says so;
 the preview's bounds are 5d20's; `test/unit/magic-resistance-dice.test.mjs` holds both. The Godot driver follows.
