@@ -26,6 +26,11 @@ import {
 } from "./lib/model-check.mjs";
 import { installSystem } from "./lib/foundry.mjs";
 import { SERVANT_CLASSES } from "../module/domain/enums.mjs";
+import * as ENUMS from "../module/domain/enums.mjs";
+import { TABLES, HOME_BASE_ESCAPE_MODIFIER } from "../module/domain/tables.mjs";
+import { WAR_RULES } from "../module/domain/war-rules.mjs";
+import { IMPLICATIONS } from "../module/domain/attributes.mjs";
+import { REVISION_RULES, REVISION_CHOICES } from "../module/domain/revisions.mjs";
 import { ABILITY_KINDS } from "../module/rules/authoring/ability.mjs";
 import { PHASE_IDS } from "../module/rules/authoring/phases.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS, RELATION_IDS } from "../module/rules/targeting/vocabulary.mjs";
@@ -148,6 +153,23 @@ const vocabulary = {
   servant_classes: [...SERVANT_CLASSES].sort(),
 };
 write("vocabulary.json", stable(vocabulary));
+
+// The domain's own data, so the port reads the tables the engine reads instead of a second copy (Ch. 04): the Rank
+// tables, the War Rules, the attribute implications, the revision rules and the closed lists of `enums.mjs`.
+const enumLists = Object.fromEntries(Object.entries(ENUMS)
+  .filter(([, v]) => Array.isArray(v) || (v && typeof v === "object" && !(v instanceof Set)))
+  .map(([k, v]) => [k, v]));
+const domain = {
+  tables: TABLES,
+  home_base_escape_modifier: HOME_BASE_ESCAPE_MODIFIER,
+  war_rules: WAR_RULES,
+  implications: IMPLICATIONS,
+  revision_rules: REVISION_RULES,
+  revision_choices: REVISION_CHOICES,
+  enums: enumLists,
+};
+write("domain.json", stable(domain));
+counts["domain.json"] = Object.keys(TABLES).length;
 
 const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
 const csvCell = (s) => (/[",\n\r]/.test(s) ? `"${s.replaceAll("\"", "\"\"")}"` : s);

@@ -45,4 +45,55 @@ export const TARGETS = [
       "test/unit/field-interior-movement.test.mjs", "test/unit/linked-group.test.mjs",
     ],
   },
+  {
+    module: "module/domain/tick.mjs", layer: "domain/tick", cap: 80, tests: "importers",
+    fns: {
+      fractionTicks: "domain.tick.fraction_ticks", roundsToTicks: "domain.tick.rounds_to_ticks",
+      parseTick: "domain.tick.parse_tick", resolveTicks: "domain.tick.resolve_ticks", ticks: "domain.tick.ticks",
+      expiryReached: "domain.tick.expiry_reached", formatTick: "domain.tick.format_tick",
+    },
+  },
+  {
+    module: "module/domain/tables.mjs", layer: "domain/tables", cap: 120, tests: "importers",
+    fns: { lookup: "domain.tables.lookup", lookupNumber: "domain.tables.lookup_number" },
+  },
+  {
+    module: "module/domain/health.mjs", layer: "domain/health", cap: 60, tests: "importers",
+    fns: {
+      currentHealth: "domain.health.current_health", maxHealth: "domain.health.max_health",
+      isUndamageable: "domain.health.is_undamageable", clampToMax: "domain.health.clamp_to_max",
+      watermarkKey: "domain.health.watermark_key",
+    },
+  },
+  {
+    module: "module/domain/base-attack.mjs", layer: "domain/base-attack", cap: 80, tests: "importers",
+    fns: { penalizedBaseAttack: "domain.base_attack.penalized", baseAttackFor: "domain.base_attack.base_attack_for" },
+  },
+  {
+    module: "module/domain/resources.mjs", layer: "domain/resources", cap: 60, tests: "importers",
+    fns: {
+      resourceValue: "domain.resources.resource_value", resourceMax: "domain.resources.resource_max",
+      canSpend: "domain.resources.can_spend", afterChange: "domain.resources.after_change",
+      resourcePath: "domain.resources.resource_path", resourcePathFor: "domain.resources.resource_path_for",
+      resourceLabel: "domain.resources.resource_label",
+    },
+  },
+  {
+    module: "module/domain/attributes.mjs", layer: "domain/attributes", cap: 80, tests: "importers",
+    fns: { isMagus: "domain.attributes.is_magus", closeAttributes: "domain.attributes.close_attributes" },
+  },
+  {
+    module: "module/domain/revisions.mjs", layer: "domain/revisions", cap: 60, tests: "importers",
+    fns: {
+      isRevisable: "domain.revisions.is_revisable", effectiveRevision: "domain.revisions.effective_revision",
+      revisionOf: "domain.revisions.revision_of",
+    },
+  },
+  {
+    module: "module/domain/war-rules.mjs", layer: "domain/war-rules", cap: 80, tests: "importers",
+    fns: {
+      publishedValue: "domain.war_rules.published_value", coerceWarRule: "domain.war_rules.coerce",
+      missingWarRules: "domain.war_rules.missing", warRuleEditable: "domain.war_rules.editable",
+    },
+  },
 ];
