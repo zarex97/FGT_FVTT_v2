@@ -31,7 +31,8 @@ export const DICE_BOUNDS = Object.freeze({
   // It read `{1, 20}` -- a `1d20`, which is not a die this rule has ever named
   // (Ch. C, Ch. 32). Found while giving the resolution its missing roll.
   zonPenalty: { min: 5, max: 50 },
-  magicResistanceDice: { min: 1, max: 100 },
+  // 5d20, the only dice-mode Magic Resistance the content states (the Normal Saber's).
+  magicResistanceDice: { min: 5, max: 100 },
   battleContinuation: { min: 0, max: 0 },
   territoryCreationAtk: { min: 0, max: 0 },
   territoryCreationDef: { min: 0, max: 0 },

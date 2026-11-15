@@ -6640,6 +6640,10 @@ async function applyDamage(state, message) {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
       ...(totalDie ? { totalDie: { formula: totalDie.formula, total: totalDie.total } } : {}),
       negation: await rollNegation(defender, isNPAttack(state.attack)),
+      // Magic Resistance in dice mode: the Normal Saber's *"All MAG damage taken is reduced by 5d20; if NP, double
+      // the number of dice rolled."* Stage 11 has read `ctx.rolls.magicResistanceDice` since the pipeline was written
+      // and nothing rolled it, so every dice-mode resistance cut 0 -- the ZON penalty's story again (Godot M2, live).
+      magicResistanceDice: await rollMagicResistance(defender, isNPAttack(state.attack), usesBaseOptions(baseSpec)),
       // Ch. 32's ZON penalty: *"when a Servant deals damage with an Attack while
       // outside of its Master's ZON, damage dealt is reduced by 5d10"*.
       //
@@ -7146,6 +7150,22 @@ async function rollNegation(defender, isNP) {
     out.push({ source: n.source, value: roll.total + (n.bonus ?? 0), formula });
   }
   return out;
+}
+
+/**
+ * The dice a dice-mode Magic Resistance takes off the MAG share, doubled against a Noble Phantasm when it says so.
+ * Rolled only when it can apply: a defender without one, with a ranked one, or an attack that draws on no MAG throws
+ * no die.
+ * @param {object|null} defender
+ * @param {boolean} isNP
+ * @param {string[]} uses `usesBaseOptions` of the attack's base
+ * @returns {Promise<number>}
+ */
+async function rollMagicResistance(defender, isNP, uses) {
+  const mr = defender?.magicResistance;
+  if (mr?.mode !== "dice" || !mr.formula || !uses.includes("attack:usesBase:mag")) return 0;
+  const formula = isNP && mr.npDiceDoubled ? doubleDice(mr.formula) : mr.formula;
+  return (await new Roll(formula).evaluate()).total;
 }
 
 /**
