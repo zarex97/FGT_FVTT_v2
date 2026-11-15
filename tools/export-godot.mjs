@@ -31,6 +31,7 @@ import { TABLES, HOME_BASE_ESCAPE_MODIFIER } from "../module/domain/tables.mjs";
 import { WAR_RULES } from "../module/domain/war-rules.mjs";
 import { IMPLICATIONS } from "../module/domain/attributes.mjs";
 import { REVISION_RULES, REVISION_CHOICES } from "../module/domain/revisions.mjs";
+import { FACETS, patternFor, REF_SCOPES } from "../module/rules/facets.mjs";
 import { ABILITY_KINDS } from "../module/rules/authoring/ability.mjs";
 import { PHASE_IDS } from "../module/rules/authoring/phases.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS, RELATION_IDS } from "../module/rules/targeting/vocabulary.mjs";
@@ -170,6 +171,25 @@ const domain = {
 };
 write("domain.json", stable(domain));
 counts["domain.json"] = Object.keys(TABLES).length;
+
+// The rules layer's own tables (Ch. 05): the facets with each form's pattern tail per subject, as the regexes
+// `facets.mjs` builds, so the port matches options with the engine's own patterns.
+const facetRows = FACETS.map((f) => {
+  const patterns = patternFor(f).map((r) => r.source);
+  const tails = {};
+  let k = 0;
+  for (const form of f.forms) {
+    void form;
+    for (const subject of f.subjects) {
+      const prefix = `^${subject}:${f.id}`;
+      (tails[subject] ??= []).push(patterns[k].slice(prefix.length, -1));
+      k++;
+    }
+  }
+  return { ...f, form_tails: tails };
+});
+write("rules_data.json", stable({ facets: facetRows, ref_scopes: REF_SCOPES }));
+counts["rules_data.json"] = FACETS.length;
 
 const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
 const csvCell = (s) => (/[",\n\r]/.test(s) ? `"${s.replaceAll("\"", "\"\"")}"` : s);
