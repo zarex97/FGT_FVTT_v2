@@ -12,6 +12,10 @@ import { encode } from "./codec.mjs";
 const records = [];
 let unnamed = 0;
 let unreplayable = 0;
+// Calls past this many per function are not encoded at all: a hot reader (relationOf) is called many thousand times
+// a file, and holding every one ran the worker out of memory. The exporter applies the target's own cap after.
+const CAP = Number(process.env.ORACLE_CAP ?? 400);
+const kept = new Map();
 
 /**
  * @param {string} fn the case's function name, as the Godot table keys it
@@ -20,14 +24,20 @@ let unreplayable = 0;
  */
 export function recording(fn, impl) {
   return (...args) => {
+    const seen = kept.get(fn) ?? new Set();
+    kept.set(fn, seen);
+    if (seen.size >= CAP) return impl(...args);
     let input = null;
     try {
       input = encode(args, "args");
     } catch {
       unreplayable++;
     }
+    const key = input === null ? null : JSON.stringify(input);
+    if (key !== null && seen.has(key)) input = null;
     const result = impl(...args);
     if (input !== null) {
+      seen.add(key);
       try {
         const test = expect.getState().currentTestName ?? `describe-time ${++unnamed}`;
         records.push({ fn, test, input: { args: input }, expect: { result: encode(result, "result") } });
