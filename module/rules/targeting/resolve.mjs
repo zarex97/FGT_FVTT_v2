@@ -1580,7 +1580,9 @@ function isProtectedMaster(unit, caster, board, range) {
 function toTargeted(u, caster, bands, caught) {
   return {
     unitId: u.id,
-    distance: geo.chebyshev(caster.panel, u.panel),
+    // Footprint to footprint, as Range is: a 2x2 Unit whose near panel is two away is two away, and `nearest`
+    // sorts by this (Lesson: a Unit is its footprint, never its anchor). Anchor to anchor read it three.
+    distance: geo.chebyshevBetween(geo.occupiedPanels(caster), geo.occupiedPanels(u)),
     band: bands?.get(geo.key(u.panel)) ?? 0,
     concealedAoE: Boolean(u.concealed) && caught,
     // Caught by the shape rather than chosen: an AoE's, not a targeted

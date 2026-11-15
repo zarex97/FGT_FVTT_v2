@@ -682,6 +682,16 @@ describe("choosers: nearest and random", () => {
       .toEqual(["near", "mid"]);
   });
 
+  it("nearest measures footprint to footprint: a 2x2 whose near panel is closer comes first", () => {
+    // The 2x2's anchor is three away, its near panel one; the 1x1 is two away.
+    const big = unit("big", 3, 6, { footprint: { w: 2, h: 2 }, panels: [at(3, 6), at(3, 7), at(4, 6), at(4, 7)] });
+    const twoAway = unit("two", 8, 6);
+    const r = resolveTargets({ ...spec("nearest"), selection: { relations: ["enemy"], chooser: "nearest", count: 1 } },
+      caster, boardWith([caster, big, twoAway]));
+    expect(r.units.map((u) => u.unitId)).toEqual(["big"]);
+    expect(r.units[0].distance).toBe(2);
+  });
+
   it("random is deterministic for a given seed, so replays reproduce", () => {
     const a = resolveTargets(spec("random"), caster, board).units.map((u) => u.unitId);
     const b = resolveTargets(spec("random"), caster, board).units.map((u) => u.unitId);
