@@ -153,8 +153,8 @@ const sweep = (name, fn, args, result) => {
 sweep("rank-compare", "domain.rank.compare_table", [SWEEP_RANKS],
   SWEEP_RANKS.map((a) => SWEEP_RANKS.map((b) => Rank.compare(a, b))));
 for (const n of [-7, -3, -1, 1, 3, 7]) {
-  sweep(`rank-step-${n}`, "domain.rank.step_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.step(n)));
-  sweep(`rank-step-grade-${n}`, "domain.rank.step_grade_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.stepGrade(n)));
+  sweep(`rank-step-${n < 0 ? `minus${-n}` : n}`, "domain.rank.step_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.step(n)));
+  sweep(`rank-step-grade-${n < 0 ? `minus${-n}` : n}`, "domain.rank.step_grade_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.stepGrade(n)));
 }
 for (let R = 0; R <= 12; R++) {
   const grid = [];
