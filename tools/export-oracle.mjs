@@ -17,7 +17,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
@@ -25,6 +25,7 @@ import { encode } from "./oracle/codec.mjs";
 import { ELEMENT_DESCRIPTORS } from "../module/rules/authoring/elements.mjs";
 import { REQUIREMENT_DESCRIPTORS } from "../module/rules/authoring/requirements.mjs";
 import { TIMING_DESCRIPTORS } from "../module/rules/authoring/timing.mjs";
+import { TARGETS } from "./oracle/targets.mjs";
 
 const fail = (message) => {
   console.error(`export-oracle | ${message}`);
@@ -63,7 +64,7 @@ try {
     "node_modules/vitest/vitest.mjs", "run", "test/golden/damage.test.mjs",
     "--config", "tools/oracle/vitest.oracle.config.mjs", "--reporter", "dot",
   ], { stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORACLE_OUT: scratch } });
-  const recorded = JSON.parse(readFileSync(join(scratch, "damage.test.mjs.json"), "utf8"));
+  const recorded = JSON.parse(readFileSync(join(scratch, "damage.test.mjs.json"), "utf8")).records;
   if (recorded.length === 0) fail("the damage golden file recorded no computeDamage call");
   const seen = new Set();
   for (const r of recorded) {
@@ -75,6 +76,59 @@ try {
   }
 } finally {
   rmSync(scratch, { recursive: true, force: true });
+}
+
+// 1b. The targets of `tools/oracle/targets.mjs`: a setup file is written for each, wrapping its functions, and its
+// test files run under it. Every call is a case; one set of arguments is one case; `cap` bounds each function.
+const GENERATED = "tools/oracle/.generated";
+const NL = String.fromCharCode(10);
+mkdirSync(GENERATED, { recursive: true });
+for (const target of TARGETS) {
+  const setup = join(GENERATED, `${slug(target.layer)}.mjs`);
+  const wraps = Object.entries(target.fns)
+    .map(([name, godot]) => `    ${name}: recording(${JSON.stringify(godot)}, mod.${name}),`).join(NL);
+  writeFileSync(setup, [
+    "// Written by tools/export-oracle.mjs from tools/oracle/targets.mjs; never edited by hand.",
+    'import { vi } from "vitest";',
+    'import { recording } from "../record-lib.mjs";',
+    `vi.mock("../../../${target.module}", async (importOriginal) => {`,
+    "  const mod = await importOriginal();",
+    "  return {",
+    "    ...mod,",
+    wraps,
+    "  };",
+    "});",
+    "",
+  ].join(NL), "utf8");
+  const out = mkdtempSync(join(tmpdir(), "fgt-oracle-"));
+  try {
+    execFileSync(process.execPath, [
+      "node_modules/vitest/vitest.mjs", "run", ...target.tests,
+      "--config", "tools/oracle/vitest.oracle.config.mjs", "--reporter", "dot",
+    ], { stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORACLE_OUT: out, ORACLE_SETUP: setup } });
+    const perFn = new Map();
+    let unreplayable = 0;
+    for (const file of readdirSync(out).sort()) {
+      const { records, unreplayable: skipped } = JSON.parse(readFileSync(join(out, file), "utf8"));
+      unreplayable += skipped;
+      for (const r of records) {
+        const kept = perFn.get(r.fn) ?? new Map();
+        perFn.set(r.fn, kept);
+        const key = hash(r.input);
+        if (!kept.has(key) && kept.size < target.cap) kept.set(key, r);
+      }
+    }
+    for (const godot of Object.values(target.fns)) {
+      for (const [key, r] of perFn.get(godot) ?? []) {
+        const short = godot.split(".").pop();
+        cases.push({ id: `${target.layer}/${slug(short)}-${key}`, fn: godot, content_sha: lock.sha, input: r.input, dice: [], expect: { result: r.expect.result } });
+      }
+    }
+    const counts = Object.values(target.fns).map((g) => `${g.split(".").pop()} ${perFn.get(g)?.size ?? 0}`);
+    console.log(`export-oracle | ${target.layer}: ${counts.join(", ")}; ${unreplayable} call(s) held a function`);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
 }
 
 // 2. The authoring descriptors the shipped Akhilleus Kosmos needs (the second golden file's subject).
