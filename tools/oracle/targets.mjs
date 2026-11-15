@@ -96,4 +96,96 @@ export const TARGETS = [
       missingWarRules: "domain.war_rules.missing", warRuleEditable: "domain.war_rules.editable",
     },
   },
+  // M2a: predicates, facets, options, count.
+  {
+    module: "module/rules/predicate.mjs", layer: "rules/predicate", cap: 150, tests: "importers", maxFiles: 60,
+    fns: {
+      test: "rules.predicate.test", testStatement: "rules.predicate.test_statement",
+      explain: "rules.predicate.explain", referencedOptions: "rules.predicate.referenced_options",
+    },
+  },
+  {
+    module: "module/rules/facets.mjs", layer: "rules/facets", cap: 120, tests: "importers",
+    fns: { parseOption: "rules.facets.parse_option" },
+  },
+  {
+    module: "module/rules/options.mjs", layer: "rules/options", cap: 150, tests: "importers", maxFiles: 60,
+    fns: {
+      ownerOptionsOf: "rules.options.owner_options_of", attributesNamed: "rules.options.attributes_named",
+      antiAttributesOf: "rules.options.anti_attributes_of", rollOptionsFor: "rules.options.roll_options_for",
+      isEmittableOption: "rules.options.is_emittable_option",
+    },
+  },
+  {
+    module: "module/rules/count.mjs", layer: "rules/count", cap: 100, tests: "importers", maxFiles: 60,
+    fns: {
+      countOf: "rules.count.count_of", unitDistance: "rules.count.unit_distance", countedValue: "rules.count.counted_value",
+      stacksHeld: "rules.count.stacks_held", countScaleOf: "rules.count.count_scale_of", criteriaMet: "rules.count.criteria_met",
+      declarationCriteria: "rules.count.declaration_criteria", multiplierOf: "rules.count.multiplier_of",
+      countSpecsIn: "rules.count.count_specs_in", countProblems: "rules.count.count_problems",
+      unknownCountKindsIn: "rules.count.unknown_count_kinds_in", fromPerStack: "rules.count.from_per_stack",
+      fromCountTargets: "rules.count.from_count_targets", fromCountMatching: "rules.count.from_count_matching",
+      parametersCounted: "rules.count.parameters_counted",
+    },
+  },
+  {
+    module: "module/rules/relations.mjs", layer: "rules/relations", cap: 100, tests: "importers",
+    fns: { sideOf: "rules.relations.side_of", relationOf: "rules.relations.relation_of", isFriendly: "rules.relations.is_friendly", guardsOf: "rules.relations.guards_of" },
+  },
+  // M2b: rule elements and ordering.
+  {
+    module: "module/rules/elements.mjs", layer: "rules/elements", cap: 150, tests: "importers", maxFiles: 60,
+    fns: {
+      empty: "rules.elements.empty", collectContributions: "rules.elements.collect_contributions",
+      deferredPredicate: "rules.elements.deferred_predicate", abilityRankShifts: "rules.elements.ability_rank_shifts",
+      rankWithShifts: "rules.elements.rank_with_shifts", resolveValue: "rules.elements.resolve_value",
+      normalizeHandler: "rules.elements.normalize_handler", handledKeys: "rules.elements.handled_keys",
+    },
+  },
+  {
+    module: "module/rules/ordering.mjs", layer: "rules/ordering", cap: 80, tests: "importers",
+    fns: { bandOf: "rules.ordering.band_of", orderElements: "rules.ordering.order_elements" },
+  },
+  // M2c: the projection.
+  {
+    module: "module/rules/snapshot.mjs", layer: "rules/snapshot", cap: 150, tests: "importers", maxFiles: 60,
+    fns: {
+      snapshotUnit: "rules.snapshot.snapshot_unit", snapshotBoard: "rules.snapshot.snapshot_board",
+      turnStateAt: "rules.snapshot.turn_state_at", roundStateAt: "rules.snapshot.round_state_at",
+      applyBaseAttackModifiers: "rules.snapshot.apply_base_attack_modifiers", resolveRuleValues: "rules.snapshot.resolve_rule_values",
+      attributesOf: "rules.snapshot.attributes_of", expressionRefs: "rules.snapshot.expression_refs",
+    },
+  },
+  // M2d: targeting.
+  {
+    module: "module/rules/targeting/resolve.mjs", layer: "rules/targeting", cap: 150, tests: "importers", maxFiles: 60,
+    fns: {
+      resolveTargets: "rules.targeting.resolve_targets", validate: "rules.targeting.validate",
+      unitsShown: "rules.targeting.units_shown", pendingChoiceErrors: "rules.targeting.pending_choice_errors",
+      legalPlacements: "rules.targeting.legal_placements", measuredReach: "rules.targeting.measured_reach",
+    },
+  },
+  {
+    module: "module/rules/targeting/shapes.mjs", layer: "rules/shapes", cap: 120, tests: "importers",
+    fns: { expand: "rules.shapes.expand", orthogonalAdjacentRect: "rules.shapes.orthogonal_adjacent_rect", footprintAdjacentRect: "rules.shapes.footprint_adjacent_rect" },
+  },
+  // M2e: checks and the damage pipeline.
+  {
+    module: "module/rules/checks.mjs", layer: "rules/checks", cap: 120, tests: "importers", maxFiles: 60,
+    fns: {
+      tableFor: "rules.checks.table_for", agilityTableAgainst: "rules.checks.agility_table_against",
+      checkPlan: "rules.checks.check_plan", mergePlans: "rules.checks.merge_plans",
+      pendingCheckRolls: "rules.checks.pending_check_rolls", resolveCheck: "rules.checks.resolve_check",
+      evade: "rules.checks.evade", luckCheck: "rules.checks.luck_check", chance: "rules.checks.chance",
+      applicationChance: "rules.checks.application_chance", critChance: "rules.checks.crit_chance",
+    },
+  },
+  {
+    module: "module/rules/damage/pipeline.mjs", layer: "rules/damage-pipeline", cap: 200, tests: "importers", maxFiles: 80,
+    fns: {
+      injuryThresholdOf: "rules.damage.injury_threshold_of", computeDamage: "rules.damage.compute_damage",
+      computeDamageHits: "rules.damage.compute_damage_hits", elementalEarlyExit: "rules.damage.elemental_early_exit",
+      usesBaseOptions: "rules.damage.uses_base_options", isNPAttack: "rules.damage.is_np_attack",
+    },
+  },
 ];
