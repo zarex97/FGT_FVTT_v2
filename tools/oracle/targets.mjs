@@ -98,18 +98,18 @@ export const TARGETS = [
   },
   // M2a: predicates, facets, options, count.
   {
-    module: "module/rules/predicate.mjs", layer: "rules/predicate", cap: 150, tests: "importers", maxFiles: 60,
+    module: "module/rules/predicate.mjs", layer: "rules/predicate", cap: 60, tests: "importers", maxFiles: 60,
     fns: {
       test: "rules.predicate.test", testStatement: "rules.predicate.test_statement",
       explain: "rules.predicate.explain", referencedOptions: "rules.predicate.referenced_options",
     },
   },
   {
-    module: "module/rules/facets.mjs", layer: "rules/facets", cap: 120, tests: "importers",
+    module: "module/rules/facets.mjs", layer: "rules/facets", cap: 60, tests: "importers",
     fns: { parseOption: "rules.facets.parse_option" },
   },
   {
-    module: "module/rules/options.mjs", layer: "rules/options", cap: 150, tests: "importers", maxFiles: 60,
+    module: "module/rules/options.mjs", layer: "rules/options", cap: 60, tests: "importers", maxFiles: 60,
     fns: {
       ownerOptionsOf: "rules.options.owner_options_of", attributesNamed: "rules.options.attributes_named",
       antiAttributesOf: "rules.options.anti_attributes_of", rollOptionsFor: "rules.options.roll_options_for",
@@ -117,7 +117,7 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/rules/count.mjs", layer: "rules/count", cap: 100, tests: "importers", maxFiles: 60,
+    module: "module/rules/count.mjs", layer: "rules/count", cap: 30, tests: "importers", maxFiles: 60,
     fns: {
       countOf: "rules.count.count_of", unitDistance: "rules.count.unit_distance", countedValue: "rules.count.counted_value",
       stacksHeld: "rules.count.stacks_held", countScaleOf: "rules.count.count_scale_of", criteriaMet: "rules.count.criteria_met",
@@ -129,12 +129,12 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/rules/relations.mjs", layer: "rules/relations", cap: 100, tests: "importers",
+    module: "module/rules/relations.mjs", layer: "rules/relations", cap: 30, tests: "importers",
     fns: { sideOf: "rules.relations.side_of", relationOf: "rules.relations.relation_of", isFriendly: "rules.relations.is_friendly", guardsOf: "rules.relations.guards_of" },
   },
   // M2b: rule elements and ordering.
   {
-    module: "module/rules/elements.mjs", layer: "rules/elements", cap: 150, tests: "importers", maxFiles: 60,
+    module: "module/rules/elements.mjs", layer: "rules/elements", cap: 60, tests: "importers", maxFiles: 60,
     fns: {
       empty: "rules.elements.empty", collectContributions: "rules.elements.collect_contributions",
       deferredPredicate: "rules.elements.deferred_predicate", abilityRankShifts: "rules.elements.ability_rank_shifts",
@@ -148,7 +148,7 @@ export const TARGETS = [
   },
   // M2c: the projection.
   {
-    module: "module/rules/snapshot.mjs", layer: "rules/snapshot", cap: 150, tests: "importers", maxFiles: 60,
+    module: "module/rules/snapshot.mjs", layer: "rules/snapshot", cap: 40, tests: "importers", maxFiles: 60,
     fns: {
       snapshotUnit: "rules.snapshot.snapshot_unit", snapshotBoard: "rules.snapshot.snapshot_board",
       turnStateAt: "rules.snapshot.turn_state_at", roundStateAt: "rules.snapshot.round_state_at",
@@ -158,7 +158,7 @@ export const TARGETS = [
   },
   // M2d: targeting.
   {
-    module: "module/rules/targeting/resolve.mjs", layer: "rules/targeting", cap: 150, tests: "importers", maxFiles: 60,
+    module: "module/rules/targeting/resolve.mjs", layer: "rules/targeting", cap: 40, tests: "importers", maxFiles: 60,
     fns: {
       resolveTargets: "rules.targeting.resolve_targets", validate: "rules.targeting.validate",
       unitsShown: "rules.targeting.units_shown", pendingChoiceErrors: "rules.targeting.pending_choice_errors",
@@ -166,12 +166,12 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/rules/targeting/shapes.mjs", layer: "rules/shapes", cap: 120, tests: "importers",
+    module: "module/rules/targeting/shapes.mjs", layer: "rules/shapes", cap: 60, tests: "importers",
     fns: { expand: "rules.shapes.expand", orthogonalAdjacentRect: "rules.shapes.orthogonal_adjacent_rect", footprintAdjacentRect: "rules.shapes.footprint_adjacent_rect" },
   },
   // M2e: checks and the damage pipeline.
   {
-    module: "module/rules/checks.mjs", layer: "rules/checks", cap: 120, tests: "importers", maxFiles: 60,
+    module: "module/rules/checks.mjs", layer: "rules/checks", cap: 60, tests: "importers", maxFiles: 60,
     fns: {
       tableFor: "rules.checks.table_for", agilityTableAgainst: "rules.checks.agility_table_against",
       checkPlan: "rules.checks.check_plan", mergePlans: "rules.checks.merge_plans",
@@ -181,7 +181,7 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/rules/damage/pipeline.mjs", layer: "rules/damage-pipeline", cap: 200, tests: "importers", maxFiles: 80,
+    module: "module/rules/damage/pipeline.mjs", layer: "rules/damage-pipeline", cap: 80, tests: "importers", maxFiles: 80,
     fns: {
       injuryThresholdOf: "rules.damage.injury_threshold_of", computeDamage: "rules.damage.compute_damage",
       computeDamageHits: "rules.damage.compute_damage_hits", elementalEarlyExit: "rules.damage.elemental_early_exit",
