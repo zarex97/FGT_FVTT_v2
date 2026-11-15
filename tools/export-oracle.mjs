@@ -26,6 +26,11 @@ import { ELEMENT_DESCRIPTORS } from "../module/rules/authoring/elements.mjs";
 import { REQUIREMENT_DESCRIPTORS } from "../module/rules/authoring/requirements.mjs";
 import { TIMING_DESCRIPTORS } from "../module/rules/authoring/timing.mjs";
 import { TARGETS } from "./oracle/targets.mjs";
+import { GRADES } from "../module/domain/enums.mjs";
+import { Rank } from "../module/domain/rank.mjs";
+import { inAttackRange } from "../module/domain/geometry.mjs";
+import { TABLES, lookup } from "../module/domain/tables.mjs";
+import { ticks, parseTick, formatTick } from "../module/domain/tick.mjs";
 
 const fail = (message) => {
   console.error(`export-oracle | ${message}`);
@@ -100,10 +105,17 @@ for (const target of TARGETS) {
     "});",
     "",
   ].join(NL), "utf8");
+  // `tests: "importers"` runs every unit test file that names the module.
+  const tests = target.tests === "importers"
+    ? readdirSync("test/unit").filter((f) => f.endsWith(".test.mjs"))
+      .map((f) => `test/unit/${f}`)
+      .filter((f) => readFileSync(f, "utf8").includes(target.module.replace(/^module\//, "")))
+      .slice(0, target.maxFiles ?? 40)
+    : target.tests;
   const out = mkdtempSync(join(tmpdir(), "fgt-oracle-"));
   try {
     execFileSync(process.execPath, [
-      "node_modules/vitest/vitest.mjs", "run", ...target.tests,
+      "node_modules/vitest/vitest.mjs", "run", ...tests,
       "--config", "tools/oracle/vitest.oracle.config.mjs", "--reporter", "dot",
     ], { stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORACLE_OUT: out, ORACLE_SETUP: setup } });
     const perFn = new Map();
@@ -130,6 +142,41 @@ for (const target of TARGETS) {
     rmSync(out, { recursive: true, force: true });
   }
 }
+
+// 1c. The domain sweeps (S04.NM.3): every Rank pair, every (di, dj) to R = 12, every table at every Rank, every tick
+// literal at the published Turns per Round. Each case is one table of answers, the Godot port computes the same
+// table with its own functions.
+const SWEEP_RANKS = GRADES.flatMap((g) => [-2, -1, 0, 1, 2].map((s) => Rank.of(g, s)));
+const sweep = (name, fn, args, result) => {
+  cases.push({ id: `domain/sweep/${slug(name)}`, fn, content_sha: lock.sha, input: { args: encode(args) }, dice: [], expect: { result: encode(result) } });
+};
+sweep("rank-compare", "domain.rank.compare_table", [SWEEP_RANKS],
+  SWEEP_RANKS.map((a) => SWEEP_RANKS.map((b) => Rank.compare(a, b))));
+for (const n of [-7, -3, -1, 1, 3, 7]) {
+  sweep(`rank-step-${n < 0 ? `minus${-n}` : n}`, "domain.rank.step_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.step(n)));
+  sweep(`rank-step-grade-${n < 0 ? `minus${-n}` : n}`, "domain.rank.step_grade_table", [SWEEP_RANKS, n], SWEEP_RANKS.map((r) => r.stepGrade(n)));
+}
+for (let R = 0; R <= 12; R++) {
+  const grid = [];
+  for (let di = 0; di <= 13; di++) {
+    const row = [];
+    for (let dj = 0; dj <= 13; dj++) row.push(inAttackRange({ i: 0, j: 0 }, { i: di, j: dj }, R));
+    grid.push(row);
+  }
+  sweep(`in-attack-range-r${R}`, "domain.geometry.in_attack_range_table", [R], grid);
+}
+for (const id of Object.keys(TABLES).sort()) {
+  sweep(`table-${id}`, "domain.tables.lookup_table", [id, SWEEP_RANKS], [lookup(id, null), ...SWEEP_RANKS.map((r) => lookup(id, r))]);
+}
+const TICK_LITERALS = [0, 1, 5, "1◈", "2◈", "½◈", "⅓◈", "⅔◈", "¼◈", "¾◈", "⅕◈", "⅖◈", "⅗◈", "⅘◈", "⅙◈", "⅚◈", "⅛◈",
+  "⅜◈", "⅝◈", "⅞◈", "1/2◈", "2/3◈", "1◈+⅔◈", "1⅔◈", "2◈-⅓◈", "3◈+½◈", "1 turn", "3 turns", "this turn",
+  "permanent", "infinite", "2 times", "until the next Round", ""];
+for (const literal of TICK_LITERALS) {
+  sweep(`tick-${typeof literal === "number" ? `n${literal}` : (slug(literal) || "empty")}-${hash(literal)}`, "domain.tick.ticks_table",
+    [literal, [2, 3, 8, 15]], [2, 3, 8, 15].map((tpr) => ticks(literal, { turnsPerRound: tpr })));
+  sweep(`tick-format-${hash(literal)}`, "domain.tick.format_tick", [parseTick(literal)], formatTick(parseTick(literal)));
+}
+console.log(`export-oracle | domain sweeps: ${cases.filter((c) => c.id.startsWith("domain/sweep/")).length}`);
 
 // 2. The authoring descriptors the shipped Akhilleus Kosmos needs (the second golden file's subject).
 const shipped = parse(readFileSync("packs/_source/abilities/achilles-akhilleus-kosmos.yml", "utf8"));
@@ -158,7 +205,9 @@ rmSync(OUT, { recursive: true, force: true });
 for (const c of cases) {
   const file = join(OUT, ...c.id.split("/")) + ".json";
   mkdirSync(join(file, ".."), { recursive: true });
-  writeFileSync(file, stable(c), "utf8");
+  // Compact: the cases are read by the replay, not by people, and indentation doubled the fixtures.
+  // Compact and in insertion order: a value's key order is part of what the JS answered from.
+  writeFileSync(file, JSON.stringify(c) + NL, "utf8");
 }
 writeFileSync(join(OUT, "manifest.json"), stable({
   content_sha: lock.sha,

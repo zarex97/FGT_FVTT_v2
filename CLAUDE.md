@@ -23,7 +23,7 @@ This project's costliest defect is the **Silent Drop** (`CONTEXT.md`): a Hop on 
 discards it and nothing fails. When a change adds or moves an Authored Key, a field, or its reader:
 
 1. Declare it on the DataModel. `npm run validate:content` runs the model check and names what else is missing.
-2. Give it a route in `test/unit/survival.test.mjs`: projected, or read from the document by a named file.
+2. Give it a route in `tools/lib/survival-routes.mjs` (the test `test/unit/survival.test.mjs` holds the corpus to it): projected, or read from the document by a named file.
 3. Build test subjects with `test/helpers/subject.mjs` — authored input through the real projection. Data that is not authored follows the same rule: see *Assumed shape* under Lessons.
 4. Run tests against real Foundry: `FOUNDRY_PATH`, default `../foundryVTT_copy`. A missing copy fails.
 5. Prove "unread" or "never written" with grep; `test/unit/field-ledger.test.mjs` does it for every field.

@@ -8,7 +8,7 @@
  *   Infinity → {"$num": "inf"}        -Infinity → {"$num": "-inf"}        NaN → {"$num": "nan"}
  *   Rank     → {"$rank": "A+"}
  *
- * Object keys are sorted. An `undefined` property is left out, as JSON.stringify leaves it; an `undefined` array
+ * Object keys keep their insertion order. An `undefined` property is left out, as JSON.stringify leaves it; an `undefined` array
  * element is written `null`. A function anywhere in a value is an error, never silently dropped: a case that holds
  * one cannot be replayed, and the exporter says which.
  */
@@ -37,7 +37,9 @@ export function encode(value, at = "$") {
     throw new Error(`oracle codec: an instance of ${value.constructor?.name ?? "?"} at ${at}`);
   }
   const out = {};
-  for (const key of Object.keys(value).sort()) {
+  // Insertion order, not sorted: a JS reader that walks `Object.keys` answers in that order, and the replay must
+  // walk the same keys in the same order (Godot keeps a Dictionary's order from the JSON text).
+  for (const key of Object.keys(value)) {
     if (value[key] === undefined) continue;
     out[key] = encode(value[key], `${at}.${key}`);
   }

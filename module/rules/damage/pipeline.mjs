@@ -1496,14 +1496,14 @@ function stage16AbsorptionAndClamp(s) {
 /*  Modifier bookkeeping                                                      */
 /* ========================================================================== */
 
-const ATTACKER_BUCKET_KEYS = new Set(["atkUp", "atkDwn", "dmgUp", "npDmUp", "npDmDwn"]);
-const DEFENDER_BUCKET_KEYS = new Set(["defUp", "defDwn", "ward"]);
+export const ATTACKER_BUCKET_KEYS = new Set(["atkUp", "atkDwn", "dmgUp", "npDmUp", "npDmDwn"]);
+export const DEFENDER_BUCKET_KEYS = new Set(["defUp", "defDwn", "ward"]);
 /** Attacker-side keys whose magnitude *reduces* damage. */
-const NEGATIVE_KEYS = new Set(["atkDwn", "npDmDwn"]);
+export const NEGATIVE_KEYS = new Set(["atkDwn", "npDmDwn"]);
 /** Defender-side keys that *increase* damage taken. */
-const DEFENDER_POSITIVE_KEYS = new Set(["defDwn"]);
-const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "flatDamage"]);
-const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
+export const DEFENDER_POSITIVE_KEYS = new Set(["defDwn"]);
+export const FLAT_ATTACK_KEYS = new Set(["divinity", "dmgBoost", "avengerCounter", "flatDamage"]);
+export const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
 
 /**
  * Flat INCREASES to what the defender takes, read at stage 7.
@@ -1513,7 +1513,7 @@ const FLAT_REDUCTION_KEYS = new Set(["dmgCut", "flatReduction"]);
  * vulnerability is not a negative resistance -- stage 12 is dropped wholesale
  * by `bypassesDefence`, and Avenger is not a defence.
  */
-const FLAT_TAKEN_KEYS = new Set(["avenger"]);
+export const FLAT_TAKEN_KEYS = new Set(["avenger"]);
 
 /**
  * Element-scoped percentage keys, read only when the attack carries that
@@ -1526,27 +1526,27 @@ const FLAT_TAKEN_KEYS = new Set(["avenger"]);
  * collected onto the unit, carried through the snapshot and never read. Exactly
  * the failure this file's own note above describes for `doomsdayShelter`.
  */
-const ELEMENT_ATTACK_KEYS = new Set(["elementAtkUp", "elementAtkDwn"]);
-const ELEMENT_DEFENCE_KEYS = new Set(["elementDefUp", "elementDefDwn"]);
+export const ELEMENT_ATTACK_KEYS = new Set(["elementAtkUp", "elementAtkDwn"]);
+export const ELEMENT_DEFENCE_KEYS = new Set(["elementDefUp", "elementDefDwn"]);
 /**
  * A defender's cut to the TOTAL damage of one element, read at stage 15 and
  * scaled by the attack's share of that element (#206 reading 6).
  */
-const ELEMENT_TOTAL_KEYS = new Set(["elementTotalDefUp"]);
+export const ELEMENT_TOTAL_KEYS = new Set(["elementTotalDefUp"]);
 /**
  * A defender's debuff on its whole Total, read at stage 15: Def Dwn (Total)
  * (#359). Not element-scoped, so not `ELEMENT_TOTAL_KEYS`.
  */
-const TOTAL_TAKEN_KEYS = new Set(["totalDefDwn"]);
+export const TOTAL_TAKEN_KEYS = new Set(["totalDefDwn"]);
 /**
  * An attacker's cut or boost on its own Total, read at stage 15: Avicebron's
  * Normal Attacks at -75% (#394). The dealt mirror of `TOTAL_TAKEN_KEYS`.
  */
-const TOTAL_DEALT_KEYS = new Set(["totalDealt"]);
+export const TOTAL_DEALT_KEYS = new Set(["totalDealt"]);
 /** An attacker's "N% extra damage" held as a buff, read at stage 3 (#359). */
-const DAMAGE_MULTIPLIER_KEYS = new Set(["damageMultiplier"]);
+export const DAMAGE_MULTIPLIER_KEYS = new Set(["damageMultiplier"]);
 /** Element keys whose magnitude *reduces* the damage. */
-const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
+export const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
 
 /**
  * Every `modifierKey` this pipeline actually consults.

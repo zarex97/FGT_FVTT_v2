@@ -145,7 +145,7 @@ label each would show. Gilles's Gigantic Horror inside the Storm Border read "â€
 `test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can
 see. It compiles the **real** corpus, builds each Unit through the real DataModel in the test world,
 prepares it and projects it with the real `snapshotUnit`, and loads each Effect definition into the real
-`EffectRegistry`. Every Authored Key must then have a **route** in the test's own tables:
+`EffectRegistry`. Every Authored Key must then have a **route** in the tables of `tools/lib/survival-routes.mjs` (a module, not the test, so `tools/export-survival.mjs` can write them for the Godot port's own survival test; a transform is named with `through`, so a port can implement the same one):
 
 - **projected** (`at`) â€” the prepared value must be what the snapshot holds there, through a named
   transform (`range` splits into `range` and `maxTargets`; `agility` is the pool's `value`). A value that

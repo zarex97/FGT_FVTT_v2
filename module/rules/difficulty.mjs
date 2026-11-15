@@ -20,10 +20,10 @@
  */
 
 /** Levels that switch the `Attack+`/`Attack−` `5d10` off. */
-const NO_DAMAGE_MODIFIERS = Object.freeze(["beginner"]);
+export const NO_DAMAGE_MODIFIERS = Object.freeze(["beginner"]);
 
 /** Levels that switch the Luck Check off. */
-const NO_LUCK_CHECK = Object.freeze(["beginner", "intermediate"]);
+export const NO_LUCK_CHECK = Object.freeze(["beginner", "intermediate"]);
 
 /**
  * Does the `5d10` damage-modifier roll apply?

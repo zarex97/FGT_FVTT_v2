@@ -81,7 +81,7 @@ export const DEFAULT_MAXIMA = Object.freeze({
 });
 
 /** Effects that stop a unit acting at all. */
-const PREVENT_ALL = Object.freeze([
+export const PREVENT_ALL = Object.freeze([
   "stun", "stop", "freeze", "petrify", "sleep", "nightmare", "coma", "webbed", "crystalfreeze",
   // Enki's price: *"Proto Gil cannot Act for 1◈ Turns after this NP is
   // Activated"* (#232).
@@ -89,7 +89,7 @@ const PREVENT_ALL = Object.freeze([
 ]);
 
 /** Effect → what it prevents, for the partial preventions. */
-const PREVENTS = Object.freeze({
+export const PREVENTS = Object.freeze({
   // A Riding Attack is a Move as well as an Attack (#114): `canConsume` asked
   // only about `ridingAttack` and Immobilize does not list it, so an Immobilized
   // rider could ride away.
@@ -129,7 +129,7 @@ export function PREVENTS_FOR(id) {
 }
 
 /** Human-readable names, for the refusal messages the HUD prints. */
-const LABELS = Object.freeze({
+export const LABELS = Object.freeze({
   servantMove: "Servant moves",
   masterMove: "Master moves",
   servantAttack: "Servant attacks",
@@ -172,7 +172,7 @@ export const ACTION_KINDS = Object.freeze([
 ]);
 
 /** The actions that are an Attack: they draw on the attack pools. */
-const ATTACK_ACTIONS = Object.freeze(["attack", "np", "spell", "ridingAttack", "mark"]);
+export const ATTACK_ACTIONS = Object.freeze(["attack", "np", "spell", "ridingAttack", "mark"]);
 
 /**
  * @typedef {"move"|"attack"|"skill"|"np"|"spell"|"ridingAttack"|"gather"|"mark"} ActionKind

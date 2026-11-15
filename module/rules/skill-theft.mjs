@@ -15,7 +15,7 @@ import { Rank } from "../domain/rank.mjs";
 import { isSpellAbility } from "./costs.mjs";
 
 /** E 1 to A 5, EX 6, as Paris prints *"Rank D=2 Ranks"*; plus and minus are ignored. */
-const RANK_COUNT = Object.freeze({ E: 1, D: 2, C: 3, B: 4, A: 5, EX: 6 });
+export const RANK_COUNT = Object.freeze({ E: 1, D: 2, C: 3, B: 4, A: 5, EX: 6 });
 
 /**
  * How many Ranks a Rank counts as.

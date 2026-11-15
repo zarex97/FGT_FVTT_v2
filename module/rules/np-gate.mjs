@@ -31,7 +31,7 @@
 export const NP_GATE = Object.freeze({ round: 6, assassinRound: 4 });
 
 /** Classes whose gate opens early. Assassin is the only one Ch. 04 names. */
-const EARLY_CLASSES = Object.freeze(["assassin"]);
+export const EARLY_CLASSES = Object.freeze(["assassin"]);
 
 /**
  * Does the availability gate cover this ability?

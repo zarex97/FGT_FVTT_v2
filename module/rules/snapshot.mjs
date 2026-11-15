@@ -909,7 +909,7 @@ export function roundWrite(raw, round, patch = {}) {
  * @returns {object}
  */
 /** The four the rulebook names (Ch. 29). Anything else reads as Intermediate. */
-const DIFFICULTIES = Object.freeze(["beginner", "intermediate", "expert", "lunatic"]);
+export const DIFFICULTIES = Object.freeze(["beginner", "intermediate", "expert", "lunatic"]);
 
 export function snapshotBoard({ scene, actors, settings = {} }) {
   // A banished Kagome Spirit is not on the board. *"That Kagome Spirit
