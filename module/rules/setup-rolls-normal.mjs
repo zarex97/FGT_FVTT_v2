@@ -53,7 +53,7 @@ export const NORMAL_AGILITY_BY_CLASS = Object.freeze({
 export const NORMAL_LUCK_BY_CLASS = Object.freeze({ lancer: -2, assassin: 2 });
 
 /** The flat base Agility every Normal Servant rolls `1d10` on top of. */
-const AGILITY_BASE = 10;
+export const AGILITY_BASE = 10;
 
 /**
  * A signed delta, for a line's note. `null` when there is nothing to say.

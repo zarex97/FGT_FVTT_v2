@@ -33,6 +33,17 @@ import { WAR_RULES } from "../module/domain/war-rules.mjs";
 import { IMPLICATIONS } from "../module/domain/attributes.mjs";
 import { REVISION_RULES, REVISION_CHOICES } from "../module/domain/revisions.mjs";
 import { FACETS, patternFor, REF_SCOPES } from "../module/rules/facets.mjs";
+import * as ORDERING from "../module/rules/ordering.mjs";
+import * as TERRAIN_M from "../module/rules/terrain.mjs";
+import * as SETUP_NORMAL from "../module/rules/setup-rolls-normal.mjs";
+import * as GRANTED from "../module/rules/granted.mjs";
+import * as NP_SCALE from "../module/rules/np-scale.mjs";
+import * as STANCE_M from "../module/rules/stance.mjs";
+import * as UNIT_GROUPS_M from "../module/rules/unit-groups.mjs";
+import * as ZON_M from "../module/rules/zon.mjs";
+import * as ENV_M from "../module/rules/environment.mjs";
+import * as COUNT_M from "../module/rules/count.mjs";
+import * as DIFFICULTY_M from "../module/rules/difficulty.mjs";
 import { ABILITY_KINDS } from "../module/rules/authoring/ability.mjs";
 import { PHASE_IDS } from "../module/rules/authoring/phases.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS, RELATION_IDS } from "../module/rules/targeting/vocabulary.mjs";
@@ -189,7 +200,28 @@ const facetRows = FACETS.map((f) => {
   }
   return { ...f, form_tails: tails };
 });
-write("rules_data.json", stable({ facets: facetRows, ref_scopes: REF_SCOPES }));
+// The tables the rules modules hold as code; the Godot ports keep copies and a parity test holds each copy to these.
+const RULE_TABLES = {
+  ordering: { PRIORITY_BANDS: ORDERING.PRIORITY_BANDS, BY_KEY: ORDERING.BY_KEY },
+  terrain: { TERRAIN: TERRAIN_M.TERRAIN, PERIODICS: TERRAIN_M.PERIODICS, ON_ENTRY: TERRAIN_M.ON_ENTRY },
+  setup_rolls_normal: {
+    NORMAL_AGILITY_BY_CLASS: SETUP_NORMAL.NORMAL_AGILITY_BY_CLASS, NORMAL_LUCK_BY_CLASS: SETUP_NORMAL.NORMAL_LUCK_BY_CLASS,
+    AGILITY_BASE: SETUP_NORMAL.AGILITY_BASE,
+  },
+  granted: { GRANTS: GRANTED.GRANTS },
+  np_scale: { NP_TAG_SCALE: NP_SCALE.NP_TAG_SCALE, NP_TAG_QUALIFIERS: NP_SCALE.NP_TAG_QUALIFIERS },
+  stance: { STANCE_WINDOWS: STANCE_M.STANCE_WINDOWS },
+  unit_groups: { UNIT_GROUPS: UNIT_GROUPS_M.UNIT_GROUPS },
+  zon: { ZON_BASE: ZON_M.ZON_BASE, ZON_CLASS_BONUS: ZON_M.ZON_CLASS_BONUS, ZON_DEFAULT_BASE: ZON_M.ZON_DEFAULT_BASE },
+  environment: {
+    REGION_ADJACENCY: ENV_M.REGION_ADJACENCY, NOT_A_WAR_REGION: ENV_M.NOT_A_WAR_REGION,
+    COUNTS_AS_ATTACK: ENV_M.COUNTS_AS_ATTACK, FIRST_ROUND_EXEMPT: ENV_M.FIRST_ROUND_EXEMPT, GRAIL_AREA: ENV_M.GRAIL_AREA,
+  },
+  count: { COUNT_KINDS: COUNT_M.COUNT_KINDS, BOARD_COUNT_KINDS: COUNT_M.BOARD_COUNT_KINDS, REQUIRED_KEYS: COUNT_M.REQUIRED_KEYS },
+  difficulty: { NO_DAMAGE_MODIFIERS: DIFFICULTY_M.NO_DAMAGE_MODIFIERS, NO_LUCK_CHECK: DIFFICULTY_M.NO_LUCK_CHECK },
+};
+const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (x instanceof Set ? [...x] : x)));
+write("rules_data.json", stable({ facets: facetRows, ref_scopes: REF_SCOPES, tables: plain(RULE_TABLES) }));
 counts["rules_data.json"] = FACETS.length;
 
 // Every `system` field path per document type, off the real DataModels, for the loader's schema walk (Ch. 12).

@@ -206,7 +206,8 @@ for (const c of cases) {
   const file = join(OUT, ...c.id.split("/")) + ".json";
   mkdirSync(join(file, ".."), { recursive: true });
   // Compact: the cases are read by the replay, not by people, and indentation doubled the fixtures.
-  writeFileSync(file, JSON.stringify(sortKeys(c)) + NL, "utf8");
+  // Compact and in insertion order: a value's key order is part of what the JS answered from.
+  writeFileSync(file, JSON.stringify(c) + NL, "utf8");
 }
 writeFileSync(join(OUT, "manifest.json"), stable({
   content_sha: lock.sha,

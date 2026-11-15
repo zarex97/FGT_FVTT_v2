@@ -426,7 +426,7 @@ export function multiplierOf(block, ctx = {}) {
 }
 
 /** The keys each kind reads and cannot do without. */
-const REQUIRED_KEYS = Object.freeze({
+export const REQUIRED_KEYS = Object.freeze({
   stacks: ["effect"], resource: ["key"], use: ["fact"], parameters: ["vs", "compare"],
   antiAttributeEffects: ["attribute"],
 });

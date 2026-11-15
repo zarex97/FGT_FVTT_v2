@@ -29,7 +29,7 @@ export const PRIORITY_BANDS = Object.freeze({
 });
 
 /** Which band each element key belongs to. */
-const BY_KEY = Object.freeze({
+export const BY_KEY = Object.freeze({
   RankShift: PRIORITY_BANDS.base,
   SizeStep: PRIORITY_BANDS.base,
 

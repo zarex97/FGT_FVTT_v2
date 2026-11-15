@@ -410,7 +410,7 @@ function sweepTerrainEffects(unit, board) {
  *
  * @type {Readonly<Record<string, object[]>>}
  */
-const PERIODICS = Object.freeze({
+export const PERIODICS = Object.freeze({
   burning: [
     // "All units are inflicted with Burn at the end of every Turn. While
     // inside, this Burn does not expire and cannot be removed."
@@ -447,7 +447,7 @@ const PERIODICS = Object.freeze({
 });
 
 /** On-entry clauses, fired when a unit steps onto a panel. */
-const ON_ENTRY = Object.freeze({
+export const ON_ENTRY = Object.freeze({
   lava: [
     { kind: "damage", amount: 20, element: "fire", fixed: true },
     { kind: "chance", percent: 50, then: "burn", duration: "2◈" },

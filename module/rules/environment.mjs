@@ -342,7 +342,7 @@ export function endOfRoundHomeBase(units, board) {
 /* -------------------------------------------------------------------------- */
 
 /** How far from the Grail counts as "the Grail Area". */
-const GRAIL_AREA = 2;
+export const GRAIL_AREA = 2;
 
 /**
  * A fresh Grail.
