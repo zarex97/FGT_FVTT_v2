@@ -23,3 +23,6 @@ packs/_staged/
 .impeccable/config.local.json
 .impeccable/live/
 .impeccable/hook.cache.json
+
+# Oracle recording setups written by tools/export-oracle.mjs
+/tools/oracle/.generated/
