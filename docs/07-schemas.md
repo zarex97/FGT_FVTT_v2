@@ -68,7 +68,7 @@ what now holds each Hop:
 | 5 | **Reader** | Nobody reads the key at all, or reads a different key than the writer writes | The survival test's named readers; the field ledger (Ch. 44) |
 
 A new Authored Key is therefore four edits, and each one is checked: declare it on the DataModel
-(Hop 2), author it (Hop 1 carries it), give it a route in `test/unit/survival.test.mjs` (Hop 4), and
+(Hop 2), author it (Hop 1 carries it), give it a route in `tools/lib/survival-routes.mjs` (Hop 4; `test/unit/survival.test.mjs` holds the corpus to it), and
 read it (Hop 5).
 
 **A legion's fields (#226).** `Servant.linkedGroup.legion` (`size`, `fieldCap`, `openingMax`, `label`; `size: 0` is no
