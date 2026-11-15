@@ -130,13 +130,38 @@ const rewrite = (value) => {
   return value;
 };
 
+/**
+ * Every `@name` slot of `original` put back where `kept` lacks it. `withoutTemplateSlots` drops object entries only,
+ * never array elements, so paths align.
+ */
+function restoreSlots(kept, original) {
+  if (Array.isArray(original) && Array.isArray(kept)) {
+    return kept.map((v, i) => (i < original.length ? restoreSlots(v, original[i]) : v));
+  }
+  if (original && typeof original === "object" && kept && typeof kept === "object" && !Array.isArray(kept)) {
+    const out = { ...kept };
+    for (const [k, v] of Object.entries(original)) {
+      if (typeof v === "string" && /^@[A-Za-z]\w*$/.test(v)) {
+        if (!(k in out) || out[k] === null || out[k] === undefined) out[k] = v;
+      } else if (k in out) {
+        out[k] = restoreSlots(out[k], v);
+      }
+    }
+    return out;
+  }
+  return kept;
+}
+
 const byDir = new Map();
 for (const { path, doc: compiledDoc } of compiled) {
   const documentName = documentNameOf(compiledDoc);
   if (!documentName) fail(`${path}: no document type in its _key`);
   const data = documentName === "Actor" ? withoutKeys(compiledDoc) : withoutTemplateSlots(withoutKeys(compiledDoc));
   const doc = new foundry.documents[`Base${documentName}`](structuredClone(data), { strict: true });
-  const kept = structuredClone(doc._source);
+  // The model is asked without a standalone Item's `@` slots, which no field type takes (`withoutTemplateSlots`), but
+  // the export keeps them: they are content, not bookkeeping. An Effect's `value: "@magnitude"` is the expression its
+  // instance resolves, and the pack Foundry loads holds it; stripping it exported every Atk Up at 0.
+  const kept = restoreSlots(structuredClone(doc._source), withoutKeys(compiledDoc));
   if (kept.prototypeToken) kept.prototypeToken = { width: kept.prototypeToken.width, height: kept.prototypeToken.height };
   const out = rewrite(kept);
   out.documentName = documentName;
