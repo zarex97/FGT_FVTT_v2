@@ -19,7 +19,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parse } from "yaml";
 import { encode } from "./oracle/codec.mjs";
 import { ELEMENT_DESCRIPTORS } from "../module/rules/authoring/elements.mjs";
@@ -117,7 +117,7 @@ for (const target of TARGETS) {
     execFileSync(process.execPath, [
       "node_modules/vitest/vitest.mjs", "run", ...tests,
       "--config", "tools/oracle/vitest.oracle.config.mjs", "--reporter", "dot",
-    ], { stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORACLE_OUT: out, ORACLE_SETUP: setup } });
+    ], { stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORACLE_OUT: out, ORACLE_SETUP: setup, ORACLE_CONTENT_EFFECTS: join(dirname(LOCK), "effects.json") } });
     const perFn = new Map();
     let unreplayable = 0;
     for (const file of readdirSync(out).sort()) {

@@ -5,12 +5,22 @@
  */
 
 import { afterAll, expect } from "vitest";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { encode } from "./codec.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 const records = [];
+// The effect ids the Godot content ships (`ORACLE_CONTENT_EFFECTS`, the exported `effects.json`): its registry answers
+// those itself, so a case carries only the definitions a test made up.
+const shipped = new Set((() => {
+  try {
+    const path = process.env.ORACLE_CONTENT_EFFECTS;
+    return path ? JSON.parse(readFileSync(path, "utf8")).map((d) => d.system?.contentId ?? d.system?.defId).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+})());
 let unnamed = 0;
 let unreplayable = 0;
 // Calls past this many per function are not encoded at all: a hot reader (relationOf) is called many thousand times
@@ -60,7 +70,7 @@ export function recording(fn, impl, { registry = false } = {}) {
     if (registry) {
       EffectRegistry.get = (id) => {
         const def = get.call(EffectRegistry, id);
-        if (!looked.has(id)) looked.set(id, def ?? null);
+        if (!looked.has(id) && !shipped.has(id)) looked.set(id, def ?? null);
         return def;
       };
     }
@@ -72,7 +82,7 @@ export function recording(fn, impl, { registry = false } = {}) {
     }
     if (registry && input !== null) {
       try {
-        input = { args: input, registry: encode([...looked], "registry") };
+        input = looked.size > 0 ? { args: input, registry: encode([...looked], "registry") } : { args: input };
       } catch {
         broken = true;
       }
