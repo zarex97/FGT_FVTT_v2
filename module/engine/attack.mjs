@@ -80,7 +80,7 @@ import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { terrainConversions } from "../rules/terrain.mjs";
 import { paintTerrain, removeTerrainType } from "./terrain.mjs";
-import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
+import { injuryCheck, injuryTotalsOf, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
 import { resolveCosts, additionalCostsFor } from "../rules/costs.mjs";
 import { attackPreflight, abilityKind } from "./attack-preflight.mjs";
@@ -5944,9 +5944,7 @@ function alreadyInjuryRolled(state, message) {
  * @returns {{total: number, pending: number}}
  */
 function siblingInjuryTotals(state) {
-  let total = 0;
-  let counted = 0;
-  let pending = 0;
+  const siblings = [];
   for (const m of game.messages) {
     const raw = m.getFlag("fgt", "process");
     if (!raw) continue;
@@ -5957,18 +5955,10 @@ function siblingInjuryTotals(state) {
     if (sibling.groupId !== state.groupId) continue;
     if (sibling.attackerId !== state.attackerId) continue;
     if (sibling.defenderId !== state.defenderId) continue;
-
-    const result = m.getFlag("fgt", "result");
-    if (!result) {
-      pending += 1;
-      continue;
-    }
-    total += result.total;
-    // A FIXED bonus (Proto Gil's Divinity, #232 reading 16) is damage taken but
-    // not damage counted toward the Injury Roll; the pipeline records it.
-    counted += result.total - (result.flags?.fixedExtra ?? 0);
+    siblings.push({ state: sibling, result: m.getFlag("fgt", "result") ?? null });
   }
-  return { total, counted, pending };
+  // A hit Evaded, missed or withdrawn took 0 and is not pending (#415).
+  return injuryTotalsOf(siblings);
 }
 
 /**
