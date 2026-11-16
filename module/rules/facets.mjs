@@ -225,6 +225,24 @@ export const FACETS = Object.freeze([
     english: "Has a named mode switched ON — not merely possessing it.",
     prose: "{subject} has {slug} switched on",
   }),
+  // `rollOptionsFor` has emitted both since #190 (`options.mjs`, `modeHeld` and
+  // `modeLocked`), and Mad Enhancement's drain floor is gated on them, but no
+  // facet admitted either: `isEmittableOption` called the floor's predicate
+  // permanently false. The class skill states it as a template slot, so the
+  // build never read the resolved copies; the Godot loader, which reads them,
+  // refused the corpus (M2).
+  facet({
+    id: "modeHeld",
+    segments: [{ name: "slug", value: registry("abilitySlugs") }],
+    english: "Has a named mode switched on that a rule of its own holds on: it cannot be switched off.",
+    prose: "{subject} has {slug} held on",
+  }),
+  facet({
+    id: "modeLocked",
+    segments: [{ name: "slug", value: registry("abilitySlugs") }],
+    english: "Has a named mode switched on inside its two-way lockout.",
+    prose: "{subject} has {slug} locked on",
+  }),
   facet({
     id: "skillRank",
     segments: [
