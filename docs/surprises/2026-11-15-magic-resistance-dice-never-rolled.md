@@ -3,7 +3,8 @@ id: 2026-11-15-magic-resistance-dice-never-rolled
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The Normal Saber's Magic Resistance, *"All MAG damage taken is reduced by 5d20; if NP, double the number
 of dice rolled"*, takes a 5d20 off a MAG attack's damage.

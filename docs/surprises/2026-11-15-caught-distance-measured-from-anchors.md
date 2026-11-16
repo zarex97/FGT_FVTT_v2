@@ -3,7 +3,8 @@ id: 2026-11-15-caught-distance-measured-from-anchors
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A caught Unit's `distance` is Chebyshev footprint to footprint, as Range is: a 2x2 Unit whose near panel
 is two panels from the attacker reads 2 (the Godot port's Clause S04.CH.2).
