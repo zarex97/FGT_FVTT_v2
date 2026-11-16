@@ -196,4 +196,28 @@ export const TARGETS = [
       inflictBonusOf: "engine.effect_applier.inflict_bonus_of",
     },
   },
+  {
+    module: "module/rules/effect-flow.mjs", layer: "rules/effect-flow", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      attackOptionsOf: "rules.effect_flow.attack_options_of", transferEffect: "rules.effect_flow.transfer_effect",
+      transferableFrom: "rules.effect_flow.transferable_from", visibilityOf: "rules.effect_flow.visibility_of",
+      canSeeEffect: "rules.effect_flow.can_see_effect", confusedAction: "rules.effect_flow.confused_action",
+      canUndo: "rules.effect_flow.can_undo", removeStages: "rules.effect_flow.remove_stages",
+      applicationsOf: "rules.effect_flow.applications_of", effectGatePasses: "rules.effect_flow.effect_gate_passes",
+      stagesFor: "rules.effect_flow.stages_for", entryOf: "rules.effect_flow.entry_of",
+      chanceOf: "rules.effect_flow.chance_of", timesOf: "rules.effect_flow.times_of",
+    },
+  },
+  {
+    module: "module/rules/removal.mjs", layer: "rules/removal", cap: 60, tests: "importers",
+    fns: {
+      isUnremovable: "rules.removal.is_unremovable", selectorMatches: "rules.removal.selector_matches",
+      removalResistOf: "rules.removal.removal_resist_of", ownRemovalResist: "rules.removal.own_removal_resist",
+      removalPlan: "rules.removal.removal_plan", pendingRemovalRolls: "rules.removal.pending_removal_rolls",
+    },
+  },
+  {
+    module: "module/rules/periodic.mjs", layer: "rules/periodic", cap: 60, tests: "importers",
+    fns: { periodicDue: "rules.periodic.periodic_due" },
+  },
 ];
