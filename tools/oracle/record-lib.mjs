@@ -72,7 +72,7 @@ export function recording(fn, impl, { registry = false, functions = false } = {}
     if (registry) {
       EffectRegistry.get = (id) => {
         const def = get.call(EffectRegistry, id);
-        if (!looked.has(id) && !shipped.has(id)) looked.set(id, def ?? null);
+        if (!looked.has(id) && (!shipped.has(id) || !def)) looked.set(id, def ?? null);
         return def;
       };
     }
