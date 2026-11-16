@@ -248,4 +248,20 @@ export const TARGETS = [
     module: "module/rules/nameless-forest.mjs", layer: "rules/nameless-forest", cap: 40, tests: "importers",
     fns: { deathRollOutcome: "rules.nameless_forest.death_roll_outcome", mayAttemptEscape: "rules.nameless_forest.may_attempt_escape" },
   },
+  {
+    module: "module/rules/use-record.mjs", layer: "rules/use-record", cap: 60, tests: "importers",
+    fns: {
+      emptyUseRecord: "rules.use_record.empty_use_record", mergeRecords: "rules.use_record.merge_records",
+      useFacts: "rules.use_record.use_facts", useOptions: "rules.use_record.use_options",
+      declarationRecord: "rules.use_record.declaration_record",
+    },
+  },
+  {
+    module: "module/engine/cooldown.mjs", layer: "engine/cooldown", cap: 80, tests: "importers", maxFiles: 80,
+    fns: {
+      cooldownFor: "engine.cooldown.cooldown_for", settleDelta: "engine.cooldown.settle_delta",
+      sharedAcrossGroup: "engine.cooldown.shared_across_group", sharedCooldownIntents: "engine.cooldown.shared_cooldown_intents",
+      twinsOf: "engine.cooldown.twins_of",
+    },
+  },
 ];
