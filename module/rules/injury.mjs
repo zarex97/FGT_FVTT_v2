@@ -58,3 +58,40 @@ export function injuryCheck({
 
   return { roll: true, reason: "ok" };
 }
+
+/**
+ * The Process states that come before a Process's Damage Step: a hit standing at one of them may still deal damage.
+ * Every other state is past the Damage Step, or never reached it (`noDamage`, `missed`, `withdrawn`).
+ */
+export const BEFORE_DAMAGE_STATES = Object.freeze([
+  "declare", "missCheck", "react", "evadeRoll",
+  "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape", "s24_luckyEvasion", "s25_auContest",
+  "heelResolve", "objectResolve", "damage",
+]);
+
+/**
+ * The damage every hit of one attack dealt one defender, for an attack that rolls ONE Injury Roll on the total
+ * (`damage.singleInjuryRoll`, Dragon Wing Warriors), and how many hits are still to be decided.
+ *
+ * A hit with a `result` counts its total; a FIXED bonus (`flags.fixedExtra`) is damage taken but not counted toward the
+ * roll. A hit with no `result` is pending only while it stands before its Damage Step: one that was Evaded, missed or
+ * withdrawn ended without damage and counts as 0. Counted as pending, it held the roll for ever, and three hits that
+ * dealt 100 between them rolled nothing (#415).
+ *
+ * @param {Array<{state: object, result: object|null}>} siblings every Process of the attack on this defender
+ * @returns {{total: number, counted: number, pending: number}}
+ */
+export function injuryTotalsOf(siblings) {
+  let total = 0;
+  let counted = 0;
+  let pending = 0;
+  for (const { state, result } of siblings ?? []) {
+    if (!result) {
+      if (BEFORE_DAMAGE_STATES.includes(state?.state)) pending += 1;
+      continue;
+    }
+    total += result.total ?? 0;
+    counted += (result.total ?? 0) - (result.flags?.fixedExtra ?? 0);
+  }
+  return { total, counted, pending };
+}
