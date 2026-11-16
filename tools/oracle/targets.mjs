@@ -188,4 +188,99 @@ export const TARGETS = [
       usesBaseOptions: "rules.damage.uses_base_options", isNPAttack: "rules.damage.is_np_attack",
     },
   },
+  // M4: the effect pipeline.
+  {
+    module: "module/engine/effect-applier.mjs", layer: "engine/effect-applier", cap: 120, tests: "importers", maxFiles: 80, registry: true,
+    fns: {
+      applyEffect: "engine.effect_applier.apply_effect", mergeEmitted: "engine.effect_applier.merge_emitted",
+      inflictBonusOf: "engine.effect_applier.inflict_bonus_of",
+    },
+  },
+  {
+    module: "module/rules/effect-flow.mjs", layer: "rules/effect-flow", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      attackOptionsOf: "rules.effect_flow.attack_options_of", transferEffect: "rules.effect_flow.transfer_effect",
+      transferableFrom: "rules.effect_flow.transferable_from", visibilityOf: "rules.effect_flow.visibility_of",
+      canSeeEffect: "rules.effect_flow.can_see_effect", confusedAction: "rules.effect_flow.confused_action",
+      canUndo: "rules.effect_flow.can_undo", removeStages: "rules.effect_flow.remove_stages",
+      applicationsOf: "rules.effect_flow.applications_of", effectGatePasses: "rules.effect_flow.effect_gate_passes",
+      stagesFor: "rules.effect_flow.stages_for", entryOf: "rules.effect_flow.entry_of",
+      chanceOf: "rules.effect_flow.chance_of", timesOf: "rules.effect_flow.times_of",
+    },
+  },
+  {
+    module: "module/rules/removal.mjs", layer: "rules/removal", cap: 60, tests: "importers",
+    fns: {
+      isUnremovable: "rules.removal.is_unremovable", selectorMatches: "rules.removal.selector_matches",
+      removalResistOf: "rules.removal.removal_resist_of", ownRemovalResist: "rules.removal.own_removal_resist",
+      removalPlan: "rules.removal.removal_plan", pendingRemovalRolls: "rules.removal.pending_removal_rolls",
+    },
+  },
+  {
+    module: "module/rules/periodic.mjs", layer: "rules/periodic", cap: 60, tests: "importers",
+    fns: { periodicDue: "rules.periodic.periodic_due" },
+  },
+  {
+    module: "module/rules/revival.mjs", layer: "rules/revival", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      availableRevivals: "rules.revival.available_revivals", missedRevivalChances: "rules.revival.missed_revival_chances",
+      heldRevivals: "rules.revival.held_revivals", resolveRevival: "rules.revival.resolve_revival",
+      pendingRevivalRolls: "rules.revival.pending_revival_rolls", attackIdentity: "rules.revival.attack_identity",
+      identityOfProcess: "rules.revival.identity_of_process", recordedAttack: "rules.revival.recorded_attack",
+      poolRestores: "rules.revival.pool_restores",
+    },
+  },
+  {
+    module: "module/rules/relationships.mjs", layer: "rules/relationships", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      multiServantRule: "rules.relationships.multi_servant_rule", overpowerCheck: "rules.relationships.overpower_check",
+      resolveOverpower: "rules.relationships.resolve_overpower", underpowerCheck: "rules.relationships.underpower_check",
+      resolveUnderpower: "rules.relationships.resolve_underpower", onMasterDefeated: "rules.relationships.on_master_defeated",
+      sustainabilityCostOf: "rules.relationships.sustainability_cost_of", actedWeight: "rules.relationships.acted_weight",
+      multiServantTax: "rules.relationships.multi_servant_tax", mayOrderAnotherServant: "rules.relationships.may_order_another_servant",
+    },
+  },
+  {
+    module: "module/rules/summons.mjs", layer: "rules/summons", cap: 40, tests: "importers",
+    fns: { expiredSummonIds: "rules.summons.expired_summon_ids" },
+  },
+  {
+    module: "module/rules/nameless-forest.mjs", layer: "rules/nameless-forest", cap: 40, tests: "importers",
+    fns: { deathRollOutcome: "rules.nameless_forest.death_roll_outcome", mayAttemptEscape: "rules.nameless_forest.may_attempt_escape" },
+  },
+  {
+    module: "module/rules/use-record.mjs", layer: "rules/use-record", cap: 60, tests: "importers",
+    fns: {
+      emptyUseRecord: "rules.use_record.empty_use_record", mergeRecords: "rules.use_record.merge_records",
+      useFacts: "rules.use_record.use_facts", useOptions: "rules.use_record.use_options",
+      declarationRecord: "rules.use_record.declaration_record",
+    },
+  },
+  {
+    module: "module/engine/cooldown.mjs", layer: "engine/cooldown", cap: 80, tests: "importers", maxFiles: 80,
+    fns: {
+      cooldownFor: "engine.cooldown.cooldown_for", settleDelta: "engine.cooldown.settle_delta",
+      sharedAcrossGroup: "engine.cooldown.shared_across_group", sharedCooldownIntents: "engine.cooldown.shared_cooldown_intents",
+      twinsOf: "engine.cooldown.twins_of",
+    },
+  },
+  {
+    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120, registry: true, functions: true,
+    fns: {
+      endTurn: "engine.scheduler.end_turn", clearBodies: "engine.scheduler.clear_bodies",
+      beginTurn: "engine.scheduler.begin_turn", endRound: "engine.scheduler.end_round",
+      beginRound: "engine.scheduler.begin_round", fireEvent: "engine.scheduler.fire_event",
+      runDeferred: "engine.scheduler.run_deferred", dispatch: "engine.scheduler.dispatch",
+      pickKey: "engine.scheduler.pick_key", randomPickPool: "engine.scheduler.random_pick_pool",
+      chanceKey: "engine.scheduler.chance_key", subjectOf: "engine.scheduler.subject_of",
+      eventFilterPasses: "engine.scheduler.event_filter_passes", revivedSaid: "engine.scheduler.revived_said",
+      pendingRolls: "engine.scheduler.pending_rolls", resolveDefeat: "engine.scheduler.resolve_defeat",
+      advanceCooldowns: "engine.scheduler.advance_cooldowns", cooldownRate: "engine.scheduler.cooldown_rate",
+      tickPeriodics: "engine.scheduler.tick_periodics", flooredTick: "engine.scheduler.floored_tick",
+      regionScale: "engine.scheduler.region_scale", periodicDamageFor: "engine.scheduler.periodic_damage_for",
+      expireEffects: "engine.scheduler.expire_effects", advanceEffects: "engine.scheduler.advance_effects",
+      onExpireIntents: "engine.scheduler.on_expire_intents", onRemoveIntents: "engine.scheduler.on_remove_intents",
+      checkRemovals: "engine.scheduler.check_removals",
+    },
+  },
 ];

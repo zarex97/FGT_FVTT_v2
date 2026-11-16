@@ -59,7 +59,7 @@ Round boundaries are announced on `combatRound`, only on forward changes — rew
 Round's batches through `applier.mjs#resolveHealing` (idempotent, `healingScaled`) before the report reads them, so a
 Regen under Heal Up says the 75 it writes, not the 50 it was authored at.
 
-Effect expiry runs **after** the final periodic tick so an effect ending this turn still ticks once more (`module/engine/scheduler.mjs:114-115`). The `acted` state tracks which units took an action in the current phase — it is not turn-wide (`module/engine/scheduler.mjs:71-73`).
+Effect expiry runs **after** the periodic ticks, and an effect ending this Turn does **not** tick in it: `tickPeriodics` skips an instance whose `expiryReached` this Tick, so its last tick is the Turn before (see Open questions; found porting to Godot, 2026-11-16). The `acted` state tracks which units took an action in the current phase — it is not turn-wide (`module/engine/scheduler.mjs:71-73`).
 
 After those ten, and before `globalTurn` advances, the hook switches off every mode whose duration was *"this Turn"* (`engine/modes.mjs#turnEndModeIntents`, Ch. 24): Riding's Active is a mode, its `MovDelta` states `duration: "this turn"`, and a derived delta lasts as long as its source, `system.active` (#116).
 
@@ -125,7 +125,7 @@ one its owner's use ends, and one whose life ran out unless its owner pays to ex
 
 2. **Turn order is a faction list, not a token list.** A Combatant is a faction; adding tokens to the tracker does nothing useful (`module/documents/combat.mjs:26-30`). The match must be populated through `addFaction` or `syncFactions` (`module/documents/combat.mjs:34-91`).
 
-3. **An expiring effect ticks on its last turn.** `fireEvent` gates on `handler.expiry`, comparing against the current tick, so an effect expiring at tick T still fires on tick T (`module/engine/scheduler.mjs:263-264`).
+3. **An expiring effect does not act at the boundary of its last Turn.** `fireEvent` skips a boundary handler whose `expiryReached` this Tick, and `tickPeriodics` a periodic; inside that Turn its in-Turn handlers still act (#195).
 
 4. **Delay is applied in declaration order.** If two factions each delay by 1 past each other, they end up back where they started (what happens at the table), not in turn order (`module/engine/turn-order.mjs:97-101`).
 

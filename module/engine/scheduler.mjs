@@ -9,8 +9,8 @@
  *
  * The ordering inside `endTurn` is load-bearing and asserted directly by tests:
  *
- *   - expiry (step 5) runs **after** the final periodic tick (step 4), so an
- *     effect that ends this turn still deals its last tick of damage;
+ *   - expiry (step 5) runs **after** the periodic ticks (step 4), and an effect
+ *     that ends this turn does not tick in it (`tickPeriodics` skips it, Ch. 15);
  *   - the acted-unit pass (step 2) covers units of **every** faction, not just
  *     the active player's, because `Sap` fires "at the end of any turn it Acts".
  */
@@ -132,7 +132,7 @@ export function endTurn(board, ctx) {
   const standing = advanceEffects(units, ctx);
   intents.push(...standing.intents);
 
-  // 6. Expiry — after the final tick, so an effect ending now still ticks.
+  // 6. Expiry, after the periodic ticks; an effect ending now did not tick (Ch. 15).
   intents.push(...expireEffects(units, ctx, "expired", standing.paused));
 
   // 7. Terrain's own boundary clauses -- Burning's inescapable Burn, Poison
