@@ -220,4 +220,32 @@ export const TARGETS = [
     module: "module/rules/periodic.mjs", layer: "rules/periodic", cap: 60, tests: "importers",
     fns: { periodicDue: "rules.periodic.periodic_due" },
   },
+  {
+    module: "module/rules/revival.mjs", layer: "rules/revival", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      availableRevivals: "rules.revival.available_revivals", missedRevivalChances: "rules.revival.missed_revival_chances",
+      heldRevivals: "rules.revival.held_revivals", resolveRevival: "rules.revival.resolve_revival",
+      pendingRevivalRolls: "rules.revival.pending_revival_rolls", attackIdentity: "rules.revival.attack_identity",
+      identityOfProcess: "rules.revival.identity_of_process", recordedAttack: "rules.revival.recorded_attack",
+      poolRestores: "rules.revival.pool_restores",
+    },
+  },
+  {
+    module: "module/rules/relationships.mjs", layer: "rules/relationships", cap: 60, tests: "importers", maxFiles: 80,
+    fns: {
+      multiServantRule: "rules.relationships.multi_servant_rule", overpowerCheck: "rules.relationships.overpower_check",
+      resolveOverpower: "rules.relationships.resolve_overpower", underpowerCheck: "rules.relationships.underpower_check",
+      resolveUnderpower: "rules.relationships.resolve_underpower", onMasterDefeated: "rules.relationships.on_master_defeated",
+      sustainabilityCostOf: "rules.relationships.sustainability_cost_of", actedWeight: "rules.relationships.acted_weight",
+      multiServantTax: "rules.relationships.multi_servant_tax", mayOrderAnotherServant: "rules.relationships.may_order_another_servant",
+    },
+  },
+  {
+    module: "module/rules/summons.mjs", layer: "rules/summons", cap: 40, tests: "importers",
+    fns: { expiredSummonIds: "rules.summons.expired_summon_ids" },
+  },
+  {
+    module: "module/rules/nameless-forest.mjs", layer: "rules/nameless-forest", cap: 40, tests: "importers",
+    fns: { deathRollOutcome: "rules.nameless_forest.death_roll_outcome", mayAttemptEscape: "rules.nameless_forest.may_attempt_escape" },
+  },
 ];
