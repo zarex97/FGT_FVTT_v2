@@ -3,7 +3,8 @@ id: 2026-11-15-mode-options-no-facet-admitted
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Every predicate option the shipped corpus names is one a facet admits: `validate:content` holds every
 predicate site to `isEmittableOption` (`tools/lib/content.mjs#predicateOptionsExist`).
