@@ -15,5 +15,5 @@ drain floor (`activeRules[7].then[0].floorPredicate`) names `self:modeHeld:madEn
 `floorPredicate: "@drainFloorWhen"` (`packs/_source/class-skills/mad-enhancement.yml:218`), and the build skips a template's
 `@` slots, so it never read the resolved copies the Servants carry. The runtime was right (the options are emitted and
 tested); the facet table, the author's vocabulary, could not name them.
-**Fix:** `module/rules/facets.mjs @ uncommitted`: `modeHeld` and `modeLocked` are facets, with their lang labels;
+**Fix:** `module/rules/facets.mjs @ 1618e1a9`: `modeHeld` and `modeLocked` are facets, with their lang labels;
 `docs/11-predicates.md` says why. The Godot loader keeps reading the resolved copies.
