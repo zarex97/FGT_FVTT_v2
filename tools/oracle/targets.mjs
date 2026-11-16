@@ -188,4 +188,12 @@ export const TARGETS = [
       usesBaseOptions: "rules.damage.uses_base_options", isNPAttack: "rules.damage.is_np_attack",
     },
   },
+  // M4: the effect pipeline.
+  {
+    module: "module/engine/effect-applier.mjs", layer: "engine/effect-applier", cap: 120, tests: "importers", maxFiles: 80,
+    fns: {
+      applyEffect: "engine.effect_applier.apply_effect", mergeEmitted: "engine.effect_applier.merge_emitted",
+      inflictBonusOf: "engine.effect_applier.inflict_bonus_of",
+    },
+  },
 ];
