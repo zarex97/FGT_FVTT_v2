@@ -190,7 +190,7 @@ export const TARGETS = [
   },
   // M4: the effect pipeline.
   {
-    module: "module/engine/effect-applier.mjs", layer: "engine/effect-applier", cap: 120, tests: "importers", maxFiles: 80,
+    module: "module/engine/effect-applier.mjs", layer: "engine/effect-applier", cap: 120, tests: "importers", maxFiles: 80, registry: true,
     fns: {
       applyEffect: "engine.effect_applier.apply_effect", mergeEmitted: "engine.effect_applier.merge_emitted",
       inflictBonusOf: "engine.effect_applier.inflict_bonus_of",
@@ -265,7 +265,7 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120,
+    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120, registry: true,
     fns: {
       endTurn: "engine.scheduler.end_turn", clearBodies: "engine.scheduler.clear_bodies",
       beginTurn: "engine.scheduler.begin_turn", endRound: "engine.scheduler.end_round",

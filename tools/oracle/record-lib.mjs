@@ -8,6 +8,7 @@ import { afterAll, expect } from "vitest";
 import { writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { encode } from "./codec.mjs";
+import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 const records = [];
 let unnamed = 0;
@@ -22,7 +23,7 @@ const kept = new Map();
  * @param {Function} impl the real function
  * @returns {Function}
  */
-export function recording(fn, impl) {
+export function recording(fn, impl, { registry = false } = {}) {
   return (...args) => {
     const seen = kept.get(fn) ?? new Set();
     kept.set(fn, seen);
@@ -52,7 +53,32 @@ export function recording(fn, impl) {
       }
       return r;
     });
-    const result = impl(...callArgs);
+    // The effect definitions the call asked the registry for, when the target says it reads one (`registry: true`): a
+    // test may load definitions of its own, which the Godot content does not hold, so the case carries what it read.
+    const looked = new Map();
+    const get = EffectRegistry.get;
+    if (registry) {
+      EffectRegistry.get = (id) => {
+        const def = get.call(EffectRegistry, id);
+        if (!looked.has(id)) looked.set(id, def ?? null);
+        return def;
+      };
+    }
+    let result;
+    try {
+      result = impl(...callArgs);
+    } finally {
+      if (registry) EffectRegistry.get = get;
+    }
+    if (registry && input !== null) {
+      try {
+        input = { args: input, registry: encode([...looked], "registry") };
+      } catch {
+        broken = true;
+      }
+    } else if (input !== null) {
+      input = { args: input };
+    }
     if (broken && input !== null) {
       unreplayable++;
       input = null;
@@ -61,7 +87,7 @@ export function recording(fn, impl) {
       seen.add(key);
       try {
         const test = expect.getState().currentTestName ?? `describe-time ${++unnamed}`;
-        records.push({ fn, test, input: { args: input }, expect: { result: encode(result, "result") } });
+        records.push({ fn, test, input, expect: { result: encode(result, "result") } });
       } catch {
         unreplayable++;
       }
