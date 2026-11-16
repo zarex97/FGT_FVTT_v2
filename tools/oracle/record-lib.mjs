@@ -27,15 +27,36 @@ export function recording(fn, impl) {
     const seen = kept.get(fn) ?? new Set();
     kept.set(fn, seen);
     if (seen.size >= CAP) return impl(...args);
+    // A function handed in (a scheduler's `effectDef`) is recorded as the table of what it answered during this call:
+    // its slot is written now, before the call can change the arguments, and filled as the call asks it.
+    const tables = new Map();
+    let broken = false;
+    const fnSlot = (f) => {
+      if (!tables.has(f)) tables.set(f, { $fn: [] });
+      return tables.get(f);
+    };
     let input = null;
     try {
-      input = encode(args, "args");
+      input = encode(args, "args", fnSlot);
     } catch {
       unreplayable++;
     }
     const key = input === null ? null : JSON.stringify(input);
     if (key !== null && seen.has(key)) input = null;
-    const result = impl(...args);
+    const callArgs = tables.size === 0 ? args : swapFns(args, (f) => (...fargs) => {
+      const r = f(...fargs);
+      try {
+        tables.get(f)?.$fn.push([encode(fargs, "fnArgs"), encode(r, "fnResult")]);
+      } catch {
+        broken = true;
+      }
+      return r;
+    });
+    const result = impl(...callArgs);
+    if (broken && input !== null) {
+      unreplayable++;
+      input = null;
+    }
     if (input !== null) {
       seen.add(key);
       try {
@@ -47,6 +68,31 @@ export function recording(fn, impl) {
     }
     return result;
   };
+}
+
+/**
+ * The value with each function in it swapped for `wrap(fn)`, every container on the way copied and the rest shared.
+ *
+ * @param {unknown} value
+ * @param {(fn: Function) => Function} wrap
+ * @returns {unknown}
+ */
+function swapFns(value, wrap) {
+  if (typeof value === "function") return wrap(value);
+  if (Array.isArray(value)) {
+    const out = value.map((v) => swapFns(v, wrap));
+    return out.some((v, i) => v !== value[i]) ? out : value;
+  }
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    let changed = false;
+    const out = {};
+    for (const k of Object.keys(value)) {
+      out[k] = swapFns(value[k], wrap);
+      if (out[k] !== value[k]) changed = true;
+    }
+    return changed ? out : value;
+  }
+  return value;
 }
 
 afterAll(() => {

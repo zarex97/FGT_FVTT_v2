@@ -264,4 +264,23 @@ export const TARGETS = [
       twinsOf: "engine.cooldown.twins_of",
     },
   },
+  {
+    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120,
+    fns: {
+      endTurn: "engine.scheduler.end_turn", clearBodies: "engine.scheduler.clear_bodies",
+      beginTurn: "engine.scheduler.begin_turn", endRound: "engine.scheduler.end_round",
+      beginRound: "engine.scheduler.begin_round", fireEvent: "engine.scheduler.fire_event",
+      runDeferred: "engine.scheduler.run_deferred", dispatch: "engine.scheduler.dispatch",
+      pickKey: "engine.scheduler.pick_key", randomPickPool: "engine.scheduler.random_pick_pool",
+      chanceKey: "engine.scheduler.chance_key", subjectOf: "engine.scheduler.subject_of",
+      eventFilterPasses: "engine.scheduler.event_filter_passes", revivedSaid: "engine.scheduler.revived_said",
+      pendingRolls: "engine.scheduler.pending_rolls", resolveDefeat: "engine.scheduler.resolve_defeat",
+      advanceCooldowns: "engine.scheduler.advance_cooldowns", cooldownRate: "engine.scheduler.cooldown_rate",
+      tickPeriodics: "engine.scheduler.tick_periodics", flooredTick: "engine.scheduler.floored_tick",
+      regionScale: "engine.scheduler.region_scale", periodicDamageFor: "engine.scheduler.periodic_damage_for",
+      expireEffects: "engine.scheduler.expire_effects", advanceEffects: "engine.scheduler.advance_effects",
+      onExpireIntents: "engine.scheduler.on_expire_intents", onRemoveIntents: "engine.scheduler.on_remove_intents",
+      checkRemovals: "engine.scheduler.check_removals",
+    },
+  },
 ];
