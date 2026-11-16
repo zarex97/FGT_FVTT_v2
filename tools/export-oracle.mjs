@@ -91,7 +91,10 @@ mkdirSync(GENERATED, { recursive: true });
 for (const target of TARGETS) {
   const setup = join(GENERATED, `${slug(target.layer)}.mjs`);
   const wraps = Object.entries(target.fns)
-    .map(([name, godot]) => `    ${name}: recording(${JSON.stringify(godot)}, mod.${name}${target.registry ? ", { registry: true }" : ""}),`).join(NL);
+    .map(([name, godot]) => {
+      const opts = [target.registry ? "registry: true" : null, target.functions ? "functions: true" : null].filter(Boolean);
+      return `    ${name}: recording(${JSON.stringify(godot)}, mod.${name}${opts.length ? `, { ${opts.join(", ")} }` : ""}),`;
+    }).join(NL);
   writeFileSync(setup, [
     "// Written by tools/export-oracle.mjs from tools/oracle/targets.mjs; never edited by hand.",
     'import { vi } from "vitest";',

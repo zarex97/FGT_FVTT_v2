@@ -33,7 +33,7 @@ const kept = new Map();
  * @param {Function} impl the real function
  * @returns {Function}
  */
-export function recording(fn, impl, { registry = false } = {}) {
+export function recording(fn, impl, { registry = false, functions = false } = {}) {
   return (...args) => {
     const seen = kept.get(fn) ?? new Set();
     kept.set(fn, seen);
@@ -48,7 +48,9 @@ export function recording(fn, impl, { registry = false } = {}) {
     };
     let input = null;
     try {
-      input = encode(args, "args", fnSlot);
+      // Only a target that says its port takes them (`functions: true`) records a function as a table; for the rest a
+      // function is a call that cannot be replayed, as before.
+      input = encode(args, "args", functions ? fnSlot : null);
     } catch {
       unreplayable++;
     }

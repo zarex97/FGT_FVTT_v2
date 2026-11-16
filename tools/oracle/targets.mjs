@@ -265,7 +265,7 @@ export const TARGETS = [
     },
   },
   {
-    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120, registry: true,
+    module: "module/engine/scheduler.mjs", layer: "engine/scheduler", cap: 80, tests: "importers", maxFiles: 120, registry: true, functions: true,
     fns: {
       endTurn: "engine.scheduler.end_turn", clearBodies: "engine.scheduler.clear_bodies",
       beginTurn: "engine.scheduler.begin_turn", endRound: "engine.scheduler.end_round",
