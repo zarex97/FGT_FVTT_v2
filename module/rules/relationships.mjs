@@ -253,8 +253,10 @@ export function onMasterDefeated(servant, {
   // anybody. The same question is already answered by `slug`/`active`, which
   // `rules/options.mjs` reads for `self:skillActive:` and which
   // `collectAbilities` has projected since it was written.
+  // A Mode that states its own Sustainability while on (the Normal Mad Enhancement's 1◈, #419) has no
+  // clause 5: the clock the snapshot read is already that figure.
   const madEnhancement = (servant.abilities ?? []).find(
-    (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active,
+    (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active && !a.activeSustainability,
   ) ?? null;
   // ...and WHICH clause 5 it plays (#260 reading 3). Classic: *"Sustainability
   // is reduced by 2◈ Turns if its Master is defeated while ME is Active"*, once,

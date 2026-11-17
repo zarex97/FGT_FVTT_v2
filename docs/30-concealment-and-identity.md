@@ -35,6 +35,18 @@ A concealed Servant's **public identity** — the class and faction name shown o
 
 **Whether an ability aims at an enemy is asked of its own targeting and of every phase's** (`usageSpecFor`'s `phaseTargeting`, #243): Kiritsugu's Affection of the Holy Grail targets himself and inflicts Debuff ResDwn on all Units within 2 from a phase, and was usable concealed until clause 7 read the phase. An ability can restrict concealed use, but three exceptions hold: Attack Skills, damage-dealing Spells, Noble Phantasms, and explicitly marked ability (`usableWhileConcealed`) always go through. Serenity's Shapeshift is the sole instance in the corpus, paying 20% chance to break concealment (`module/rules/concealment.mjs:209-219`, `module/rules/concealment.mjs:251-253`). The roll is made after the Skill resolves (`engine/skill-use.mjs#rollConcealmentBreak`). A break is posted publicly; a kept roll is whispered to the GM and her owners, so the die leaves a trace without telling the enemy she is still hidden (#199, §46.4-KW).
 
+**The Normal Presence Concealment is its own state** (ruled 2026-11-16, #418; reproduced live: a Normal Attack on
+the concealed Normal Assassin read "✓ Legal"). It lands `normalPresenceConcealment`, which `isConcealed` does not
+read, so none of the full state's readers is its: no hidden token, no Discover, no break roll, no refusal of an enemy's
+Skill. The Normal sheet's own clauses read `veiledFromAttacks` (either state): targeting step 7 drops it from a chosen
+**Attack** only (`limits.forAttack`; a Skill, an enemy's too, may choose it, *"cannot be targeted for an attack"*);
+an area still catches it and the coin is flipped (`attack.mjs`, `caughtConcealed`); an Attack it declares while
+concealed ends it at the declaration's close, a Counter too; its end, by any path, starts the Skill's
+`countFrom: deactivation` clock, the deletion hook hearing either id. Its `Suppress scope: masterProtection` lets it
+Attack a guarded Master and approach one (`movement.mjs#inEnemyMasterProtection` reads `bypassesMasterProtection`),
+and `Suppress scope: cover` refuses Cover and the shove against its Attacks on a Master (`attack.mjs#resolveCover`):
+the Normal War's *"An exception to the above three paragraphs is the 'Presence Concealment' Skill"*.
+
 **Whose concealment hides the aura's Poison.** The inflicter's: `concealedNow(c.bearer ?? u)` in the `ApplyEffect` action. For a `target: nearby` action `u` is each recipient, and asking it poisoned openly whenever the victim was not itself concealed (#199, §46.4-KR).
 
 ### Ending concealment

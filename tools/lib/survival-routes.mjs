@@ -226,6 +226,7 @@ export const ABILITY_ROUTES = {
   endsOnSkillSeal: doc("module/engine/seal-ends.mjs", "Skill Seal ends Presence Concealment or Mad Enhancement under the Revised text (#226, #260)"),
   printedRevision: doc("module/rules/snapshot.mjs", "the text a bearer's sheet prints, read by domain/revisions.mjs#revisionOf (#260)"),
   unsealable: doc("module/engine/seal-ends.mjs", "Skill Seal leaves it Active (#260 reading 3j)"),
+  activeSustainability: doc("module/rules/snapshot.mjs", "the Sustainability a Mode gives while on, read by the projection and onMasterDefeated (#419)"),
   unaffectedBy: doc("module/rules/ability-use.mjs", "the effects that never reach it, read by the Seal gate and the budget (#362)"),
   combatProcess: doc("module/rules/ability-use.mjs", "a non-damaging ability that opens its own Combat Process, and the reactions it leaves (#362)"),
   descriptionRevised: doc("module/engine/war.mjs", "the sheet prints it under the Revised text (#260 reading 3f)"),

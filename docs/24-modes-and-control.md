@@ -38,6 +38,15 @@ The last two are positional: they re-answer every time they are asked, not froze
 
 3. **Ends after a count.** `endsAfter: {event, when, count}` (#288, #319): Saitou's Chikai no Haori *"forcefully ended after he performs a successful seventh Attack"* is `{event: attackLanded, count: 7}`, Shinpachi's five Crits add `when: [attack:crit]`. `rules/modes.mjs#tallyHandler` makes an `OnEvent` handler that the collection adds to the Mode's **active** rules, so a Mode that is off hears nothing. Each event it hears is `scheduler.mjs` `TallyMode`: an intent `tallyMode` that `io.tallyMode` writes as `system.tally + 1`, and at the count a `setMode(…, false, "tally")`. `io.setMode` resets the Tally to 0 whenever the Mode goes on, since the count is *"for the duration of that activation"*. The applier says each step ("Chikai no Haori 4/7") and the end ("ends: 7 reached"); the bar slot and the sheet's toggle show the Tally while the Mode is on. The Tally is also a Count (`{of: tally}`, `rules/count.mjs`). The build refuses an `endsAfter` with no event or a count that is not a whole number of 1 or more.
 
+**The Normal Mad Enhancement** (#419, reproduced live: the Master kept 300/300). Its drain is `amount: 15` at
+`actedTurnEnd`, with no floor (ruled 2026-11-16: the sheet prints none, as Asterios's and Castor's do not). The
+forced end is asked after the drain and at every other Turn's end (`anyTurnEnd`), gated `lte: 15` and `gte: 1`: a
+Master the drain fells is not "left with 15 Health", and its death locks the Mode on (the lock wins). The Turn's end
+shares one pending-Health tally across its handlers (`scheduler.mjs#endTurn`, `boundaryPending`), so the second gate
+reads what the drain left. `activeSustainability: "1◈"` is the bearer's Sustainability while the Mode is on (the
+snapshot), and `onMasterDefeated` charges no Advanced clause 5 for a Mode that states it. The build refuses a
+`StatDelta` action with no figure (`percent`, `amount`, `delta` or `table`): the drain was authored `value: 15`.
+
 ### Forced modes and compulsions
 
 When a compulsion's condition becomes true or a `ForceMode` rule's condition triggers, the modes they name must switch on. `reconcileForcedModes` (`module/engine/modes.mjs:60-107`) watches for these moments and writes the intents. Both sources are checked: `forcedModes` filters the unit's items for ones held by either a compulsion *or* a ForceMode rule (`module/rules/modes.mjs:212-230`). A third source is a mode that never comes off (`cannotDeactivate`) that a Command Spell's Suspend Skill switched off: once its span has passed, `rules/modes.mjs#lapsedConstantModes` re-arms it, with a card. Heracles's *"Constantly Active … it will reactivate"*; without it his Mad Enhancement stayed off for good (#256 reading 2, §46.4-RY).

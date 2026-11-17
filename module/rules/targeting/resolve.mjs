@@ -533,10 +533,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     const before = survivors.length;
     const forAttack = limits.forAttack !== false;
     survivors = survivors.filter(
-      (u) => !u.concealed || u.id === caster.id
-        || (!forAttack && relationOf(caster, u, board) === "ally")
+      (u) => (!u.concealed && !(forAttack && u.veiledFromAttacks)) || u.id === caster.id
+        || (u.concealed && !forAttack && relationOf(caster, u, board) === "ally")
         || drop(u, "concealed — it cannot be targeted directly"),
     );
+    // The Normal Presence Concealment refuses an Attack and nothing else (ruled 2026-11-16, #418): its
+    // sheet says *"cannot be targeted for an attack"*, so a Skill may still choose it.
     if (survivors.length < before) warnings.push("Concealed units cannot be targeted directly.");
   }
 
@@ -1584,7 +1586,8 @@ function toTargeted(u, caster, bands, caught) {
     // sorts by this (Lesson: a Unit is its footprint, never its anchor). Anchor to anchor read it three.
     distance: geo.chebyshevBetween(geo.occupiedPanels(caster), geo.occupiedPanels(u)),
     band: bands?.get(geo.key(u.panel)) ?? 0,
-    concealedAoE: Boolean(u.concealed) && caught,
+    // Either concealment: the Normal one flips the same coin when an area catches it alone (#418).
+    concealedAoE: Boolean(u.veiledFromAttacks ?? u.concealed) && caught,
     // Caught by the shape rather than chosen: an AoE's, not a targeted
     // Attack's (Battle Retreat leaves the one and cancels the other, #226).
     caughtByArea: Boolean(caught),

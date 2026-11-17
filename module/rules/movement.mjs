@@ -1033,6 +1033,10 @@ export function inEnemyMasterProtection(panel, unit, board) {
   // carries no `rules` block at all. `?? true` is what keeps absence from
   // silently disabling it, which would be the worst of both worlds.
   if (board?.rules?.masterProtection === false) return false;
+  // *"Able to ... Move anywhere regardless of their Servant's position"*: a Unit that suppresses Master
+  // protection approaches any Master (the Normal Presence Concealment, #418; the full one walks past
+  // every Unit already, `IGNORES_BLOCKING`).
+  if (unit?.bypassesMasterProtection) return false;
 
   for (const other of board.units ?? []) {
     if (other.kind !== "master") continue;

@@ -1766,6 +1766,20 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
           + (el.events ? ` — it has "events", which nothing reads; the field is "event" and it may hold an array` : ""),
         );
       }
+      // A `StatDelta` action's figure. `engine/scheduler.mjs`'s `StatDelta` reads `percent`, `amount` or
+      // `delta`, and `normalizeAction` turns a `table` into an `amount`; anything else is no figure, and
+      // the action returns nothing. The Normal Mad Enhancement's drain was authored `value: 15` and took
+      // no Health from anybody (#419, pressed live).
+      for (const [index, action] of (el.then ?? []).entries()) {
+        if (action?.key !== "StatDelta") continue;
+        const figures = ["percent", "amount", "delta", "table"].filter((k) => action[k] !== undefined);
+        if (figures.length === 0) {
+          problems.push(
+            `${path}: ${where} OnEvent then[${index}] StatDelta states no figure: it reads "percent", "amount", "delta" or "table"`
+            + (action.value !== undefined ? ` (it has "value", which nothing reads)` : ""),
+          );
+        }
+      }
     }
     // A `DamageModifier`'s bucket. The pipeline reads a CLOSED set of keys, so
     // one outside it is collected onto the Unit and never consulted -- a

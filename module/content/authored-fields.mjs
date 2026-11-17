@@ -61,7 +61,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // all. Raikou's Tenmokaikai is its first ability-level user -- "Raikou can
   // deactivate this NP during her Turn and at the start or end of any Turn or
   // Round" -- where a bounded field has carried the same shape since Ozymandias.
-  "cannotDeactivate", "cannotActivate", "cannotCounter", "toggleLock", "deactivation", "categorizedAsNP", "categorizedAs",
+  "cannotDeactivate", "cannotActivate", "cannotCounter", "toggleLock", "activeSustainability", "deactivation", "categorizedAsNP", "categorizedAs",
   "weakPoint", "ridingAttack", "expendsPermanently", "categorizedWhile", "availableWhen",
   "npTags", "cooldown", "cooldownWaiver", "targeting", "field", "quantity",
   "transferable", "transferRange", "transfersPerTurn", "consumeEffect",
