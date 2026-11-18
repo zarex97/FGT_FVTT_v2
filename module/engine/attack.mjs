@@ -97,7 +97,7 @@ import {
 import { mayAttackCivilian, civilianKill, inOwnHomeBase, grailStrike } from "../rules/environment.mjs";
 import { overpowerCheck, resolveOverpower, resolveUnderpower } from "../rules/relationships.mjs";
 import {
-  reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed, concealmentProfile,
+  reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed, concealmentProfile, veiledFromAttacks, CONCEALMENT_EFFECTS,
 } from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
@@ -491,7 +491,8 @@ export async function resolveAttack({
     // PC.5 is *"after an Attack while PC is Active"*: read once its price is
     // paid. A concealment the Attack itself lands on its user -- Danzō's
     // Kawarimi into her own Dongyū (ruled 2026-10-18) -- is not ended by it.
-    concealedAtDeclaration: isConcealed(unitOf(attacker, boardSnapshot())),
+    // Either concealment: the Normal one ends after its own Attack too (#418).
+    concealedAtDeclaration: veiledFromAttacks(unitOf(attacker, boardSnapshot())),
     // The panels this declaration resolved against. Two clauses ask for the
     // area and neither ever got it: Fire in a Forest *"If the attack's area
     // is larger than 3x3, the whole attack area converts"* (`terrainConversions`
@@ -1427,7 +1428,7 @@ function rebindDefender(state, newId, board, { steppedIn = false } = {}) {
     reaction: null,
     evaded: false,
     cone: attackCone(defender, attacker),
-    caughtConcealed: Boolean(state.caughtByArea && isConcealed(defender)),
+    caughtConcealed: Boolean(state.caughtByArea && veiledFromAttacks(defender)),
     ...(steppedIn ? { steppedIn: true } : {}),
     attack: {
       ...state.attack,
@@ -3058,6 +3059,11 @@ async function resolveCover(state, message) {
   const board = currentBoard();
   const master = (board.units ?? []).find((u) => u.id === state.defenderId);
   if (master?.kind !== "master") return;
+  // *"An exception to the above three paragraphs is the 'Presence Concealment' Skill"* (the Normal
+  // War's rules, after Cover): an Attack a concealed Normal Assassin makes on a Master is not Covered
+  // and its Master is not shoved (ruled 2026-11-16, #418). `Suppress scope: cover` on its effect.
+  const attackerUnit = (board.units ?? []).find((u) => u.id === state.attackerId);
+  if ((attackerUnit?.suppressions ?? []).some((s2) => s2.scope === "cover")) return;
 
   // The area this Noble Phantasm actually covers: the panels the targeting
   // resolved, carried on the attack (`areaPanels`). Not only the panels its
@@ -6794,7 +6800,8 @@ async function applyDamage(state, message) {
   // (#204 reading 15).
   // A concealed Unit that stepped into this Attack for an ally takes it whole:
   // no coin (Kawarimi, #249 reading 32).
-  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender) && !state.attack?.unavoidable && !state.steppedIn) {
+  // Either concealment: the Normal sheet prints the same coin (#418).
+  if ((state.isAoE || state.caughtConcealed) && veiledFromAttacks(defender) && !state.attack?.unavoidable && !state.steppedIn) {
     const coin = await new Roll("1d2").evaluate();
     const veil = aoeOutcome(coin.total);
     const before = result.total;
@@ -6802,7 +6809,7 @@ async function applyDamage(state, message) {
     result.flags = { ...result.flags, concealmentVeil: veil, concealmentCoin: coin.total };
     // By the name its sheet gives it, and with the coin: Gray's Hoodie read
     // "Presence Concealment" and no card showed the die that decided (#362, live).
-    const veiled = (defender.effectInstances ?? []).find((e) => e.defId === "presenceConcealment")?.params?.name
+    const veiled = (defender.effectInstances ?? []).find((e) => CONCEALMENT_EFFECTS.includes(e.defId))?.params?.name
       ?? "Presence Concealment";
     result.breakdown = [
       ...(result.breakdown ?? []),

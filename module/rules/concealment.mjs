@@ -38,6 +38,18 @@ export const CONCEALMENT = "presenceConcealment";
 export const CONCEALMENT_SLUG = "presenceConcealment";
 
 /**
+ * The Normal War's Presence Concealment: its OWN state, not the one above (ruled 2026-11-16, #418). The
+ * Normal sheet prints six clauses and builds only those: no direct Attack may target it, an area gives
+ * a coin, an Attack it makes ends it, its Cooldown starts at its end, and it may Attack and approach
+ * Masters regardless of their Servants. None of the full state's readers (a hidden token, discovery,
+ * the break roll, enemy Skills refused) is its.
+ */
+export const NORMAL_CONCEALMENT = "normalPresenceConcealment";
+
+/** Every concealment state: what ends one, and what an end starts the Skill's clock for. */
+export const CONCEALMENT_EFFECTS = Object.freeze([CONCEALMENT, NORMAL_CONCEALMENT]);
+
+/**
  * Is this Unit concealed right now?
  *
  * @param {object} unit a unit snapshot
@@ -45,6 +57,19 @@ export const CONCEALMENT_SLUG = "presenceConcealment";
  */
 export function isConcealed(unit) {
   return (unit?.effects ?? []).includes(CONCEALMENT);
+}
+
+/**
+ * Is this Unit out of reach of a direct Attack, and its own Attacks a concealed Unit's? Either
+ * concealment: the clauses both sheets print alike (no Attack target, the area coin, the end after its
+ * own Attack). The Normal one is nothing else (#418).
+ *
+ * @param {object} unit a unit snapshot
+ * @returns {boolean}
+ */
+export function veiledFromAttacks(unit) {
+  const held = unit?.effects ?? [];
+  return isConcealed(unit) || held.includes(NORMAL_CONCEALMENT);
 }
 
 /**

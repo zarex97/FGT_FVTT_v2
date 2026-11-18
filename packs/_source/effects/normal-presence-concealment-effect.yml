@@ -36,3 +36,8 @@ rules:
   # Concealment by.
   - key: Suppress
     scope: masterProtection
+  # "An exception to the above three paragraphs is the 'Presence Concealment' Skill" -- the Normal
+  # War's rules, after the Master approach ban and the two Covers: an Attack it makes on a Master is
+  # not Covered (ruled 2026-11-16, #418). `engine/attack.mjs#resolveCover` reads it.
+  - key: Suppress
+    scope: cover

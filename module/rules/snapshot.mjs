@@ -49,7 +49,7 @@ import { grantHeld } from "./summon-grants.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf, passengerContributions } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
-import { CONCEALMENT } from "./concealment.mjs";
+import { CONCEALMENT, NORMAL_CONCEALMENT } from "./concealment.mjs";
 
 /**
  * @typedef {object} UnitSnapshot
@@ -261,7 +261,7 @@ export function snapshotUnit(actor, {
     sustainability: variantOverride?.sustainability === "none" ? null
       : variantOverride?.sustainability
         ? sustainabilityTurns({ ...sys, sustainability: variantOverride.sustainability }, turnsPerRound)
-        : sustainabilityTurns(sys, turnsPerRound),
+        : sustainabilityTurns({ ...sys, sustainability: activeSustainability(actor) ?? sys.sustainability }, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
     // Turns lost at each Turn's end beyond the clock's own one: Revised Mad
@@ -716,6 +716,9 @@ export function snapshotUnit(actor, {
     // are Unremovable"*. `sys.concealed` is still honoured so a GM can set it by
     // hand on a Unit whose concealment comes from somewhere else.
     concealed: Boolean(sys.concealed) || effectIds.includes(CONCEALMENT),
+    // Out of reach of a direct Attack, by either concealment: the Normal one is this and no more
+    // (`rules/concealment.mjs#veiledFromAttacks`, #418).
+    veiledFromAttacks: Boolean(sys.concealed) || effectIds.includes(CONCEALMENT) || effectIds.includes(NORMAL_CONCEALMENT),
     // Ch. 32: a Servant whose Master died *"remains in whatever state it was
     // in"*. Written at the death (`io.mjs`, `lockModes`) and shown as a badge,
     // and no switch read it: Vlad III (Berserker) switched Mad Enhancement off
@@ -1777,6 +1780,21 @@ function effectInstances(actor) {
  * @param {number} turnsPerRound
  * @returns {number|null}
  */
+/**
+ * The Sustainability an active Mode gives its bearer in place of its own (`activeSustainability`): the
+ * Normal Mad Enhancement's *"When Mad Enhancement is activated, Berserker's Sustainability is 1◈
+ * Turns"* (#419). `null` when no Mode that is on states one; an authored clock with nothing to
+ * replace (`sustainability: null`) stays none.
+ *
+ * @param {object} actor
+ * @returns {string|null}
+ */
+export function activeSustainability(actor) {
+  if (actor?.system?.sustainability === null || actor?.system?.sustainability === undefined) return null;
+  const mode = [...(actor?.items ?? [])].find((i) => i.system?.isMode && i.system?.active && i.system?.activeSustainability);
+  return mode?.system?.activeSustainability ?? null;
+}
+
 function sustainabilityTurns(sys, turnsPerRound) {
   const authored = sys?.sustainability ?? null;
   if (authored === null || authored === undefined) return null;
@@ -2542,6 +2560,8 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
       printedRevision: i.system?.printedRevision ?? null,
       endsOnSkillSeal: Boolean(i.system?.endsOnSkillSeal),
       unsealable: Boolean(i.system?.unsealable),
+      // The Sustainability this Mode gives while on (#419), which `onMasterDefeated` reads.
+      activeSustainability: i.system?.activeSustainability ?? null,
     }));
 }
 

@@ -18,7 +18,7 @@
  */
 
 import { isUntouchable } from "../rules/untouchable.mjs";
-import { CONCEALMENT, CONCEALMENT_SLUG, DEACTIVATION_REASONS } from "../rules/concealment.mjs";
+import { CONCEALMENT_EFFECTS, CONCEALMENT_SLUG, DEACTIVATION_REASONS } from "../rules/concealment.mjs";
 import { discoverAttempts, sees } from "../rules/identity.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
@@ -44,11 +44,12 @@ export async function deactivateConcealment(unitId, reason) {
   const actor = unitActor(unitId);
   if (!actor) return false;
 
-  const instance = actor.effects.find((e) => e.system?.defId === CONCEALMENT && !e.disabled);
+  // Either concealment: the Normal one ends on the same terms (#418).
+  const instance = actor.effects.find((e) => CONCEALMENT_EFFECTS.includes(e.system?.defId) && !e.disabled);
   if (!instance) return false;
 
   pending.set(unitId, reason);
-  await applyWorldIntents([I.removeEffect(unitId, CONCEALMENT, reason)], `concealment:${reason}`);
+  await applyWorldIntents([I.removeEffect(unitId, instance.system.defId, reason)], `concealment:${reason}`);
   // The aftermath runs from the document hook rather than from here, so the
   // **clock** and the **disclosure** happen on every removal path -- including
   // the one nothing in this file calls: the 2◈ simply running out.
@@ -125,7 +126,9 @@ export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS
  */
 export function attachConcealment() {
   Hooks.on("deleteActiveEffect", (effect) => {
-    if (effect.system?.defId !== CONCEALMENT) return;
+    // Either concealment's end starts its Skill's clock: the Normal one's *"Cooldown: 1◈ Turns after
+    // Presence Concealment is deactivated"* had no writer (#418).
+    if (!CONCEALMENT_EFFECTS.includes(effect.system?.defId)) return;
     const unitId = effect.parent?.id;
     if (!unitId || !game.user?.isGM) return;
 

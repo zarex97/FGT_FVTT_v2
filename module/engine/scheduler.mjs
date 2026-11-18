@@ -69,7 +69,10 @@ export function endTurn(board, ctx) {
   // from a Turn/Round boundary saw `ctx.board` as `undefined`.
   // `firedThisBoundary`: every pass below shares it, so a handler that listens
   // to two of them fires once (§E.2).
-  ctx = { ...ctx, board, firedThisBoundary: new WeakSet() };
+  // `boundaryPending`: the Health moves every handler of this Turn's end has written so far, so a gate
+  // heard later reads what an earlier handler left. The Normal Mad Enhancement's forced end at
+  // `anyTurnEnd` reads the Master its `actedTurnEnd` drain has just taken 15 from (#419).
+  ctx = { ...ctx, board, firedThisBoundary: new WeakSet(), boundaryPending: new Map() };
   // The living only. A defeat never removes the token, and a defeated Unit was
   // still ticked, drained and re-defeated at every boundary (§46.4-CN).
   const units = (board.units ?? []).filter((u) => !u.defeated);
@@ -500,7 +503,7 @@ export function fireEvent(event, units, ctx) {
       // intents have not been applied and will not be until the caller applies
       // them.
       /** @type {Map<string, number>} */
-      const pending = new Map();
+      const pending = ctx.boundaryPending ?? new Map();
       // A SCRIPT rather than an action list.
       //
       // `rules/elements.mjs`'s `Script` element has collected these since it was

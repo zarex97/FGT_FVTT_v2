@@ -21,6 +21,11 @@ kind: classSkill
 copyable: { allowed: false, reason: classSkill }
 isMode: true
 toggleLock: "2◈"
+# "While Mad Enhancement is deactivated, Berserker's Sustainability is 2◈ Turns.
+# When Mad Enhancement is activated, Berserker's Sustainability is 1◈ Turns."
+# The figure while on; the Servant's own `sustainability` while off. In place of
+# the Advanced clause 5's charge at the Master's death (#419).
+activeSustainability: "1◈"
 description: |
   (Active) Toggles during your Turn; 2◈ Turns must pass before it can be used again.
   While Active, Berserker's Master loses 15 Health at the end of each Turn Berserker Acts, and Mad
@@ -59,6 +64,11 @@ activeRules:
   - key: TableOverride
     check: evade
     forceTable: unfavourable
+  # "Berserker's Master loses 15 Health at the end of each Turn Berserker Acts."
+  # `amount`, the figure `StatDelta` reads: authored `value` and a `floor: 15`
+  # borrowed from the Advanced template, the drain read no figure and took
+  # nothing (#419, pressed live). No floor: this sheet prints none (ruled
+  # 2026-11-16, #419), so a Master at 10 is drained to 0 and falls.
   - key: OnEvent
     event: actedTurnEnd
     automatic: true
@@ -66,6 +76,28 @@ activeRules:
       - key: StatDelta
         subject: master
         stat: health.value
-        value: 15
+        amount: 15
         direction: down
-        floor: 15
+      # "When Berserker's Master is left with 15 Health or less, Mad Enhancement
+      # is forcibly deactivated at the end of the Turn." After the drain, so it
+      # reads what the drain left; never on a Master the drain felled, whose
+      # death locks the Mode on (ruled 2026-11-16, #419: the lock wins).
+      - key: SetMode
+        ability: madEnhancement
+        active: false
+        whenValue:
+          - { subject: master, stat: health.value, lte: 15 }
+          - { subject: master, stat: health.value, gte: 1 }
+  # ...and at the end of every other Turn (ruled 2026-11-16, #419): a Master
+  # brought to 15 or less on a Turn Berserker did not Act. Heard after the drain
+  # above, and it reads the Health the whole Turn's end has left.
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    then:
+      - key: SetMode
+        ability: madEnhancement
+        active: false
+        whenValue:
+          - { subject: master, stat: health.value, lte: 15 }
+          - { subject: master, stat: health.value, gte: 1 }

@@ -275,7 +275,8 @@ describe("an area that catches Jack alone still flips the coin (#185)", () => {
     expect(src).toMatch(/filter\(\(t\) => t\.concealedAoE\)/);
     // ...save against an attack only its own check avoids (#204 reading 15).
     // `!state.steppedIn` since #249: a Unit that stepped into the Attack while concealed takes it whole.
-    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\) && !state\.attack\?\.unavoidable && !state\.steppedIn\) \{/);
+    // Either concealment (`veiledFromAttacks`): the Normal one flips the same coin (#418).
+    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && veiledFromAttacks\(defender\) && !state\.attack\?\.unavoidable && !state\.steppedIn\) \{/);
   });
 });
 

@@ -65,6 +65,11 @@ function abilityCommon() {
     // tick it last flipped on. The toggle was a bare write until this existed,
     // so the clause had nowhere to live.
     toggleLock: new TickField(),
+    // The Sustainability its bearer has while this Mode is on, in place of its own: the Normal Mad
+    // Enhancement's *"When Mad Enhancement is activated, Berserker's Sustainability is 1◈ Turns"* (#419).
+    // Read by the snapshot (`sustainabilityTurns`) and by `rules/relationships.mjs#onMasterDefeated`,
+    // which charges no Advanced clause 5 for a Mode that states its own.
+    activeSustainability: new TickField(),
     // WHO may switch this mode off, and WHEN. Distinct from `toggleLock`, which
     // says how long they must wait, and from `cannotDeactivate`, which says
     // never: this says at which moments the offer exists at all.
