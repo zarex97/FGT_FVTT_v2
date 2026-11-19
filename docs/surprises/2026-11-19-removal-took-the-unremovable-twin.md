@@ -12,7 +12,7 @@ instance's own `unremovable` counts).
 landed Unremovable. The Attack path's removal planned `["atkUp"]` and wrote `removeEffect(saber, "atkUp")`, and
 neither Atk Up was left. The Skill path wrote the same.
 
-**Cause:** `module/rules/removal.mjs:78 @ uncommitted`: both paths wrote the plan's definition ids, and
+**Cause:** `module/rules/removal.mjs:78 @ d1fe2289`: both paths wrote the plan's definition ids, and
 `io.mjs#deleteEffects` matches a definition id as well as a document id, so the twin went with the removable one.
 
 **Fix:** `removalCandidatesOf` builds both paths' candidates with each instance's document id, and `removalTargets`
