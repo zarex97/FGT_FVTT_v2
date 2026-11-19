@@ -56,7 +56,7 @@ import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "
 import { absorb, refreshShield, landBarrier, ridersHeldBy } from "./shield.mjs";
 import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, ownRemovalResist } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, selectorMatches, removalCandidatesOf, removalTargets } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable, maxHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
@@ -9220,17 +9220,7 @@ async function removalIntents(phase, doc, bearer, by = null) {
   // all buffs from the DU"*, straight into whatever `Buff Removal ResUp` the
   // defender is carrying. Rolled here, per definition id, because the rules
   // layer is pure.
-  const candidates = doc.effects
-    .filter((e) => ids.includes(e.system?.defId))
-    .map((e) => {
-      const def = EffectRegistry.get(e.system?.defId);
-      return {
-        defId: e.system.defId,
-        polarity: polarityOf(e.system, def),
-        unremovable: isUnremovable(def, e, { by }),
-        ownResist: ownRemovalResist(def),
-      };
-    });
+  const candidates = removalCandidatesOf(doc.effects, ids, { defOf: (id) => EffectRegistry.get(id), by });
   const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
 
   /** @type {Record<string, number>} */
@@ -9242,7 +9232,9 @@ async function removalIntents(phase, doc, bearer, by = null) {
   const plan = removalPlan({ candidates, bearer, rolls, ignoresProtection });
   const nameOf = (id) => EffectRegistry.get(id)?.name ?? id;
   return {
-    intents: plan.removed.map((id) => I.removeEffect(doc.id, id, "ruleBreaker")),
+    // Each removable instance by its document: by definition the write took an
+    // Unremovable twin too (R-0032).
+    intents: removalTargets(candidates, plan.removed).map((id) => I.removeEffect(doc.id, id, "ruleBreaker")),
     rows: [
       ...[...new Set(plan.removed)].map((id) => ({ unitId: doc.id, summary: {
         id, name: nameOf(id), outcome: "removed", reason: null, chance: null,
