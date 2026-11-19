@@ -40,7 +40,6 @@ import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { polarityOf } from "../rules/effect-instance.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf, unitActor } from "./board.mjs";
 import { resourceLabel, resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
@@ -61,7 +60,7 @@ import { expressionRefs } from "../rules/snapshot.mjs";
 import {
   stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching, declarationCriteria,
 } from "../rules/count.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, ownRemovalResist } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, removalCandidatesOf, removalTargets } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
@@ -1218,9 +1217,9 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         }
 
         case "removeEffect": {
-          const removed = await resolveRemoval(phase, doc, snapshot, ability);
+          const { removed, targets } = await resolveRemoval(phase, doc, snapshot, ability);
           await applyWorld(
-            removed.map((id) => I.removeEffect(target.unitId, id, "skill")),
+            targets.map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
           );
           // On the card, one line per effect taken off. Teachings of Circe
@@ -2674,7 +2673,8 @@ async function chosenCooldowns(phase, ability, doc) {
  * @param {object} phase
  * @param {object} doc the bearer's actor document
  * @param {object} bearer the bearer's unit snapshot
- * @returns {Promise<string[]>} the definition ids to remove
+ * @returns {Promise<{removed: string[], targets: string[]}>} the definitions removed, one each for the card, and the
+ *   instances to write off, each by its document: never an Unremovable twin of one removed (R-0032)
  */
 async function resolveRemoval(phase, doc, bearer, by = null) {
   const candidates = await pickedCandidates(phase, doc, removalCandidates(phase, doc, by));
@@ -2696,7 +2696,7 @@ async function resolveRemoval(phase, doc, bearer, by = null) {
       chance: r.chance, roll: r.roll,
     }));
   }
-  return plan.removed;
+  return { removed: [...new Set(plan.removed)], targets: removalTargets(candidates, plan.removed) };
 }
 
 /**
@@ -2753,18 +2753,7 @@ async function pickedCandidates(phase, doc, candidates) {
  * @returns {Array<{defId: string, polarity: string|undefined, unremovable: boolean}>}
  */
 function removalCandidates(phase, doc, by = null) {
-  const named = new Set(removals(phase, doc, by));
-  return doc.effects
-    .filter((e) => named.has(e.system?.defId))
-    .map((e) => {
-      const def = EffectRegistry.get(e.system?.defId);
-      return {
-        defId: e.system.defId,
-        polarity: polarityOf(e.system, def),
-        unremovable: isUnremovable(def, e, { by }),
-        ownResist: ownRemovalResist(def),
-      };
-    });
+  return removalCandidatesOf(doc.effects, removals(phase, doc, by), { defOf: (id) => EffectRegistry.get(id), by });
 }
 
 function removals(phase, doc, by = null) {

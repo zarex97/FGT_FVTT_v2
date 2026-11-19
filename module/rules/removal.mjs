@@ -32,10 +32,55 @@ import { Rank } from "../domain/rank.mjs";
 /**
  * @typedef {object} RemovalCandidate
  * @property {string} defId
+ * @property {string} [documentId] the instance's own document id, the one a removal writes
  * @property {string} [polarity]
  * @property {boolean} [unremovable]
  * @property {number} [ownResist] the effect's own `removalResist`, any polarity
  */
+
+/**
+ * The removal candidates a bearer's effects offer, one per instance: the Skill
+ * and the Attack paths each built their own until R-0032.
+ *
+ * @param {Iterable<object>} effects the bearer's ActiveEffects
+ * @param {string[]} defIds the definitions the removal names or its selector reached
+ * @param {object} opts
+ * @param {(id: string) => object|null|undefined} opts.defOf the registry's lookup
+ * @param {object|null} [opts.by] the removing ability
+ * @returns {RemovalCandidate[]}
+ */
+export function removalCandidatesOf(effects, defIds, { defOf, by = null }) {
+  const named = new Set(defIds ?? []);
+  return [...(effects ?? [])]
+    .filter((e) => named.has(e.system?.defId))
+    .map((e) => {
+      const def = defOf(e.system?.defId);
+      return {
+        defId: e.system.defId,
+        documentId: e.id,
+        polarity: polarityOf(e.system, def),
+        unremovable: isUnremovable(def, e, { by }),
+        ownResist: ownRemovalResist(def),
+      };
+    });
+}
+
+/**
+ * What a plan writes: each removable instance of an effect it removed, by its
+ * document id. By definition id the write took every instance, an Unremovable
+ * twin with its removable one: two Atk Ups, one landed Unremovable, and a Rule
+ * Breaker left neither (R-0032, reproduced in fgt2026 2026-11-19).
+ *
+ * @param {RemovalCandidate[]} candidates
+ * @param {string[]} removed the plan's `removed`
+ * @returns {string[]} document ids, or a definition id where a candidate names no document
+ */
+export function removalTargets(candidates, removed) {
+  const gone = new Set(removed ?? []);
+  return [...new Set((candidates ?? [])
+    .filter((c) => !c.unremovable && gone.has(c.defId))
+    .map((c) => c.documentId ?? c.defId))];
+}
 
 
 /**

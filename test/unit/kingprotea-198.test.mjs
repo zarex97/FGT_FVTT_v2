@@ -188,12 +188,16 @@ describe("an Unremovable instance survives a cleanse (SS.unrem)", () => {
   });
 
   it("is the one reader both removal paths ask", () => {
+    // Both paths build their candidates in one place since R-0032, and that
+    // place asks the reader with the remover beside it (Mythos, #362 MY.4).
     for (const file of ["module/engine/skill-use.mjs", "module/engine/attack.mjs"]) {
       const src = readFileSync(file, "utf8");
       expect(src, file).not.toMatch(/def\??\.unremovable \?\? e\.system/);
-      // ...with the remover beside it, where one is known (Mythos, #362 MY.4).
-      expect(src, file).toMatch(/isUnremovable\(def, e(, \{ by \})?\)/);
+      expect(src, file).toMatch(/removalCandidatesOf\(doc\.effects, /);
     }
+    const rules = readFileSync("module/rules/removal.mjs", "utf8");
+    expect(rules).toMatch(/export function removalCandidatesOf\(/);
+    expect(rules).toMatch(/unremovable: isUnremovable\(def, e, \{ by \}\)/);
   });
 });
 
